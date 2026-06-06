@@ -164,3 +164,4 @@ footer{padding:24px 14px}
 .topbar.scrolled .city:hover,.topbar.scrolled .lang:hover{border-color:var(--ink);background:rgba(10,9,8,0.04)}
 .topbar.scrolled .burger{border-color:rgba(10,9,8,0.4)}
 .topbar.scrolled .burger span{background:var(--ink)}
+.topbar .left a.active{color:var(--page)}

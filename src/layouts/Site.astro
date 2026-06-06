@@ -1,12 +1,34 @@
 ---
-// Site layout for the Rega Rega Batumi edition.
-// Shared shell: head, topbar, mobile menu, footer, cursor — edit ONCE here.
+// Shared shell for the Rega Rega Batumi edition — edit nav/logo/footer ONCE here.
+// Path-aware: highlights the active page, builds the RU link from the current path,
+// and applies a per-page accent (--page) passed as a prop.
 import '../styles/shell.css';
-export interface Props { title?: string; description?: string; }
+
+export interface Props {
+  title?: string;
+  description?: string;
+  accent?: string;       // --page  (per-page accent)
+  accentDeep?: string;   // --page-deep
+}
 const {
   title = 'rega rega — apartments & the batumi guide',
   description = 'checked flats and a city guide. batumi edition. local operations by bre.',
+  accent = 'var(--accent)',
+  accentDeep = 'var(--accent-deep)',
 } = Astro.props;
+
+// normalise current path (strip trailing slash, keep "/")
+const path = (Astro.url.pathname.replace(/\/$/, '') || '/');
+const isActive = (href: string) => path === href;
+const ru = path === '/' ? '/ru/' : `/ru${path}`;
+
+const nav = [
+  { href: '/stays', label: 'stays' },
+  { href: '/guide', label: 'guide' },
+  { href: '/own', label: 'own with us' },
+  { href: '/invest', label: 'invest' },
+];
+const bodyStyle = `--page:${accent};--page-deep:${accentDeep}`;
 ---
 <!doctype html>
 <html lang="en">
@@ -18,42 +40,39 @@ const {
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@10..48,200..900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
-  <link rel="icon" type="image/svg+xml" href="/favicon.svg">
-<link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png">
-<link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png">
-<link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png">
-<meta name="theme-color" content="#0a0908">
+  <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+  <meta name="theme-color" content="#0a0908" />
 </head>
-<body>
+<body style={bodyStyle}>
 <span id="flyingDot"></span>
-
 <div class="cursor" id="cursor"></div>
 
 <header class="topbar" id="top">
   <div class="left">
     <a class="home-dot" href="/" aria-label="home"></a>
-    <a href="/stays">stays</a>
-    <a href="/guide">guide</a>
-    <a href="/own">own with us</a>
-    <a href="/invest">invest</a>
+    {nav.map((n) => (
+      <a href={n.href} class:list={[{ active: isActive(n.href) }]}>{n.label}</a>
+    ))}
   </div>
-  <a href="#top" class="ctr">rega<span class="d"></span><span class="twin">rega</span></a>
+  <a href="/" class="ctr" title="home">rega<span class="d"></span><span class="twin">rega</span></a>
   <div class="right">
     <a href="#" class="city">batumi <span class="arr">▾</span></a>
-    <a href="/ru/" class="lang" title="русский">ru</a>
+    <a href={ru} class="lang">ru</a>
     <button class="burger" id="burger" aria-label="menu" type="button"><span></span><span></span></button>
   </div>
 </header>
 
 <div class="menu-overlay" id="menuOverlay" hidden>
   <div class="menu-inner">
-    <a href="/stays" class="menu-item">stays</a>
-    <a href="/guide" class="menu-item">guide</a>
-    <a href="/own" class="menu-item">own with us</a>
-    <a href="/invest" class="menu-item">invest</a>
-    <a href="#contact" class="menu-item">contact</a>
+    {nav.map((n) => (
+      <a href={n.href} class:list={['menu-item', { active: isActive(n.href) }]}>{n.label}</a>
+    ))}
+    <a href="/contact" class:list={['menu-item', { active: isActive('/contact') }]}>contact</a>
     <div class="menu-foot">
-      <div class="menu-row"><span class="menu-row-label">language</span><a href="/ru/" class="menu-row-val"><b>en</b> · ru</a></div>
+      <div class="menu-row"><span class="menu-row-label">language</span><a href={ru} class="menu-row-val"><b>en</b> · ru</a></div>
       <a href="https://t.me/bre_ge" class="menu-tg">↗ telegram @bre_ge</a>
     </div>
   </div>
@@ -78,7 +97,7 @@ const {
       <a href="/agents">agents</a>
     </div>
     <div class="foot-right">
-      <a href="/ru/" class="foot-lang">RU · <b>EN</b></a>
+      <a href={ru} class="foot-lang">RU · <b>EN</b></a>
       <a href="#" class="foot-top" onclick="event.preventDefault();window.scrollTo(0,0)">↑ back to top</a>
     </div>
   </div>
