@@ -9,6 +9,7 @@
     "preview": "astro preview"
   },
   "dependencies": {
+    "@supabase/supabase-js": "^2.107.0",
     "astro": "^4.16.0"
   }
 }

@@ -1,0 +1,67 @@
+---
+import Site from '../../layouts/Site.astro';
+import { supabase, type Apartment } from '../../lib/supabase';
+
+export async function getStaticPaths() {
+  const { data } = await supabase
+    .from('apartments_public')
+    .select('id,slug,title,summary,neighborhood,bedrooms,max_guests,price_from,photos');
+  const apartments = (data as Apartment[]) || [];
+  return apartments.map((apt) => ({ params: { slug: apt.slug }, props: { apt } }));
+}
+
+const { apt } = Astro.props as { apt: Apartment };
+const photos = (apt.photos && apt.photos.length ? apt.photos
+  : ['https://picsum.photos/seed/' + apt.slug + '/1400/1000']);
+const tg = 'https://t.me/bre_ge?text=' + encodeURIComponent('interested in ' + apt.title);
+---
+<Site title={`${apt.title} — rega rega batumi`} description={apt.summary || 'a checked flat in batumi.'}>
+<article class="apt">
+  <a href="/stays" class="apt-back">← all stays</a>
+
+  <header class="apt-head">
+    <div>
+      <h1 class="apt-h1">{apt.title}</h1>
+      <div class="apt-tags">
+        {apt.neighborhood && <span>{apt.neighborhood}</span>}
+        <span>{apt.bedrooms ?? 1} bd</span>
+        <span>{apt.max_guests ?? 2} guests</span>
+      </div>
+    </div>
+    {apt.price_from && <div class="apt-price">from <b>₾{apt.price_from}</b> / night</div>}
+  </header>
+
+  <div class="apt-gallery">
+    {photos.map((p) => <div class="apt-shot"><img src={p} alt={apt.title} loading="lazy" /></div>)}
+  </div>
+
+  {apt.summary && <p class="apt-lead">{apt.summary}</p>}
+
+  <div class="apt-cta">
+    <a class="apt-book" href={tg}>book direct →</a>
+    <span class="apt-by">local operations by <em>bre</em></span>
+  </div>
+</article>
+
+<style>
+.apt{max-width:1080px;margin:0 auto;padding:104px 32px 96px}
+.apt-back{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;font-weight:700;color:var(--ink-soft,#4d544e)}
+.apt-back:hover{color:var(--page,#ff5e1a)}
+.apt-head{display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap;margin:28px 0 28px}
+.apt-h1{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:clamp(34px,6vw,68px);letter-spacing:-.04em;line-height:.95;text-transform:lowercase}
+.apt-tags{display:flex;gap:14px;margin-top:12px;font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-soft,#4d544e)}
+.apt-price{font-size:20px;color:var(--ink-soft,#4d544e)}
+.apt-price b{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:30px;color:var(--page,#ff5e1a);letter-spacing:-.02em}
+.apt-gallery{display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));gap:14px}
+.apt-shot{aspect-ratio:4/3;border-radius:14px;overflow:hidden;background:var(--bg-2,#f1ecdf)}
+.apt-shot:first-child{grid-column:1 / -1;aspect-ratio:16/9}
+.apt-shot img{width:100%;height:100%;object-fit:cover;display:block}
+.apt-lead{font-size:clamp(18px,2.2vw,26px);line-height:1.5;letter-spacing:-.01em;max-width:48ch;margin:36px 0}
+.apt-cta{display:flex;align-items:center;gap:20px;flex-wrap:wrap;border-top:1px solid var(--line,#0a090818);padding-top:28px}
+.apt-book{background:var(--page,#ff5e1a);color:#fff;font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:18px;letter-spacing:-.01em;padding:14px 26px;border-radius:999px;transition:transform .15s ease}
+.apt-book:hover{transform:scale(1.03)}
+.apt-by{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-soft,#4d544e)}
+.apt-by em{font-style:italic;color:var(--page,#ff5e1a)}
+@media(max-width:600px){.apt{padding:88px 16px 64px}}
+</style>
+</Site>

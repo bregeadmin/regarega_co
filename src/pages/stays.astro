@@ -1,0 +1,38 @@
+---
+import Site from '../layouts/Site.astro';
+import ApartmentCard from '../components/ApartmentCard.astro';
+import { supabase, type Apartment } from '../lib/supabase';
+
+const { data, error } = await supabase
+  .from('apartments_public')
+  .select('id,slug,title,summary,neighborhood,bedrooms,max_guests,price_from,photos')
+  .order('price_from', { ascending: true });
+
+const apartments = (data as Apartment[]) || [];
+---
+<Site title="stays — rega rega batumi" description="checked flats in batumi. honestly photographed.">
+<section class="stays-hero">
+  <span class="stays-kicker">stays · batumi</span>
+  <h1 class="stays-h1">checked flats. honestly photographed.</h1>
+  <p class="stays-sub">{apartments.length} apartments · local operations by <em>bre</em></p>
+</section>
+
+<section class="stays-grid-wrap">
+  {error && <p class="stays-err">couldn't load apartments right now.</p>}
+  <div class="stays-grid">
+    {apartments.map((apt) => <ApartmentCard apt={apt} />)}
+  </div>
+</section>
+
+<style>
+.stays-hero{padding:120px 32px 32px;max-width:1280px;margin:0 auto}
+.stays-kicker{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.24em;text-transform:uppercase;font-weight:700;color:var(--ink-soft,#4d544e)}
+.stays-h1{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:clamp(36px,6vw,72px);letter-spacing:-.04em;line-height:.95;text-transform:lowercase;margin:14px 0 10px}
+.stays-sub{font-size:16px;color:var(--ink-soft,#4d544e)}
+.stays-sub em{font-style:italic;color:var(--page,#ff5e1a)}
+.stays-grid-wrap{padding:24px 32px 96px;max-width:1280px;margin:0 auto}
+.stays-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:22px}
+.stays-err{color:var(--page,#ff5e1a);font-family:"JetBrains Mono",monospace;font-size:12px}
+@media(max-width:600px){.stays-hero{padding:96px 16px 24px}.stays-grid-wrap{padding:16px 16px 64px}.stays-grid{gap:16px}}
+</style>
+</Site>
