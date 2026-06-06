@@ -1,0 +1,955 @@
+---
+import Site from '../layouts/Site.astro';
+---
+<Site>
+<section class="hero">
+  <div class="hero-main">
+    <a class="hero-main-img" href="/stays" aria-label="all apartments">
+      <img src="https://images.unsplash.com/photo-1502672023488-70e25813eb80?w=2000&q=80" alt="bre apartment" onerror="this.src='https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=2000&q=80'"/>
+    </a>
+    <h1 class="hero-h1">
+      find a flat,<br/>
+      <span class="row2"><em>fall</em> for the city</span>
+    </h1>
+    <form class="hero-search" id="heroSearch" onsubmit="return submitHeroSearch(event)">
+      <button type="button" class="hs-field" id="hsDateBtn">
+        <span class="hs-lbl">— dates</span>
+        <span class="hs-val" id="hsDateVal">add dates</span>
+      </button>
+      <button type="button" class="hs-field" id="hsGuestBtn">
+        <span class="hs-lbl">— guests</span>
+        <span class="hs-val" id="hsGuestVal">2 guests</span>
+      </button>
+      <button type="submit" class="hs-submit" aria-label="search">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg>
+      </button>
+    </form>
+  </div>
+
+  <div class="hero-side">
+    <a class="hero-card edition" href="/guide">
+      <img src="https://images.unsplash.com/photo-1559561853-08451507cbe7?w=900&q=80" alt=""/>
+      <div class="ed-no">the batumi guide · this week</div>
+      <h4>oyster <em>weekend</em>,<br/>and how to find<br/>the best coffee.</h4>
+      <div class="ed-foot">
+        <span><b>read the issue</b></span>
+        <span>↗</span>
+      </div>
+    </a>
+    <a class="hero-card simple" href="/guide/bolt-taxi-batumi">
+      <span class="label">— from the guide</span>
+      <img src="https://images.unsplash.com/photo-1502920514313-52581002a659?w=900&q=80" alt=""/>
+      <div class="meta">
+        <h4>bolt taxi — how it works in batumi</h4>
+        <div class="sub">↳ a 4-min explainer</div>
+      </div>
+    </a>
+  </div>
+</section>
+
+<section class="pad" id="stays">
+  <div class="section-head reveal">
+    <div>
+      <div class="meta"><span class="dot"></span>— 01 / available now</div>
+      <h2 style="margin-top:18px">stay with<br/><em>us</em>.</h2>
+    </div>
+    <div class="right"><b>apartments across batumi</b>. honestly photographed, fairly priced, stocked with the things you forgot to bring. each one with its own guide.</div>
+  </div>
+
+  <div class="apts">
+    <a class="apt reveal" href="/stays/orbi-21">
+      <div class="ph">
+        <img src="https://images.unsplash.com/photo-1502672023488-70e25813eb80?w=1200&q=80" alt=""/>
+        <span class="badge hot">just listed</span>
+        <button class="fav" type="button" onclick="event.preventDefault();this.textContent=this.textContent==='♡'?'♥':'♡'">♡</button>
+      </div>
+      <div class="info">
+        <div class="top"><h4>orbi sea towers — 21st</h4><div class="price">$185<span class="u">/NT</span></div></div>
+        <div class="sub"><span>1 bed · 48m² · sea view</span><span class="dist">hot beach</span></div>
+      </div>
+    </a>
+
+    <a class="apt reveal" href="/stays/boulevard-loft">
+      <div class="ph">
+        <img src="https://images.unsplash.com/photo-1560448204-e02f11c3d0e2?w=1200&q=80" alt=""/>
+        <button class="fav" type="button" onclick="event.preventDefault();this.textContent=this.textContent==='♡'?'♥':'♡'">♡</button>
+      </div>
+      <div class="info">
+        <div class="top"><h4>old boulevard loft</h4><div class="price">$95<span class="u">/NT</span></div></div>
+        <div class="sub"><span>studio · 36m²</span><span class="dist">old town</span></div>
+      </div>
+    </a>
+
+    <a class="apt reveal" href="/stays/botanical">
+      <div class="ph">
+        <img src="https://images.unsplash.com/photo-1522708323590-d24dbb6b0267?w=1200&q=80" alt=""/>
+        <span class="badge">long stay</span>
+        <button class="fav" type="button" onclick="event.preventDefault();this.textContent=this.textContent==='♡'?'♥':'♡'">♡</button>
+      </div>
+      <div class="info">
+        <div class="top"><h4>botanical garden house</h4><div class="price">$140<span class="u">/NT</span></div></div>
+        <div class="sub"><span>2 bed · 72m² · garden</span><span class="dist">botanical</span></div>
+      </div>
+    </a>
+
+    <a class="apt reveal" href="/stays/chavchavadze">
+      <div class="ph">
+        <img src="https://images.unsplash.com/photo-1493809842364-78817add7ffb?w=1200&q=80" alt=""/>
+        <button class="fav" type="button" onclick="event.preventDefault();this.textContent=this.textContent==='♡'?'♥':'♡'">♡</button>
+      </div>
+      <div class="info">
+        <div class="top"><h4>chavchavadze, 4th line</h4><div class="price">$78<span class="u">/NT</span></div></div>
+        <div class="sub"><span>1 bed · 42m² · city</span><span class="dist">chavchavadze</span></div>
+      </div>
+    </a>
+
+    <a class="apt reveal" href="/stays/arena">
+      <div class="ph">
+        <img src="https://images.unsplash.com/photo-1505691938895-1758d7feb511?w=1200&q=80" alt=""/>
+        <span class="badge hot">2 nights left</span>
+        <button class="fav" type="button" onclick="event.preventDefault();this.textContent=this.textContent==='♡'?'♥':'♡'">♡</button>
+      </div>
+      <div class="info">
+        <div class="top"><h4>black sea arena view</h4><div class="price">$160<span class="u">/NT</span></div></div>
+        <div class="sub"><span>2 bed · 65m² · sea</span><span class="dist">arena</span></div>
+      </div>
+    </a>
+
+    <a class="apt reveal" href="/stays/gonio">
+      <div class="ph">
+        <img src="https://images.unsplash.com/photo-1554995207-c18c203602cb?w=1200&q=80" alt=""/>
+        <span class="badge">house</span>
+        <button class="fav" type="button" onclick="event.preventDefault();this.textContent=this.textContent==='♡'?'♥':'♡'">♡</button>
+      </div>
+      <div class="info">
+        <div class="top"><h4>gonio cape</h4><div class="price">$240<span class="u">/NT</span></div></div>
+        <div class="sub"><span>4 bed · 180m² · beach</span><span class="dist">gonio</span></div>
+      </div>
+    </a>
+  </div>
+
+  <div class="more"><a href="/stays">see all apartments →</a></div>
+</section>
+
+<section class="spread">
+  <img src="https://images.unsplash.com/photo-1604542031658-5799ca5d7936?w=2400&q=80" alt="batumi old town"/>
+  <div class="inner">
+    <h2>the batumi<br/>we <em>actually</em><br/>recommend.</h2>
+    <p class="lede">our own city guide — written by us, not scraped from tripadvisor. cafés, restaurants, beaches, wellness, nightlife — sorted by where you'll actually want to spend an afternoon.</p>
+    <div class="spread-cta">
+      <a class="btn" href="/guide">open the guide →</a>
+    </div>
+  </div>
+</section>
+
+<section class="guide-wrap" id="guide">
+  <div class="section-head reveal">
+    <div>
+      <div class="meta"><span class="dot"></span>— in this issue</div>
+    </div>
+    <div class="right">a selection from <b>eight categories</b>. one hundred plus spots, hand-picked.</div>
+  </div>
+
+  <div class="guide-categories">
+    <div class="cat reveal">
+      <div class="cat-head">
+        <h3>eat &amp; <em>drink</em></h3>
+        <span class="count">42 spots</span>
+      </div>
+      <a class="feat" href="/guide/nova-coffee">
+        <div class="ph">
+          <img src="https://images.unsplash.com/photo-1554118811-1e0d58224f24?w=1000&q=80" alt=""/>
+          <span class="tag">coffee</span>
+        </div>
+        <div class="body">
+          <span class="kicker">eat &amp; drink · 3 min read</span>
+          <h4>nova coffee — proper specialty in town</h4>
+          <p>a clean room, a real espresso machine, beans roasted weekly. you can sit and read.</p>
+        </div>
+      </a>
+      <div class="cat-posts">
+        <a class="post" href="/guide/milevski-coffee">
+          <div class="ph"><img src="https://images.unsplash.com/photo-1559561853-08451507cbe7?w=400&q=80" alt=""/></div>
+          <div class="body"><span class="kicker">coffee</span><h4>milevski coffee — pour-over &amp; community</h4></div>
+        </a>
+        <a class="post" href="/guide/japan-33">
+          <div class="ph"><img src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=400&q=80" alt=""/></div>
+          <div class="body"><span class="kicker">restaurant</span><h4>japan 33 — sunset dinners over the sea</h4></div>
+        </a>
+      </div>
+    </div>
+
+    <div class="cat reveal">
+      <div class="cat-head">
+        <h3>move <em>around</em></h3>
+        <span class="count">12 posts</span>
+      </div>
+      <a class="feat" href="/guide/bolt-taxi-batumi">
+        <div class="ph">
+          <img src="https://images.unsplash.com/photo-1502920514313-52581002a659?w=1000&q=80" alt=""/>
+          <span class="tag">how-to</span>
+        </div>
+        <div class="body">
+          <span class="kicker">move around · 4 min read</span>
+          <h4>bolt taxi — how it works in batumi</h4>
+          <p>the local uber. 3 taps, card payment, anywhere from old town to gonio for under 10 lari.</p>
+        </div>
+      </a>
+      <div class="cat-posts">
+        <a class="post" href="/guide/airport-transfer">
+          <div class="ph"><img src="https://images.unsplash.com/photo-1436491865332-7a61a109cc05?w=400&q=80" alt=""/></div>
+          <div class="body"><span class="kicker">how-to</span><h4>from the airport — three options that actually work</h4></div>
+        </a>
+        <a class="post" href="/guide/marshrutkas">
+          <div class="ph"><img src="https://images.unsplash.com/photo-1473445730015-841f29a9490b?w=400&q=80" alt=""/></div>
+          <div class="body"><span class="kicker">how-to</span><h4>marshrutkas — the local mini-bus, decoded</h4></div>
+        </a>
+      </div>
+    </div>
+
+    <div class="cat reveal">
+      <div class="cat-head">
+        <h3><em>wellness</em></h3>
+        <span class="count">18 spots</span>
+      </div>
+      <a class="feat" href="/guide/pure-bistro-oyster-weekend">
+        <div class="ph">
+          <img src="https://images.unsplash.com/photo-1559561853-08451507cbe7?w=1000&q=80" alt=""/>
+          <span class="tag news">news · 07/05</span>
+        </div>
+        <div class="body">
+          <span class="kicker">news · this saturday</span>
+          <h4>pure bistro — oyster weekend, 08–10/05</h4>
+          <p>fresh oysters, cava and crémant at one of our favorite brunch &amp; dinner spots in batumi.</p>
+        </div>
+      </a>
+      <div class="cat-posts">
+        <a class="post" href="/guide/kava-lova-popup">
+          <div class="ph"><img src="https://images.unsplash.com/photo-1551782450-a2132b4ba21d?w=400&q=80" alt=""/></div>
+          <div class="body"><span class="kicker">news · 13/05</span><h4>15/05 cocktail pop-up at kava lova with vanya</h4></div>
+        </a>
+        <a class="post" href="/guide/botanical-garden-may">
+          <div class="ph"><img src="https://images.unsplash.com/photo-1530631673369-bc20fdb32288?w=400&q=80" alt=""/></div>
+          <div class="body"><span class="kicker">photo essay</span><h4>the botanical garden, in may</h4></div>
+        </a>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="now">
+  <div class="now-grid">
+    <div>
+      <div class="now-label"><span class="pulse"></span>right now in batumi</div>
+      <div class="now-val"><span id="nowDate">today</span><span class="small" id="nowDesc">checking the sky…</span></div>
+    </div>
+    <div>
+      <div class="now-label">temperature</div>
+      <div class="now-val"><span id="nowTemp">—</span><em>°</em>C<span class="small" id="nowWind">light sea breeze</span></div>
+    </div>
+    <div>
+      <div class="now-label">sunset</div>
+      <div class="now-val" id="nowSunset">—:—<span class="small">over the black sea</span></div>
+    </div>
+    <div>
+      <div class="now-label">from the guide</div>
+      <div class="now-val"><a href="/guide/pure-bistro-oyster-weekend">oyster weekend</a><span class="small">→ pure bistro, sat–sun</span></div>
+    </div>
+  </div>
+</section>
+
+<section class="pull">
+  <blockquote class="reveal">
+    we do<br/>the <span class="underline"><em>flat</em></span>.<br/>you do<br/>the <span class="underline"><em>city</em></span>.
+  </blockquote>
+  <div class="sig">— bre, batumi</div>
+</section>
+
+<section class="doors-wrap" id="own">
+  <div class="section-head reveal">
+    <div>
+      <div class="meta"><span class="dot"></span>— not here to book?</div>
+      <h2 style="margin-top:18px">we help you <em>buy</em><br/>and <em>manage</em> after.</h2>
+    </div>
+    <div class="right">if you own a flat in batumi — or want to — let's talk. we've done this <b>120+ times</b> already.</div>
+  </div>
+
+  <div class="doors">
+    <a class="door reveal" href="/own">
+      <div>
+        <div class="num">i. for owners</div>
+        <h3>just hand us<br/>the <em>keys</em>.</h3>
+        <p>full-service short and mid-term rental. 30% commission, all-in. guests in 5 languages, photos, dynamic pricing, cleaning, the lot.</p>
+      </div>
+      <div>
+        <div class="stat"><b>30%</b><span>commission · all-in</span></div>
+        <span class="cta">how it works <span>→</span></span>
+      </div>
+    </a>
+
+    <a class="door reveal" href="/invest" id="invest">
+      <div>
+        <div class="num">ii. for investors</div>
+        <h3>buy a flat<br/>that <em>pays</em>.</h3>
+        <p>we find the best flats, renovate, list, manage. you see numbers, not stress. average net yield across our portfolio.</p>
+      </div>
+      <div>
+        <div class="stat"><b>11%</b><span>annual yield · avg.</span></div>
+        <span class="cta">talk to us <span>→</span></span>
+      </div>
+    </a>
+  </div>
+</section>
+
+<section class="contact" id="contact">
+  <h2 class="reveal">say<br/><em>hi</em>.</h2>
+
+  <div class="channels reveal">
+    <a class="channel" href="https://t.me/bre_ge"><span class="label">telegram</span><span class="value">@bre_ge</span><span class="ar">→</span></a>
+    <a class="channel" href="#"><span class="label">whatsapp</span><span class="value">+49 176 596 981 64</span><span class="ar">→</span></a>
+    <a class="channel" href="tel:+995585889601"><span class="label">phone</span><span class="value">+995 585 889 601</span><span class="ar">→</span></a>
+    <a class="channel" href="https://t.me/batumirealflats"><span class="label">channel</span><span class="value">t.me/batumirealflats</span><span class="ar">→</span></a>
+    <div class="channel"><span class="label">office</span><span class="value">batumi, georgia</span><span class="ar">— 41.6°N 41.6°E</span></div>
+  </div>
+</section>
+
+<section class="footer-guide">
+  <div class="footer-guide-head">
+    <h4>last week<br/>we <em>wrote</em> ↓</h4>
+    <a href="/guide" class="all">all 100+ posts →</a>
+  </div>
+  <div class="footer-posts">
+    <a class="fp" href="/guide/pure-bistro-oyster-weekend">
+      <div class="ph"><img src="https://images.unsplash.com/photo-1559561853-08451507cbe7?w=300&q=80" alt=""/></div>
+      <div class="body">
+        <div class="kicker">news · 07/05</div>
+        <h5>oyster weekend at pure bistro, 08–10/05</h5>
+      </div>
+    </a>
+    <a class="fp" href="/guide/kava-lova-popup">
+      <div class="ph"><img src="https://images.unsplash.com/photo-1551782450-a2132b4ba21d?w=300&q=80" alt=""/></div>
+      <div class="body">
+        <div class="kicker">news · 13/05</div>
+        <h5>15/05 cocktail pop-up at kava lova with vanya</h5>
+      </div>
+    </a>
+    <a class="fp" href="/guide/japan-33">
+      <div class="ph"><img src="https://images.unsplash.com/photo-1517248135467-4c7edcad34c4?w=300&q=80" alt=""/></div>
+      <div class="body">
+        <div class="kicker">restaurant · new</div>
+        <h5>japan 33 — sunset dinners over the sea</h5>
+      </div>
+    </a>
+  </div>
+</section>
+
+<style is:global>
+.hero{
+    position:relative;height:100vh;min-height:640px;max-height:880px;overflow:hidden;
+    padding:88px 24px 24px;
+    display:grid;grid-template-columns:1.4fr 1fr;gap:16px;
+  }
+.hero-main{
+    display:block;position:relative;border-radius:18px;overflow:hidden;background:#0a0908;
+  }
+.hero-main-img{display:block;position:absolute;inset:0;text-decoration:none;color:inherit}
+.hero-main-img img{width:100%;height:100%;object-fit:cover;transform:scale(1.05);animation:slowzoom 22s ease-out infinite alternate}
+.hero-main::after{
+    content:"";position:absolute;inset:0;pointer-events:none;
+    background:linear-gradient(180deg, #0a09084d 0%, transparent 25%, transparent 45%, #0a0908e0 100%);
+  }
+.hero-h1{
+    position:absolute;left:32px;right:32px;bottom:118px;z-index:2;color:#fff;
+    font-family:"Bricolage Grotesque",sans-serif;font-weight:800;
+    font-size:clamp(40px,4.5vw,80px);line-height:.92;letter-spacing:-.04em;
+    text-transform:lowercase;pointer-events:none;
+    opacity:0;animation:rise 1.1s cubic-bezier(.2,.7,.2,1) .3s forwards;
+  }
+.hero-h1 em{font-style:italic;color:var(--accent)}
+.hero-h1 .row2{display:block;margin-left:.5em}
+.hero-search{
+    position:absolute;left:24px;right:24px;bottom:24px;z-index:3;
+    display:grid;grid-template-columns:1.4fr 1fr auto;gap:0;
+    background:rgba(255,255,255,0.96);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);
+    border-radius:14px;padding:6px;
+    box-shadow:0 8px 32px rgba(0,0,0,0.18);
+    opacity:0;animation:rise 1.1s cubic-bezier(.2,.7,.2,1) .65s forwards;
+  }
+.hs-field{
+    background:transparent;border:none;cursor:pointer;text-align:left;padding:12px 18px;
+    border-radius:10px;display:flex;flex-direction:column;gap:3px;
+    transition:background .12s;
+    border-right:1px solid rgba(10,9,8,0.08);
+  }
+.hs-field:hover{background:rgba(10,9,8,0.04)}
+.hs-field:last-of-type{border-right:none}
+.hs-lbl{
+    font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.18em;
+    color:var(--ink-soft);font-weight:600;text-transform:uppercase;
+  }
+.hs-val{
+    font-family:"Bricolage Grotesque",sans-serif;font-size:15px;color:var(--ink);
+    font-weight:600;text-transform:lowercase;letter-spacing:-.01em;
+  }
+.hs-val.empty{color:var(--ink-fade);font-weight:400}
+.hs-submit{
+    background:var(--ink);border:none;color:#fff;border-radius:10px;
+    width:54px;height:auto;cursor:pointer;
+    display:flex;align-items:center;justify-content:center;
+    transition:background .15s;
+  }
+.hs-submit:hover{background:var(--accent)}
+.hero-side{display:grid;grid-template-rows:1.5fr 1fr;gap:16px;min-height:0}
+.hero-card{
+    position:relative;border-radius:18px;overflow:hidden;background:var(--bg-2);
+    opacity:0;animation:rise 1.1s cubic-bezier(.2,.7,.2,1) forwards;
+  }
+.hero-card:nth-of-type(1){animation-delay:.5s}
+.hero-card:nth-of-type(2){animation-delay:.7s}
+.hero-card img{width:100%;height:100%;object-fit:cover}
+.hero-card.edition{
+    background:var(--accent);color:#fff;display:flex;flex-direction:column;justify-content:space-between;padding:24px;
+  }
+.hero-card.edition img{position:absolute;inset:0;mix-blend-mode:multiply;opacity:.7}
+.hero-card.edition::after{
+    content:"";position:absolute;inset:0;background:linear-gradient(170deg, #ff4d2ed9 0%, #ff4d2e99 100%);
+  }
+.hero-card.edition > *{position:relative;z-index:2}
+.hero-card.edition .ed-no{
+    font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.22em;font-weight:600;text-transform:uppercase;
+    display:flex;align-items:center;gap:10px;
+  }
+.hero-card.edition .ed-no::before{content:"";width:24px;height:1px;background:#fff}
+.hero-card.edition h4{
+    font-family:"Bricolage Grotesque",sans-serif;font-weight:800;
+    font-size:clamp(28px,3vw,42px);letter-spacing:-.03em;line-height:.95;text-transform:lowercase;
+  }
+.hero-card.edition h4 em{font-style:italic}
+.hero-card.edition .ed-foot{
+    display:flex;justify-content:space-between;align-items:flex-end;
+    font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.18em;font-weight:500;text-transform:uppercase;
+  }
+.hero-card.edition .ed-foot b{font-weight:600}
+.hero-card.simple .label{
+    position:absolute;top:18px;left:18px;z-index:2;
+    background:#fff;color:var(--ink);padding:6px 10px;border-radius:999px;
+    font-family:"JetBrains Mono",monospace;font-size:9px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;
+  }
+.hero-card.simple .meta{position:absolute;left:18px;right:18px;bottom:18px;z-index:2;color:#fff}
+.hero-card.simple .meta::before{content:"";position:absolute;inset:-60px -18px -18px -18px;background:linear-gradient(to top, #000c, transparent);z-index:-1;pointer-events:none}
+.hero-card.simple .meta h4{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:18px;letter-spacing:-.025em;line-height:1.1;text-transform:lowercase}
+.hero-card.simple .meta .sub{font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.18em;text-transform:uppercase;opacity:.85;margin-top:6px;font-weight:500}
+section{position:relative;z-index:2}
+.pad{padding:140px 28px}
+.section-head{display:flex;justify-content:space-between;align-items:flex-end;gap:32px;margin-bottom:56px;flex-wrap:wrap}
+.section-head .meta{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-soft);font-weight:500;display:flex;align-items:center;gap:18px}
+.section-head .meta .dot{width:6px;height:6px;border-radius:50%;background:var(--accent)}
+.section-head h2{
+    font-family:"Bricolage Grotesque",sans-serif;font-weight:800;
+    font-size:clamp(48px,7vw,108px);line-height:.88;letter-spacing:-.045em;
+    text-transform:lowercase;max-width:18ch;
+  }
+.section-head h2 em{font-style:italic;color:var(--accent)}
+.section-head .right{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-soft);font-weight:500;text-align:right;max-width:36ch;line-height:1.7}
+.section-head .right b{color:var(--ink);font-weight:600}
+.reveal{opacity:0;transform:translateY(30px);transition:opacity .9s ease,transform .9s cubic-bezier(.2,.7,.2,1)}
+.reveal.in{opacity:1;transform:none}
+.apts{display:grid;grid-template-columns:repeat(3,1fr);gap:32px 24px}
+.apt{position:relative;display:block;overflow:hidden}
+.apt .ph{position:relative;aspect-ratio:4/5;overflow:hidden;background:var(--bg-2);border-radius:6px}
+.apt .ph img{width:100%;height:100%;object-fit:cover;transition:transform 1.1s cubic-bezier(.2,.7,.2,1);filter:saturate(.95) contrast(1.02)}
+.apt:hover .ph img{transform:scale(1.06)}
+.apt .badge{position:absolute;top:14px;left:14px;background:#fff;color:var(--ink);font-family:"JetBrains Mono",monospace;font-size:10px;font-weight:600;letter-spacing:.18em;text-transform:uppercase;padding:6px 10px;border-radius:999px;z-index:2}
+.apt .badge.hot{background:var(--accent);color:#fff}
+.apt .fav{position:absolute;top:14px;right:14px;width:32px;height:32px;border-radius:50%;background:#ffffffcc;backdrop-filter:blur(6px);display:flex;align-items:center;justify-content:center;font-size:16px;z-index:2;border:none}
+.apt .fav:hover{background:#fff;color:var(--accent)}
+.apt .info{padding:16px 4px 0;display:grid;gap:6px}
+.apt .info .top{display:flex;justify-content:space-between;align-items:baseline;gap:12px}
+.apt .info h4{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:20px;letter-spacing:-.025em;line-height:1.15;text-transform:lowercase}
+.apt .info .price{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:20px;letter-spacing:-.02em;white-space:nowrap;color:var(--accent-deep)}
+.apt .info .price .u{font-size:11px;font-weight:500;font-family:"JetBrains Mono",monospace;letter-spacing:.15em;color:var(--ink-soft);margin-left:2px}
+.apt .info .sub{display:flex;justify-content:space-between;align-items:center;gap:12px;font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--ink-soft);font-weight:500}
+.apt .info .dist{color:var(--ink);font-weight:600;display:inline-flex;align-items:center;gap:5px}
+.apt .info .dist::before{content:"";width:5px;height:5px;border-radius:50%;background:var(--accent)}
+.apt .info .guide-link{
+    margin-top:8px;display:flex;align-items:center;gap:8px;
+    font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.15em;text-transform:uppercase;color:var(--accent-deep);font-weight:600;
+    padding-top:8px;border-top:1px dashed var(--line-strong);
+  }
+.apt .info .guide-link::before{content:"↗";font-size:13px}
+.more{margin-top:64px;display:flex;justify-content:center}
+.more a{
+    display:inline-flex;align-items:center;gap:14px;padding:18px 32px;
+    background:var(--ink);color:var(--bg);border-radius:999px;
+    font-family:"JetBrains Mono",monospace;font-size:11px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;
+    transition:background .25s ease,gap .25s ease;
+  }
+.more a:hover{background:var(--accent);gap:22px}
+.spread{
+    position:relative;min-height:90vh;overflow:hidden;color:#fff;
+    display:flex;align-items:flex-end;
+  }
+.spread::before{content:"";position:absolute;inset:0;z-index:0}
+.spread img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;transform:scale(1.04);transition:transform 2s ease}
+.spread:hover img{transform:scale(1.08)}
+.spread::after{
+    content:"";position:absolute;inset:0;z-index:1;
+    background:linear-gradient(180deg, #0a090866 0%, transparent 30%, transparent 50%, #0a0908ee 100%);
+  }
+.spread .inner{position:relative;z-index:2;padding:80px 28px;width:100%}
+.spread h2{
+    font-family:"Bricolage Grotesque",sans-serif;font-weight:800;
+    font-size:clamp(72px,11vw,200px);line-height:.86;letter-spacing:-.05em;
+    text-transform:lowercase;max-width:14ch;
+  }
+.spread h2 em{font-style:italic;color:var(--accent)}
+.spread .lede{
+    margin-top:24px;font-size:20px;max-width:54ch;line-height:1.45;font-weight:500;color:#ffffffe6;
+  }
+.spread-cta{
+    margin-top:48px;display:flex;align-items:center;gap:32px;flex-wrap:wrap;
+  }
+.spread-cta .btn{
+    display:inline-flex;align-items:center;gap:14px;padding:18px 32px;
+    background:#fff;color:var(--ink);border-radius:999px;
+    font-family:"JetBrains Mono",monospace;font-size:11px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;
+    transition:background .25s ease,gap .25s ease,color .25s ease;
+  }
+.spread-cta .btn:hover{background:var(--accent);color:#fff;gap:22px}
+.guide-wrap{padding:120px 28px;background:var(--paper);border-bottom:1px solid var(--line)}
+.guide-categories{display:grid;grid-template-columns:repeat(3,1fr);gap:32px}
+.cat{display:flex;flex-direction:column;gap:14px}
+.cat-head{display:flex;justify-content:space-between;align-items:baseline;padding-bottom:14px;border-bottom:1px solid var(--ink)}
+.cat-head h3{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:32px;letter-spacing:-.035em;text-transform:lowercase;line-height:1}
+.cat-head h3 em{font-style:italic;color:var(--accent)}
+.cat-head .count{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-soft);font-weight:600}
+.cat-posts{display:grid;gap:18px}
+.post{position:relative;display:grid;grid-template-columns:80px 1fr;gap:14px;padding:8px 0;align-items:center;transition:padding-left .3s ease}
+.post:hover{padding-left:8px}
+.post .ph{width:80px;height:80px;overflow:hidden;background:var(--bg-2);flex:none;position:relative;border-radius:4px}
+.post .ph img{width:100%;height:100%;object-fit:cover;transition:transform .8s cubic-bezier(.2,.7,.2,1)}
+.post:hover .ph img{transform:scale(1.08)}
+.post .body{display:grid;gap:6px;min-width:0}
+.post .body .kicker{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-soft);font-weight:500}
+.post .body h4{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:17px;letter-spacing:-.02em;line-height:1.2;text-transform:lowercase}
+.post:hover h4{color:var(--accent)}
+.feat{display:grid;gap:14px}
+.feat .ph{aspect-ratio:5/4;overflow:hidden;background:var(--bg-2);position:relative;border-radius:6px}
+.feat .ph img{width:100%;height:100%;object-fit:cover;transition:transform 1s cubic-bezier(.2,.7,.2,1)}
+.feat:hover .ph img{transform:scale(1.05)}
+.feat .tag{position:absolute;top:12px;left:12px;background:#fff;color:var(--ink);font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.22em;text-transform:uppercase;padding:5px 9px;border-radius:999px;font-weight:600;z-index:2}
+.feat .tag.news{background:var(--accent);color:#fff}
+.feat .body{display:grid;gap:8px}
+.feat .body .kicker{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-soft);font-weight:500}
+.feat .body h4{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:24px;letter-spacing:-.025em;line-height:1.1;text-transform:lowercase}
+.feat:hover h4{color:var(--accent)}
+.feat .body p{font-size:14px;color:var(--ink-soft);line-height:1.5}
+.now{padding:80px 28px;background:var(--ink);color:#fff;border-top:1px solid var(--line)}
+.now-grid{display:grid;grid-template-columns:1.4fr 1fr 1fr 1.2fr;gap:0;align-items:center}
+.now-grid > div{padding:0 28px;border-right:1px solid #ffffff14}
+.now-grid > div:first-child{padding-left:0}
+.now-grid > div:last-child{border-right:none;padding-right:0}
+.now-label{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:#a99e8e;font-weight:600;margin-bottom:8px;display:flex;align-items:center;gap:8px}
+.now-label .pulse{width:6px;height:6px;border-radius:50%;background:var(--accent);box-shadow:0 0 12px var(--accent);animation:dotpulse 2.4s ease-in-out infinite}
+.now-val{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:22px;letter-spacing:-.02em;line-height:1.2}
+.now-val em{font-style:italic;color:var(--accent)}
+.now-val .small{font-family:"JetBrains Mono",monospace;font-size:11px;font-weight:500;letter-spacing:.1em;color:#a99e8e;display:block;margin-top:4px;text-transform:uppercase}
+.now-val a:hover{color:var(--accent)}
+.pull{padding:160px 28px;text-align:center}
+.pull blockquote{
+    max-width:18ch;margin:0 auto;
+    font-family:"Bricolage Grotesque",sans-serif;font-weight:800;
+    font-size:clamp(48px,7vw,128px);line-height:.92;letter-spacing:-.045em;
+    text-transform:lowercase;
+  }
+.pull blockquote em{font-style:italic;color:var(--accent)}
+.pull blockquote .underline{position:relative;display:inline-block}
+.pull blockquote .underline::after{content:"";position:absolute;left:-2%;right:-2%;bottom:8%;height:8px;background:var(--accent);z-index:-1;transform:rotate(-1.2deg);opacity:.5}
+.pull .sig{margin-top:48px;font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.25em;text-transform:uppercase;color:var(--ink-soft);font-weight:500}
+.doors-wrap{padding:100px 28px 80px;background:var(--bg)}
+.doors{display:grid;grid-template-columns:1fr 1fr;gap:24px}
+.door{
+    background:var(--paper);border:1px solid var(--line);padding:48px 36px;border-radius:6px;
+    min-height:420px;display:flex;flex-direction:column;justify-content:space-between;
+    position:relative;overflow:hidden;transition:background .3s ease,border-color .3s ease;
+  }
+.door:hover{background:#f3eee2;border-color:var(--line-strong)}
+.door .num{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.25em;text-transform:uppercase;color:var(--ink-soft);font-weight:600;margin-bottom:14px}
+.door h3{
+    font-family:"Bricolage Grotesque",sans-serif;font-weight:800;
+    font-size:clamp(36px,4.4vw,56px);line-height:.95;letter-spacing:-.035em;text-transform:lowercase;
+  }
+.door h3 em{font-style:italic;color:var(--accent)}
+.door p{margin-top:24px;color:var(--ink-soft);font-size:15px;max-width:36ch;line-height:1.5}
+.door .cta{margin-top:36px;display:inline-flex;align-items:center;gap:12px;font-family:"JetBrains Mono",monospace;font-size:11px;font-weight:600;letter-spacing:.22em;text-transform:uppercase;border-bottom:1px solid currentColor;padding-bottom:6px;width:fit-content;transition:gap .3s ease}
+.door:hover .cta{gap:24px;color:var(--accent)}
+.door .stat{
+    margin-top:32px;display:flex;align-items:baseline;gap:16px;
+    font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-soft);font-weight:500;
+  }
+.door .stat b{font-family:"Bricolage Grotesque",sans-serif;font-size:48px;font-weight:800;color:var(--accent);letter-spacing:-.03em;text-transform:none;line-height:1}
+.contact{padding:100px 28px 80px}
+.contact h2{
+    font-family:"Bricolage Grotesque",sans-serif;font-weight:800;
+    font-size:clamp(80px,13vw,260px);line-height:.84;letter-spacing:-.055em;
+    text-transform:lowercase;
+  }
+.contact h2 em{font-style:italic;color:var(--accent)}
+.channels{margin-top:80px;display:grid;gap:0}
+.channel{display:grid;grid-template-columns:auto 1fr auto;gap:24px;align-items:baseline;padding:28px 0;border-bottom:1px solid var(--line);transition:padding-left .3s ease}
+.channel:first-child{border-top:1px solid var(--line)}
+.channel:hover{padding-left:18px}
+.channel .label{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-soft);min-width:120px;font-weight:600}
+.channel .value{font-family:"Bricolage Grotesque",sans-serif;font-size:clamp(28px,3.5vw,44px);font-weight:700;letter-spacing:-.025em;text-transform:lowercase}
+.channel .ar{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.22em;color:var(--ink-soft);font-weight:500}
+.channel:hover .value,.channel:hover .ar{color:var(--accent)}
+@media (max-width:880px){
+.hero{grid-template-columns:1fr;grid-template-rows:auto auto;padding:72px 12px 12px;height:auto;min-height:0;max-height:none;gap:10px}
+.hero-main{grid-row:auto;aspect-ratio:3/4;border-radius:14px}
+.hero-h1{
+      left:18px;right:auto;bottom:92px;
+      font-size:clamp(34px,8.5vw,52px);
+      max-width:calc(100% - 36px);
+    }
+.hero-search{
+      left:12px;right:12px;bottom:12px;
+      grid-template-columns:1fr auto;padding:5px;
+      border-radius:12px;
+    }
+.hs-field{padding:9px 12px}
+.hs-field#hsGuestBtn{display:none}
+.hs-lbl{font-size:8px;letter-spacing:.16em}
+.hs-val{font-size:13px}
+.hs-submit{width:44px}
+.hs-submit svg{width:16px;height:16px}
+.hero-h1 .row2{margin-left:.4em}
+.hero-side{grid-template-rows:auto;grid-template-columns:1fr 1fr;gap:10px}
+.hero-card{aspect-ratio:1/1;border-radius:14px}
+.hero-card.edition{padding:14px}
+.hero-card.edition h4{font-size:18px}
+.hero-card.edition .ed-no{font-size:8px;letter-spacing:.18em}
+.hero-card.edition .ed-no::before{width:14px}
+.hero-card.edition .ed-foot{font-size:8px}
+.hero-card.simple .meta h4{font-size:14px}
+.pad{padding-top:64px;padding-bottom:64px}
+.section-head{flex-direction:column;align-items:flex-start;gap:16px;margin-bottom:32px}
+.section-head .right{text-align:left;font-size:10px}
+.section-head h2{font-size:clamp(36px,8vw,60px)}
+.apts{grid-template-columns:1fr;gap:36px}
+.apt .ph{aspect-ratio:4/3;border-radius:10px}
+.apt .badge{font-size:9px;padding:5px 9px;top:12px;left:12px}
+.apt .fav{width:36px;height:36px;top:12px;right:12px}
+.apt .info{padding:14px 2px 0}
+.apt .info .top{flex-direction:row;align-items:baseline;gap:14px;flex-wrap:nowrap}
+.apt .info h4{font-size:19px;line-height:1.2}
+.apt .info .price{font-size:18px;flex:none}
+.apt .info .sub{font-size:9px;margin-top:6px;flex-wrap:wrap;gap:8px}
+.apt .info .rating{flex:none}
+.apt .info .guide-link{font-size:9px;padding-top:10px;margin-top:10px;letter-spacing:.12em}
+.more{margin-top:40px}
+.more a{padding:15px 24px;font-size:10px}
+.spread{min-height:auto;padding:96px 0 64px}
+.spread .inner{padding:0 14px}
+.spread h2{font-size:clamp(52px,13vw,92px)}
+.spread .lede{font-size:15px;margin-top:14px}
+.spread-cta{margin-top:28px}
+.spread-cta .btn{padding:15px 24px;font-size:10px}
+.guide-wrap{padding-top:64px;padding-bottom:64px}
+.guide-categories{grid-template-columns:1fr;gap:36px;margin-bottom:48px}
+.cat-head h3{font-size:24px}
+.feat .body h4{font-size:20px}
+.post{grid-template-columns:64px 1fr;gap:12px}
+.post .ph{width:64px;height:64px}
+.post .body h4{font-size:14px}
+.guide-cta{grid-template-columns:1fr;gap:20px}
+.guide-cta h4{font-size:28px}
+.guide-cta .btn{padding:15px 24px;font-size:10px}
+.now{padding:48px 14px}
+.now-grid{grid-template-columns:1fr 1fr;gap:0}
+.now-grid > div{padding:14px 10px;border-right:none;border-bottom:1px solid #ffffff14}
+.now-grid > div:nth-child(odd){border-right:1px solid #ffffff14}
+.now-grid > div:nth-last-child(-n+2){border-bottom:none}
+.now-val{font-size:17px}
+.now-val .small{font-size:9px}
+.now-label{font-size:8px}
+.pull{padding:80px 14px}
+.pull blockquote{font-size:clamp(46px,12vw,80px)}
+.doors-wrap{padding-top:64px;padding-bottom:64px}
+.doors{grid-template-columns:1fr;gap:12px}
+.door{padding:28px 22px;min-height:auto}
+.door h3{font-size:clamp(30px,8vw,42px)}
+.door .stat b{font-size:36px}
+.contact{padding:80px 14px 48px}
+.contact h2{font-size:clamp(64px,18vw,120px)}
+.channels{margin-top:40px}
+.channel{grid-template-columns:1fr;gap:6px;padding:16px 0}
+.channel .label{min-width:0;font-size:9px}
+.channel .value{font-size:clamp(22px,6vw,30px)}
+.channel .ar{display:none}
+}
+.fp{display:flex;flex-direction:column;gap:14px;text-decoration:none;color:inherit;transition:transform .25s ease}
+.fp:hover{transform:translateY(-4px)}
+.fp .ph{position:relative;aspect-ratio:5/4;overflow:hidden;background:var(--bg-2);border-radius:10px}
+.fp .ph img{width:100%;height:100%;object-fit:cover;transition:transform .4s ease}
+.fp:hover .ph img{transform:scale(1.04)}
+.fp .body{display:flex;flex-direction:column;gap:6px}
+.fp .kicker{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-soft);font-weight:600}
+.fp h5{font-family:"Bricolage Grotesque",sans-serif;font-weight:600;font-size:17px;letter-spacing:-.01em;line-height:1.3}
+</style>
+
+<script is:inline>
+
+  
+
+  const cursor = document.getElementById('cursor');
+    let mx=window.innerWidth/2, my=window.innerHeight/2, cx=mx, cy=my;
+  window.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; });
+  function loop(){
+    cx += (mx-cx)*0.7; cy += (my-cy)*0.7;
+    if(cursor) cursor.style.transform = `translate(${cx}px,${cy}px) translate(-50%,-50%)`;
+    requestAnimationFrame(loop);
+  }
+  loop();
+
+  function clearCursorColors(){ cursor.classList.remove('teal','yellow','pink'); }
+
+  document.querySelectorAll('a:not(.apt):not(.feat):not(.post):not(.hero-card):not(.fp):not(.spread):not(.channel):not(.door), button:not(.hs-field):not(.hs-submit)').forEach(el => {
+    el.addEventListener('mouseenter', () => { clearCursorColors(); cursor.classList.add('big'); });
+    el.addEventListener('mouseleave', () => cursor.classList.remove('big'));
+  });
+
+  document.querySelectorAll('.apt').forEach(el => {
+    el.addEventListener('mouseenter', () => { clearCursorColors(); cursor.classList.add('text','teal'); cursor.setAttribute('data-label','view →'); });
+    el.addEventListener('mouseleave', () => { cursor.classList.remove('text','teal'); cursor.removeAttribute('data-label'); });
+  });
+
+  document.querySelectorAll('.feat, .post, .hero-card, .fp, .spread').forEach(el => {
+    el.addEventListener('mouseenter', () => { clearCursorColors(); cursor.classList.add('text','yellow'); cursor.setAttribute('data-label','read →'); });
+    el.addEventListener('mouseleave', () => { cursor.classList.remove('text','yellow'); cursor.removeAttribute('data-label'); });
+  });
+
+  document.querySelectorAll('.channel').forEach(el => {
+    el.addEventListener('mouseenter', () => { clearCursorColors(); cursor.classList.add('text','pink'); cursor.setAttribute('data-label','say hi →'); });
+    el.addEventListener('mouseleave', () => { cursor.classList.remove('text','pink'); cursor.removeAttribute('data-label'); });
+  });
+
+  document.querySelectorAll('.door').forEach(el => {
+    el.addEventListener('mouseenter', () => { clearCursorColors(); cursor.classList.add('text'); cursor.setAttribute('data-label','learn →'); });
+    el.addEventListener('mouseleave', () => { cursor.classList.remove('text'); cursor.removeAttribute('data-label'); });
+  });
+
+  const io = new IntersectionObserver((entries) => {
+    entries.forEach(e => {
+      if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); }
+    });
+  }, {threshold: 0.12, rootMargin: '0px 0px -80px 0px'});
+  document.querySelectorAll('.reveal').forEach(el => io.observe(el));
+
+  let calYear = 2026, calMonth = 4;
+
+  // burger menu
+  (function(){
+    const burger = document.getElementById('burger');
+    const overlay = document.getElementById('menuOverlay');
+    if (!burger || !overlay) return;
+    function open(){
+      overlay.hidden = false;
+      requestAnimationFrame(()=> overlay.classList.add('open'));
+      burger.classList.add('open');
+      document.body.style.overflow = 'hidden';
+    }
+    function close(){
+      overlay.classList.remove('open');
+      burger.classList.remove('open');
+      document.body.style.overflow = '';
+      setTimeout(()=> overlay.hidden = true, 320);
+    }
+    burger.addEventListener('click', () => {
+      if (overlay.classList.contains('open')) close(); else open();
+    });
+    overlay.addEventListener('click', e => {
+      if (e.target === overlay) close();
+    });
+    overlay.querySelectorAll('.menu-item, .menu-tg').forEach(a => {
+      a.addEventListener('click', close);
+    });
+    document.addEventListener('keydown', e => {
+      if (e.key === 'Escape' && overlay.classList.contains('open')) close();
+    });
+  })();
+
+  // ===== LIVE "RIGHT NOW IN BATUMI" =====
+  (function(){
+    const BATUMI = { lat: 41.6508, lng: 41.6357, tz: 'Asia/Tbilisi' };
+
+    // 1. Date — local Batumi time
+    function setDate(){
+      const now = new Date();
+      const local = new Date(now.toLocaleString('en-US', {timeZone: BATUMI.tz}));
+      const days = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+      const months = ['january','february','march','april','may','june','july','august','september','october','november','december'];
+      const dateStr = `${days[local.getDay()]}, ${months[local.getMonth()]} ${local.getDate()}`;
+      const el = document.getElementById('nowDate');
+      if (el) el.textContent = dateStr;
+    }
+    setDate();
+    setInterval(setDate, 60000);
+
+    // 2. Weather + sunset — Open-Meteo, no API key
+    function fetchWeather(){
+      const url = `https://api.open-meteo.com/v1/forecast?latitude=${BATUMI.lat}&longitude=${BATUMI.lng}&current=temperature_2m,wind_speed_10m,weather_code&daily=sunset&timezone=${BATUMI.tz}`;
+      fetch(url).then(r => r.json()).then(d => {
+        if (!d || !d.current) return;
+        const t = Math.round(d.current.temperature_2m);
+        const wind = Math.round(d.current.wind_speed_10m);
+        const code = d.current.weather_code;
+        const sunset = d.daily && d.daily.sunset && d.daily.sunset[0];
+
+        const tempEl = document.getElementById('nowTemp');
+        if (tempEl) tempEl.textContent = t;
+
+        const windEl = document.getElementById('nowWind');
+        if (windEl) windEl.textContent = describeWind(wind);
+
+        const descEl = document.getElementById('nowDesc');
+        if (descEl) descEl.textContent = describeSky(code);
+
+        if (sunset) {
+          const time = sunset.split('T')[1].slice(0,5);
+          const sunsetEl = document.getElementById('nowSunset');
+          if (sunsetEl) sunsetEl.innerHTML = `${time}<span class="small">over the black sea</span>`;
+        }
+      }).catch(()=>{});
+    }
+    function describeSky(code){
+      if (code === 0) return 'clear sky';
+      if (code <= 3) return 'a bit of cloud';
+      if (code <= 48) return 'foggy morning';
+      if (code <= 67) return 'rain over the city';
+      if (code <= 77) return 'snow on the hills';
+      if (code <= 82) return 'rain showers';
+      if (code <= 99) return 'thunderstorm';
+      return 'mixed weather';
+    }
+    function describeWind(kmh){
+      if (kmh < 5) return 'still air';
+      if (kmh < 15) return 'light sea breeze';
+      if (kmh < 25) return 'fresh breeze';
+      if (kmh < 40) return 'windy';
+      return 'strong wind';
+    }
+    fetchWeather();
+    setInterval(fetchWeather, 10 * 60000); // refresh every 10 min
+  })();
+
+
+
+  // HOME DOT — flies on first scroll, fades after (per session)
+  (function(){
+    if(window.innerWidth < 880) return;
+    const centerLogo = document.querySelector('.topbar .ctr');
+    const centerDotEl = centerLogo && centerLogo.querySelector('.d');
+    const leftDot = document.querySelector('.home-dot');
+    const flyingDot = document.getElementById('flyingDot');
+    if(!centerLogo || !centerDotEl || !leftDot || !flyingDot) return;
+
+    const KEY = 'bre_dot_flight_seen';
+    let hasSeenFlight = false;
+    try { hasSeenFlight = sessionStorage.getItem(KEY) === 'yes'; } catch(e){}
+
+    let state = 'top';
+    let flying = false;
+
+    function doFlight(){
+      const centerRect = centerDotEl.getBoundingClientRect();
+      const startX = centerRect.left + centerRect.width/2;
+      const startY = centerRect.top + centerRect.height/2;
+      leftDot.classList.add('expanded');
+      setTimeout(()=>{
+        const leftRect = leftDot.getBoundingClientRect();
+        const endX = leftRect.left + leftRect.width/2;
+        const endY = leftRect.top + leftRect.height/2;
+        flyingDot.style.transition = 'none';
+        flyingDot.style.transform = 'translate('+(startX-7)+'px, '+(startY-7)+'px) scale(0.71)';
+        flyingDot.style.opacity = '1';
+        centerDotEl.classList.add('hidden');
+        flyingDot.getBoundingClientRect();
+        flyingDot.style.transition = 'transform .85s cubic-bezier(.5,0,.2,1)';
+        flyingDot.style.transform = 'translate('+(endX-7)+'px, '+(endY-7)+'px) scale(1)';
+        setTimeout(()=>{
+          leftDot.classList.add('visible','pulsing');
+          flyingDot.style.transition = 'none';
+          flyingDot.style.opacity = '0';
+          flying = false;
+          state = 'scrolled';
+          try { sessionStorage.setItem(KEY, 'yes'); } catch(e){}
+          hasSeenFlight = true;
+        }, 860);
+      }, 360);
+    }
+
+    function doFade(direction){
+      if(direction === 'out'){
+        centerDotEl.classList.add('hidden');
+        leftDot.classList.add('expanded');
+        setTimeout(()=> leftDot.classList.add('visible','pulsing'), 180);
+        state = 'scrolled';
+      } else {
+        leftDot.classList.remove('visible','pulsing');
+        setTimeout(()=>{
+          leftDot.classList.remove('expanded');
+          centerDotEl.classList.remove('hidden');
+        }, 200);
+        state = 'top';
+      }
+    }
+
+    function onScroll(){
+      const y = window.scrollY || document.documentElement.scrollTop;
+      if(flying) return;
+      if(y > 60 && state === 'top'){
+        if(!hasSeenFlight){
+          flying = true;
+          state = 'flying';
+          doFlight();
+        } else {
+          doFade('out');
+        }
+      } else if(y <= 60 && state === 'scrolled'){
+        doFade('in');
+      }
+    }
+
+    window.addEventListener('scroll', onScroll, {passive:true});
+    onScroll();
+  })();
+
+
+
+
+  // Topbar scroll state — adds .scrolled class when scrolled past hero
+  (function(){
+    const tb = document.querySelector('.topbar');
+    if(!tb) return;
+    function update(){
+      const y = window.scrollY || document.documentElement.scrollTop;
+      if(y > 40) tb.classList.add('scrolled');
+      else tb.classList.remove('scrolled');
+    }
+    window.addEventListener('scroll', update, {passive:true});
+    update();
+  })();
+  // HERO SEARCHBAR — redirect to /stays where full pickers live
+  function submitHeroSearch(e){
+    e.preventDefault();
+    window.location.href = '/stays';
+    return false;
+  }
+  // Clicking any field also goes to /stays
+  ['hsDateBtn','hsGuestBtn'].forEach(id=>{
+    const el = document.getElementById(id);
+    if(el) el.addEventListener('click', ()=>{ window.location.href='/stays'; });
+  });
+
+</script>
+</Site>
