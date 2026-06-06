@@ -165,3 +165,11 @@ footer{padding:24px 14px}
 .topbar.scrolled .burger{border-color:rgba(10,9,8,0.4)}
 .topbar.scrolled .burger span{background:var(--ink)}
 .topbar .left a.active{color:var(--page)}
+
+/* ── nav: B2B one level down ── */
+.topbar .left .nav-b2b{opacity:.5;font-size:.82em;align-self:center}
+.topbar .left .nav-b2b:hover{opacity:1}
+.menu-group{margin-top:26px;display:flex;flex-direction:column;gap:6px}
+.menu-group-label{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.24em;text-transform:uppercase;font-weight:600;color:#ffffff66;margin-bottom:6px}
+.menu-sub{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:clamp(22px,5vw,32px);line-height:1.05;letter-spacing:-.03em;text-transform:lowercase;color:#fff;opacity:.85;transition:color .2s ease,transform .25s ease}
+.menu-sub:hover{color:var(--page);transform:translateX(12px)}
