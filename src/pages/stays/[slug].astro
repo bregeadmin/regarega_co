@@ -2,6 +2,7 @@
 import Site from '../../layouts/Site.astro';
 import '../../styles/apt.css';
 import { supabase, type Apartment } from '../../lib/supabase';
+import { template, pageScript } from '../../lib/aptDetail';
 
 export async function getStaticPaths() {
   const { data } = await supabase
@@ -15,115 +16,34 @@ const { apt } = Astro.props as { apt: Apartment };
 const photos = (apt.photos && apt.photos.length)
   ? apt.photos
   : ['https://picsum.photos/seed/' + apt.slug + '/1600/1000'];
-const tg = 'https://t.me/bre_ge?text=' + encodeURIComponent('Interested in ' + apt.title + ' — rega rega batumi');
+
+const gallery =
+  photos.slice(0, 5).map((p, i) =>
+    `<div class="${i === 0 ? 'ph main' : 'ph'}" data-idx="${i}"><img src="${p}" alt="${apt.title}"></div>`
+  ).join('\n') +
+  `\n<button class="gallery-all" id="galleryAll" type="button">↗ view all ${photos.length} photos</button>`;
+
+const meta =
+  `<span><b>${apt.bedrooms ?? 1}</b> bed</span>` +
+  `<span class="sep">·</span><span>fits <b>${apt.max_guests ?? 2}</b> guests</span>` +
+  (apt.neighborhood ? `<span class="sep">·</span><span>${apt.neighborhood}</span>` : '');
+
+const about =
+  `<h2>checked, stocked, <em>ready</em>.</h2>` +
+  (apt.summary ? `<p>${apt.summary}</p>` : '') +
+  `<p>local operations by <b>bre</b> — real check-in, real support, someone local one message away. the photos are the flat.</p>`;
+
+let content = template
+  .replaceAll('%%TITLE%%', apt.title)
+  .replace('%%GALLERY%%', gallery)
+  .replace('%%META%%', meta)
+  .replace('%%ABOUT%%', about)
+  .replaceAll('%%PRICE%%', '₾' + apt.price_from);
+
+const photosJson = JSON.stringify(photos.map((p) => ({ src: p, alt: apt.title })));
+const script = pageScript.replace('%%PHOTOS%%', photosJson);
 ---
 <Site title={apt.title + ' — rega rega batumi'} description={apt.summary || 'a checked flat in batumi.'}>
-
-<section class="gallery">
-  <div class="gallery-grid" id="galleryGrid">
-    {photos.slice(0, 5).map((p, i) => (
-      <div class={i === 0 ? 'ph main' : 'ph'} data-idx={i}><img src={p} alt={apt.title} /></div>
-    ))}
-    {photos.length > 5 && (
-      <button class="gallery-all" id="galleryAll" type="button">↗ view all {photos.length} photos</button>
-    )}
-  </div>
-</section>
-
-<section class="apt-head">
-  <div>
-    <div class="badges">
-      {apt.neighborhood && <span class="badge"><span class="dot"></span>{apt.neighborhood}</span>}
-      <span class="badge hot"><span class="dot" style="background:#fff"></span>checked</span>
-    </div>
-    <h1 style="margin-top:18px">{apt.title}.</h1>
-    <div class="meta">
-      <span><b>{apt.bedrooms ?? 1}</b> bed</span>
-      <span class="sep">·</span>
-      <span>fits <b>{apt.max_guests ?? 2}</b> guests</span>
-      {apt.neighborhood && (<><span class="sep">·</span><span>{apt.neighborhood}</span></>)}
-    </div>
-  </div>
-</section>
-
-<section class="apt-body">
-  <div class="apt-main">
-    <div class="apt-section">
-      <span class="label">— about this flat</span>
-      <h2>checked, stocked, <em>ready</em>.</h2>
-      {apt.summary && <p>{apt.summary}</p>}
-      <p>local operations by <b>bre</b> — real check-in, real support, someone local one message away. the photos are the flat.</p>
-    </div>
-  </div>
-
-  <aside class="apt-book">
-    <div class="price"><em>from ₾{apt.price_from}</em> <span class="per">/ night</span></div>
-    <span class="save">5% off direct</span>
-    <div class="book-form">
-      <a class="btn-primary" href={tg}>↗ book direct via telegram</a>
-    </div>
-    <div class="alt-channels">
-      <span class="alt-label">or book through</span>
-      <div class="alts">
-        <a href="https://www.airbnb.com" target="_blank" rel="noopener">↗ airbnb</a>
-        <a href="https://www.booking.com" target="_blank" rel="noopener">↗ booking</a>
-      </div>
-    </div>
-    <p class="note">direct booking = <b>real person</b>, no platform fees, instant flexibility. we answer within an hour.</p>
-  </aside>
-</section>
-
-<!-- minimal lightbox -->
-<div class="lb" id="lb" hidden>
-  <button class="lb-x" id="lbX" type="button" aria-label="close">×</button>
-  <button class="lb-nav lb-prev" id="lbPrev" type="button" aria-label="previous">‹</button>
-  <img id="lbImg" src="" alt={apt.title} />
-  <button class="lb-nav lb-next" id="lbNext" type="button" aria-label="next">›</button>
-</div>
-
-<style>
-.lb{position:fixed;inset:0;z-index:300;background:rgba(10,9,8,.94);display:flex;align-items:center;justify-content:center}
-.lb[hidden]{display:none}
-.lb img{max-width:90vw;max-height:86vh;object-fit:contain;border-radius:8px}
-.lb-x{position:absolute;top:22px;right:28px;background:none;border:0;color:#fff;font-size:34px;line-height:1;cursor:pointer}
-.lb-nav{position:absolute;top:50%;transform:translateY(-50%);background:none;border:0;color:#fff;font-size:48px;cursor:pointer;padding:0 22px;opacity:.8}
-.lb-nav:hover{opacity:1}
-.lb-prev{left:6px}
-.lb-next{right:6px}
-.gallery-grid .ph{cursor:pointer}
-</style>
-
-<script define:vars={{ photos }}>
-  (function () {
-    var lb = document.getElementById('lb');
-    var img = document.getElementById('lbImg');
-    if (!lb || !img) return;
-    var i = 0;
-    function show(n) {
-      i = (n + photos.length) % photos.length;
-      img.src = photos[i];
-      lb.hidden = false;
-      document.body.style.overflow = 'hidden';
-    }
-    function close() {
-      lb.hidden = true;
-      document.body.style.overflow = '';
-    }
-    document.querySelectorAll('#galleryGrid .ph').forEach(function (ph) {
-      ph.addEventListener('click', function () { show(parseInt(ph.dataset.idx) || 0); });
-    });
-    var ga = document.getElementById('galleryAll');
-    if (ga) ga.addEventListener('click', function () { show(0); });
-    document.getElementById('lbX').addEventListener('click', close);
-    document.getElementById('lbPrev').addEventListener('click', function () { show(i - 1); });
-    document.getElementById('lbNext').addEventListener('click', function () { show(i + 1); });
-    document.addEventListener('keydown', function (e) {
-      if (lb.hidden) return;
-      if (e.key === 'Escape') close();
-      if (e.key === 'ArrowRight') show(i + 1);
-      if (e.key === 'ArrowLeft') show(i - 1);
-    });
-    lb.addEventListener('click', function (e) { if (e.target === lb) close(); });
-  })();
-</script>
+<Fragment set:html={content} />
+<script is:inline set:html={script}></script>
 </Site>
