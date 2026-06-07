@@ -1,5 +1,6 @@
 ---
 import { supabase } from '../lib/supabase';
+import { GMAPS_KEY } from '../lib/maps';
 const { category } = Astro.props as { category: string };
 
 const CAT: Record<string, any> = {
@@ -64,6 +65,25 @@ const cardHtml = (p: any, i: number) =>
 
 const placesHtml = rest.map((p, i) => cardHtml(p, i)).join('');
 
+// map pins for this category's places (list <-> map toggle)
+const catPins = places.filter((p) => p.lat != null && p.lng != null).map((p) => ({
+  slug: 'g-' + p.slug, title: p.title || p.name, lat: p.lat, lng: p.lng,
+  photo: (p.photos && p.photos[0]) || p.image || '', href: '/guide/' + p.slug,
+  sub: cat.label, cta: p.price || 'see place →', color: cat.color, ring: '#ffffff',
+  hours: Array.isArray(p.hours) ? p.hours : [],
+}));
+const locSvg = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2.6" fill="currentColor"/><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.4"/><path d="M8 0.5v3M8 12.5v3M0.5 8h3M12.5 8h3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>';
+const viewToggle = catPins.length ? '<div class="view-toggle"><button class="vt active" data-view="list">list</button><button class="vt" data-view="map">map</button></div>' : '';
+const catMapHtml = catPins.length ? (
+  '<div class="cat-map" hidden>' +
+    '<div class="map-controls"><div class="seg">' +
+      '<button class="mc active" data-act="all">all · ' + catPins.length + '</button>' +
+      '<button class="mc" data-act="opennow">open now</button></div>' +
+      '<button class="mc near" data-act="near">' + locSvg + ' near me</button></div>' +
+    '<div class="map"><div id="catMap"></div></div>' +
+  '</div>'
+) : '';
+
 const otherCats = Object.keys(CAT).filter((c) => c !== category);
 const moreHtml = otherCats.map((c) =>
   '<a class="more-cat" href="/guide/' + c + '" style="--tile-color:' + CAT[c].color + ';--tile-text:#fff">' +
@@ -82,8 +102,8 @@ const content =
   '<div><span class="num">100%</span>tried by us</div></div></section>' +
   subnavHtml +
   featuredHtml +
-  '<section class="places-wrap"><div class="places-head"><h3><em>' + places.length + '</em> places · sorted by recommended</h3></div>' +
-  '<div class="places">' + placesHtml + '</div></section>' +
+  '<section class="places-wrap"><div class="places-head"><h3><em>' + places.length + '</em> places · sorted by recommended</h3>' + viewToggle + '</div>' +
+  '<div class="places">' + placesHtml + '</div>' + catMapHtml + '</section>' +
   '<section class="more-cats"><div class="more-cats-head"><h3>more from <em>the guide</em>.</h3><a href="/guide/" class="right">all worlds →</a></div>' +
   '<div class="more-cats-grid">' + moreHtml + '</div></section>';
 ---
@@ -129,6 +149,44 @@ const content =
           reorder(function(a,c){ return d(a)-d(c); });
         }, function(){});
       }
+    });
+  });
+})();
+</script>
+<style is:inline set:html={".places-head{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}\n.view-toggle{display:inline-flex;background:var(--paper);border:1px solid var(--line);border-radius:999px;padding:3px}\n.view-toggle .vt{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--ink-soft);padding:8px 16px;border:0;background:transparent;border-radius:999px;cursor:pointer;transition:all .18s ease}\n.view-toggle .vt.active{background:var(--ink);color:#fff}\n.cat-map{margin-top:6px}\n.cat-map .map-controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 16px}\n.cat-map .map-controls .seg{display:inline-flex;background:var(--paper);border:1px solid var(--line);border-radius:999px;padding:3px}\n.cat-map .mc{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--ink-soft);padding:9px 16px;border-radius:999px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;border:0;background:transparent;transition:all .18s ease}\n.cat-map .seg .mc.active{background:var(--ink);color:#fff}\n.cat-map .mc.near{border:1px solid var(--line);background:var(--paper);color:var(--ink)}\n.cat-map .mc.near:hover{border-color:var(--cat-color);color:var(--cat-color)}\n.cat-map .mc.near.loading{opacity:.55;pointer-events:none}\n.cat-map .mc.near.err{border-color:#d9402a;color:#d9402a}\n.cat-map .map{position:relative;height:560px;border-radius:16px;overflow:hidden;border:1px solid var(--line);background:var(--bg-2)}\n#catMap{position:absolute;inset:0;width:100%;height:100%}\n@media(max-width:880px){.cat-map .map{height:440px}}"}></style>
+<script is:inline src="/rega-map.js"></script>
+<script is:inline define:vars={{ CAT_PINS: catPins, GKEY: GMAPS_KEY }}>
+(function () {
+  var vt = document.querySelectorAll('.view-toggle .vt');
+  var listEl = document.querySelector('.places');
+  var mapWrap = document.querySelector('.cat-map');
+  if (!vt.length || !mapWrap) return;
+  var api = null;
+  function wire() {
+    var bar = mapWrap.querySelector('.map-controls');
+    var bAll = bar.querySelector('[data-act="all"]'), bOpen = bar.querySelector('[data-act="opennow"]'), bNear = bar.querySelector('[data-act="near"]');
+    function seg(a) { bAll.classList.toggle('active', a === 'all'); bOpen.classList.toggle('active', a === 'opennow'); }
+    bAll.addEventListener('click', function () { seg('all'); api.clearFilter(); });
+    bOpen.addEventListener('click', function () { seg('opennow'); api.setFilter(function (it) { return RegaMap.isOpenNow(it.hours) !== false; }); });
+    bNear.addEventListener('click', function () { var b = this; b.classList.add('loading'); api.locate(function (u) { b.classList.remove('loading'); if (!u) { b.classList.add('err'); setTimeout(function () { b.classList.remove('err'); }, 2200); } }); });
+  }
+  function make() {
+    if (api) { if (window.google && api.map) { google.maps.event.trigger(api.map, 'resize'); api.refit(); } return; }
+    api = RegaMap.stays('catMap', CAT_PINS, { cardSel: '.__no-list' }); if (api) wire();
+  }
+  window.__catMapReady = function () { window.__gReady = true; if (window.__wantMap) make(); };
+  function loadG() {
+    if (window.__gLoading) return; window.__gLoading = true;
+    var s = document.createElement('script'); s.async = true;
+    s.src = 'https://maps.googleapis.com/maps/api/js?key=' + GKEY + '&callback=__catMapReady&loading=async&language=en&region=GE';
+    document.head.appendChild(s);
+  }
+  vt.forEach(function (b) {
+    b.addEventListener('click', function () {
+      vt.forEach(function (x) { x.classList.remove('active'); }); b.classList.add('active');
+      var showMap = b.getAttribute('data-view') === 'map';
+      mapWrap.hidden = !showMap; if (listEl) listEl.style.display = showMap ? 'none' : '';
+      if (showMap) { window.__wantMap = true; if (window.__gReady) make(); else loadG(); }
     });
   });
 })();

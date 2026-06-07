@@ -6,7 +6,7 @@ import { GMAPS_KEY } from '../lib/maps';
 import news from '../data/news.json';
 
 const { data: gp } = await supabase
-  .from('guide_places').select('slug,title,name,category,lat,lng,photos,price,show_on_map')
+  .from('guide_places').select('slug,title,name,category,lat,lng,photos,price,show_on_map,hours')
   .eq('status', 'published');
 const places = gp || [];
 const counts: Record<string, number> = {};
@@ -21,6 +21,7 @@ const placePins = places.filter((p) => p.show_on_map && p.lat != null && p.lng !
   photo: (p.photos && p.photos[0]) || '', href: '/guide/' + p.slug,
   sub: String(p.category).replace('-', ' '), cta: p.price || 'see place →',
   color: CAT_COLOR[p.category] || '#ff5e1a', ring: '#ffffff',
+  hours: Array.isArray(p.hours) ? p.hours : [],
 }));
 const aptPins = (apts || []).filter((a) => a.lat != null && a.lng != null).map((a) => ({
   slug: 'a-' + a.slug, title: a.title, lat: a.lat, lng: a.lng,
@@ -109,6 +110,23 @@ const content =
     '<div class="right">— pick a world to dive in. each is <b>a curated mini-guide</b> with its own places, sub-categories, and a map.</div></div>' +
     '<div class="cats-grid">' + catsHtml + '</div></section>' +
 
+  '<section class="mapblock" id="map">' +
+    '<div class="mapblock-head"><div class="mh-left"><span class="eyebrow">— the map</span>' +
+      '<h3>everything near you,<br/><em>and near your stay</em>.</h3>' +
+      '<p class="mh-sub">all ' + total + ' spots and every bre flat on one map — <b>find what\'s good around you right now</b>.</p></div>' +
+      '<div class="right"><span class="legend">' +
+        '<span class="dot"><span class="sw" style="background:#ff5e1a"></span>eat</span>' +
+        '<span class="dot"><span class="sw" style="background:#00b5b0"></span>wellness</span>' +
+        '<span class="dot"><span class="sw" style="background:#7f77dd"></span>work</span>' +
+        '<span class="dot"><span class="sw" style="background:#ff5e1a;box-shadow:0 0 0 2px #0a0908"></span>bre flat</span>' +
+      '</span></div></div>' +
+    '<div class="map-controls"><div class="seg">' +
+      '<button class="mc active" data-act="all">all · ' + total + '</button>' +
+      '<button class="mc" data-act="opennow">open now</button></div>' +
+      '<button class="mc near" data-act="near"><svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2.6" fill="currentColor"/><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.4"/><path d="M8 0.5v3M8 12.5v3M0.5 8h3M12.5 8h3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg> near me</button>' +
+    '</div>' +
+    '<div class="map"><div id="guideMap"></div></div></section>' +
+
   '<section class="stories-wrap"><div class="stories-head"><div><h3>longer <em>reads</em>.</h3></div>' +
     '<div class="right"><span>stories take time. we publish one every few weeks — <b>people we love</b>, <b>routines we keep</b>, <b>photo essays</b>.</span><span class="scroll-hint">scroll →</span></div></div>' +
     '<div class="stories">' + storiesHtml + '</div></section>' +
@@ -119,19 +137,11 @@ const content =
 
   '<section class="pull"><blockquote>we don\'t <span class="under"><em>rate</em></span>.<br/>we just <span class="under"><em>recommend</em></span>.</blockquote><div class="sig">— bre, batumi</div></section>' +
 
-  '<section class="mapblock" id="map"><div class="mapblock-head"><h3>everything we love,<br/><em>on a map</em>.</h3>' +
-    '<div class="right"><span class="legend">' +
-      '<span class="dot"><span class="sw" style="background:#ff5e1a"></span>eat</span>' +
-      '<span class="dot"><span class="sw" style="background:#00b5b0"></span>wellness</span>' +
-      '<span class="dot"><span class="sw" style="background:#7f77dd"></span>work</span>' +
-      '<span class="dot"><span class="sw" style="background:#ff5e1a;box-shadow:0 0 0 2px #0a0908"></span>bre flat</span>' +
-    '</span></div></div>' +
-    '<div class="map"><div id="guideMap"></div></div></section>' +
-  '<a class="map-fab" href="#map" aria-label="open the map"><svg viewBox="0 0 48 48" class="mini"><defs><clipPath id="mfc"><circle cx="24" cy="24" r="24"/></clipPath></defs><g clip-path="url(#mfc)"><rect width="48" height="48" fill="#f4f0e7"/><path d="M0 37 Q14 33 26 35 T48 29 L48 48 L0 48 Z" fill="#bfdaee" opacity="0.6"/><path d="M0 37 Q14 33 26 35 T48 29" stroke="#7bafd2" stroke-width="1.2" fill="none" opacity="0.7"/><line x1="0" y1="17" x2="48" y2="17" stroke="#00000010" stroke-width="2"/><line x1="17" y1="0" x2="17" y2="48" stroke="#00000010" stroke-width="2"/><line x1="34" y1="0" x2="34" y2="48" stroke="#00000010" stroke-width="2"/><circle cx="20" cy="19" r="3.4" fill="#ff5e1a" stroke="#fff" stroke-width="1.5"/><circle cx="33" cy="26" r="2.6" fill="#00b5b0" stroke="#fff" stroke-width="1.3"/></g></svg><span class="map-fab-label">map</span></a>';
+  '<a class="map-fab" href="#map" aria-label="open the map"><span class="mf-ico"><svg viewBox="0 0 48 48"><defs><clipPath id="mfc"><circle cx="24" cy="24" r="24"/></clipPath></defs><g clip-path="url(#mfc)"><rect width="48" height="48" fill="#f4f0e7"/><path d="M0 37 Q14 33 26 35 T48 29 L48 48 L0 48 Z" fill="#bfdaee" opacity="0.6"/><path d="M0 37 Q14 33 26 35 T48 29" stroke="#7bafd2" stroke-width="1.2" fill="none" opacity="0.7"/><line x1="0" y1="17" x2="48" y2="17" stroke="#00000010" stroke-width="2"/><line x1="17" y1="0" x2="17" y2="48" stroke="#00000010" stroke-width="2"/><line x1="34" y1="0" x2="34" y2="48" stroke="#00000010" stroke-width="2"/><circle cx="20" cy="19" r="3.4" fill="#ff5e1a" stroke="#fff" stroke-width="1.5"/><circle cx="33" cy="26" r="2.6" fill="#00b5b0" stroke="#fff" stroke-width="1.3"/></g></svg></span><span class="mf-txt">map</span></a>';
 ---
 <Site title={"the batumi guide — rega rega"}>
 <Fragment set:html={content} />
-<style is:inline set:html={"#guideMap{position:absolute;inset:0;width:100%;height:100%}\n.masthead-cover.rotator{position:relative}\n.masthead-cover.rotator .slides{position:absolute;inset:0;overflow:hidden;z-index:1}\n.masthead-cover .cover-slide{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;color:#fff;transform:translateY(100%);opacity:0;transition:transform .6s cubic-bezier(.2,.7,.2,1),opacity .5s ease;pointer-events:none;overflow:hidden}\n.masthead-cover .cover-slide.active{transform:translateY(0);opacity:1;pointer-events:auto}\n.masthead-cover .cover-slide.leaving{transform:translateY(-100%);opacity:0}\n.masthead-cover .cs-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;filter:grayscale(1) brightness(1.55) contrast(.9)}\n.masthead-cover .cs-tint{position:absolute;inset:0;z-index:1;background:#ff5e1a;mix-blend-mode:multiply}\n.masthead-cover .cs-shade{position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(120,38,8,.28) 0%,rgba(120,38,8,0) 34%,rgba(90,28,6,.42) 100%)}\n.masthead-cover .cover-slide .body{position:relative;z-index:2;flex:1;width:100%;box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between;padding:64px 28px 26px}\n.masthead-cover .cover-slide h3{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:clamp(28px,2.9vw,42px);line-height:1.03;letter-spacing:-.035em;text-transform:lowercase;color:#fff;margin:0}\n.masthead-cover .cover-slide h3 em{font-style:italic;color:#fff}\n.masthead-cover .cover-slide .read{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.24em;text-transform:uppercase;font-weight:700;color:#fff;opacity:.92}\n.masthead-cover .kicker-top{position:absolute;top:26px;left:28px;z-index:3;display:flex;align-items:center;gap:11px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;font-weight:600;color:#fff}\n.masthead-cover .kicker-top::before{content:'';width:22px;height:1px;background:#fff;display:inline-block}\n.masthead-cover .rot-dots{position:absolute;bottom:14px;right:18px;z-index:5;display:flex;gap:6px}\n.masthead-cover .rot-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.4);border:0;cursor:pointer;padding:0;transition:background .2s ease}\n.masthead-cover .rot-dot.active{background:#fff}\n.map-fab{position:fixed;right:20px;bottom:20px;z-index:60;width:60px;height:60px;border-radius:50%;overflow:hidden;border:2.5px solid var(--ink);box-shadow:0 6px 20px rgba(0,0,0,.28);transition:transform .2s ease}\n.map-fab .mini{width:100%;height:100%;display:block}\n.map-fab .map-fab-label{position:absolute;inset:0;display:flex;align-items:center;justify-content:center;background:rgba(10,9,8,.6);color:#fff;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.2em;text-transform:uppercase;font-weight:700;opacity:0;transition:opacity .2s ease}\n.map-fab:hover{transform:scale(1.08)}\n.map-fab:hover .map-fab-label{opacity:1}"}></style>
+<style is:inline set:html={"#guideMap{position:absolute;inset:0;width:100%;height:100%}\n.masthead-cover.rotator{position:relative}\n.masthead-cover.rotator .slides{position:absolute;inset:0;overflow:hidden;z-index:1}\n.masthead-cover .cover-slide{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;color:#fff;transform:translateY(100%);opacity:0;transition:transform .6s cubic-bezier(.2,.7,.2,1),opacity .5s ease;pointer-events:none;overflow:hidden}\n.masthead-cover .cover-slide.active{transform:translateY(0);opacity:1;pointer-events:auto}\n.masthead-cover .cover-slide.leaving{transform:translateY(-100%);opacity:0}\n.masthead-cover .cs-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;filter:grayscale(1) brightness(1.55) contrast(.9)}\n.masthead-cover .cs-tint{position:absolute;inset:0;z-index:1;background:#ff5e1a;mix-blend-mode:multiply}\n.masthead-cover .cs-shade{position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(120,38,8,.28) 0%,rgba(120,38,8,0) 34%,rgba(90,28,6,.42) 100%)}\n.masthead-cover .cover-slide .body{position:relative;z-index:2;flex:1;width:100%;box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between;padding:64px 28px 26px}\n.masthead-cover .cover-slide h3{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:clamp(28px,2.9vw,42px);line-height:1.03;letter-spacing:-.035em;text-transform:lowercase;color:#fff;margin:0}\n.masthead-cover .cover-slide h3 em{font-style:italic;color:#fff}\n.masthead-cover .cover-slide .read{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.24em;text-transform:uppercase;font-weight:700;color:#fff;opacity:.92}\n.masthead-cover .kicker-top{position:absolute;top:26px;left:28px;z-index:3;display:flex;align-items:center;gap:11px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;font-weight:600;color:#fff}\n.masthead-cover .kicker-top::before{content:'';width:22px;height:1px;background:#fff;display:inline-block}\n.masthead-cover .rot-dots{position:absolute;bottom:14px;right:18px;z-index:5;display:flex;gap:6px}\n.masthead-cover .rot-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.4);border:0;cursor:pointer;padding:0;transition:background .2s ease}\n.masthead-cover .rot-dot.active{background:#fff}\n.mapblock .mapblock-head .mh-left{max-width:560px}\n.mapblock .eyebrow{display:inline-flex;align-items:center;gap:10px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;font-weight:600;color:var(--accent-deep);margin-bottom:14px}\n.mapblock .mh-sub{margin-top:12px;font-size:15px;line-height:1.5;color:var(--ink-soft);max-width:470px}\n.mapblock .mh-sub b{color:var(--ink);font-weight:600}\n.map-controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:24px 0 16px}\n.map-controls .seg{display:inline-flex;background:var(--paper);border:1px solid var(--line);border-radius:999px;padding:3px}\n.map-controls .mc{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--ink-soft);padding:9px 16px;border-radius:999px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;border:0;background:transparent;transition:all .18s ease}\n.map-controls .seg .mc.active{background:var(--ink);color:#fff}\n.map-controls .mc.near{border:1px solid var(--line);background:var(--paper);color:var(--ink)}\n.map-controls .mc.near:hover{border-color:var(--accent);color:var(--accent)}\n.map-controls .mc.near.loading{opacity:.55;pointer-events:none}\n.map-controls .mc.near.err{border-color:#d9402a;color:#d9402a}\n.map-fab{position:fixed;right:20px;bottom:20px;z-index:60;display:inline-flex;align-items:center;gap:9px;height:52px;padding:0 18px 0 7px;border-radius:999px;background:var(--ink);border:2px solid var(--ink);box-shadow:0 8px 24px rgba(0,0,0,.3);transition:transform .2s ease,box-shadow .2s ease}\n.map-fab:hover{transform:translateY(-2px);box-shadow:0 12px 30px rgba(0,0,0,.36)}\n.map-fab .mf-ico{width:38px;height:38px;border-radius:50%;overflow:hidden;flex:none;border:1.5px solid rgba(255,255,255,.5)}\n.map-fab .mf-ico svg{width:100%;height:100%;display:block}\n.map-fab .mf-txt{font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.18em;text-transform:uppercase;font-weight:700;color:#fff}"}></style>
 <script is:inline>
 (function(){
   var rot=document.querySelector('.masthead-cover.rotator'); if(!rot) return;
@@ -145,6 +155,22 @@ const content =
 })();
 </script>
 <script is:inline src="/rega-map.js"></script>
-<script is:inline set:html={'const MAP_DATA=' + JSON.stringify(mapData) + ';window.__initGuideMap=function(){RegaMap.stays("guideMap",MAP_DATA,{cardSel:".__no-list"});};'}></script>
+<script is:inline define:vars={{ MAP_DATA: mapData }}>
+window.__initGuideMap = function () {
+  var api = RegaMap.stays("guideMap", MAP_DATA, { cardSel: ".__no-list" });
+  if (!api) return;
+  var bar = document.querySelector(".map-controls"); if (!bar) return;
+  var bAll = bar.querySelector('[data-act="all"]');
+  var bOpen = bar.querySelector('[data-act="opennow"]');
+  var bNear = bar.querySelector('[data-act="near"]');
+  function seg(a) { if (bAll) bAll.classList.toggle("active", a === "all"); if (bOpen) bOpen.classList.toggle("active", a === "opennow"); }
+  if (bAll) bAll.addEventListener("click", function () { seg("all"); api.clearFilter(); });
+  if (bOpen) bOpen.addEventListener("click", function () { seg("opennow"); api.setFilter(function (it) { return RegaMap.isOpenNow(it.hours) !== false; }); });
+  if (bNear) bNear.addEventListener("click", function () {
+    var b = this; b.classList.add("loading");
+    api.locate(function (u) { b.classList.remove("loading"); if (!u) { b.classList.add("err"); setTimeout(function () { b.classList.remove("err"); }, 2200); } });
+  });
+};
+</script>
 <script is:inline async src={'https://maps.googleapis.com/maps/api/js?key=' + GMAPS_KEY + '&callback=__initGuideMap&loading=async&language=en&region=GE'}></script>
 </Site>
