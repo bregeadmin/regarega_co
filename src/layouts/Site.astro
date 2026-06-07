@@ -8,6 +8,9 @@ const {
   accent = 'var(--accent)',
   accentDeep = 'var(--accent-deep)',
 } = Astro.props;
+// Language toggle → same page in Russian (not the RU home).
+const path = Astro.url.pathname;
+const ruHref = path === '/' ? '/ru/' : '/ru' + path;
 ---
 <!doctype html>
 <html lang="en">
@@ -20,6 +23,8 @@ const {
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@10..48,200..900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+  <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png" />
+  <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
   <meta name="theme-color" content="#0a0908" />
 </head>
@@ -36,10 +41,10 @@ const {
     <a href="/own" class="nav-b2b">own</a>
     <a href="/invest" class="nav-b2b">invest</a>
   </div>
-  <a href="#top" class="ctr">rega<span class="d"></span><span class="twin">rega</span></a>
+  <a href="/" class="ctr">rega<span class="d"></span><span class="twin">rega</span></a>
   <div class="right">
     <a href="#" class="city">batumi <span class="arr">▾</span></a>
-    <a href="/ru/" class="lang" title="русский">ru</a>
+    <a href={ruHref} class="lang" title="русский">ru</a>
     <button class="burger" id="burger" aria-label="menu" type="button"><span></span><span></span></button>
   </div>
 </header>
@@ -56,7 +61,7 @@ const {
       <a href="/agents" class="menu-sub">agents</a>
     </div>
     <div class="menu-foot">
-      <div class="menu-row"><span class="menu-row-label">language</span><a href="/ru/" class="menu-row-val"><b>en</b> · ru</a></div>
+      <div class="menu-row"><span class="menu-row-label">language</span><a href={ruHref} class="menu-row-val"><b>en</b> · ru</a></div>
       <a href="https://t.me/bre_ge" class="menu-tg">↗ telegram @bre_ge</a>
     </div>
   </div>
@@ -81,12 +86,56 @@ const {
       <a href="/agents">agents</a>
     </div>
     <div class="foot-right">
-      <a href="/ru/" class="foot-lang">RU · <b>EN</b></a>
+      <a href={ruHref} class="foot-lang">RU · <b>EN</b></a>
       <a href="#" class="foot-top" onclick="event.preventDefault();window.scrollTo(0,0)">↑ back to top</a>
     </div>
   </div>
 </footer>
 
 <script is:inline set:html={"const cursor = document.getElementById('cursor');\n    let mx=window.innerWidth/2, my=window.innerHeight/2, cx=mx, cy=my;\n  window.addEventListener('mousemove', e => { mx=e.clientX; my=e.clientY; });\n  function loop(){\n    cx += (mx-cx)*0.7; cy += (my-cy)*0.7;\n    if(cursor) cursor.style.transform = `translate(${cx}px,${cy}px) translate(-50%,-50%)`;\n    requestAnimationFrame(loop);\n  }\n  loop();\n\n  function clearCursorColors(){ cursor.classList.remove('teal','yellow','pink'); }\n\n  document.querySelectorAll('a:not(.apt):not(.feat):not(.post):not(.hero-card):not(.fp):not(.spread):not(.channel):not(.door), button:not(.hs-field):not(.hs-submit)').forEach(el => {\n    el.addEventListener('mouseenter', () => { clearCursorColors(); cursor.classList.add('big'); });\n    el.addEventListener('mouseleave', () => cursor.classList.remove('big'));\n  });\n\n  document.querySelectorAll('.apt').forEach(el => {\n    el.addEventListener('mouseenter', () => { clearCursorColors(); cursor.classList.add('text','teal'); cursor.setAttribute('data-label','view →'); });\n    el.addEventListener('mouseleave', () => { cursor.classList.remove('text','teal'); cursor.removeAttribute('data-label'); });\n  });\n\n  document.querySelectorAll('.feat, .post, .hero-card, .fp, .spread').forEach(el => {\n    el.addEventListener('mouseenter', () => { clearCursorColors(); cursor.classList.add('text','yellow'); cursor.setAttribute('data-label','read →'); });\n    el.addEventListener('mouseleave', () => { cursor.classList.remove('text','yellow'); cursor.removeAttribute('data-label'); });\n  });\n\n  document.querySelectorAll('.channel').forEach(el => {\n    el.addEventListener('mouseenter', () => { clearCursorColors(); cursor.classList.add('text','pink'); cursor.setAttribute('data-label','say hi →'); });\n    el.addEventListener('mouseleave', () => { cursor.classList.remove('text','pink'); cursor.removeAttribute('data-label'); });\n  });\n\n  document.querySelectorAll('.door').forEach(el => {\n    el.addEventListener('mouseenter', () => { clearCursorColors(); cursor.classList.add('text'); cursor.setAttribute('data-label','learn →'); });\n    el.addEventListener('mouseleave', () => { cursor.classList.remove('text'); cursor.removeAttribute('data-label'); });\n  });\n\n  const io = new IntersectionObserver((entries) => {\n    entries.forEach(e => {\n      if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); }\n    });\n  }, {threshold: 0.12, rootMargin: '0px 0px -80px 0px'});\n  document.querySelectorAll('.reveal').forEach(el => io.observe(el));\n\n  let calYear = 2026, calMonth = 4;\n\n  // burger menu\n  (function(){\n    const burger = document.getElementById('burger');\n    const overlay = document.getElementById('menuOverlay');\n    if (!burger || !overlay) return;\n    function open(){\n      overlay.hidden = false;\n      requestAnimationFrame(()=> overlay.classList.add('open'));\n      burger.classList.add('open');\n      document.body.style.overflow = 'hidden';\n    }\n    function close(){\n      overlay.classList.remove('open');\n      burger.classList.remove('open');\n      document.body.style.overflow = '';\n      setTimeout(()=> overlay.hidden = true, 320);\n    }\n    burger.addEventListener('click', () => {\n      if (overlay.classList.contains('open')) close(); else open();\n    });\n    overlay.addEventListener('click', e => {\n      if (e.target === overlay) close();\n    });\n    overlay.querySelectorAll('.menu-item, .menu-tg').forEach(a => {\n      a.addEventListener('click', close);\n    });\n    document.addEventListener('keydown', e => {\n      if (e.key === 'Escape' && overlay.classList.contains('open')) close();\n    });\n  })();\n\n  // HOME DOT — flies on first scroll, fades after (per session)\n  (function(){\n    if(window.innerWidth < 880) return;\n    const centerLogo = document.querySelector('.topbar .ctr');\n    const centerDotEl = centerLogo && centerLogo.querySelector('.d');\n    const leftDot = document.querySelector('.home-dot');\n    const flyingDot = document.getElementById('flyingDot');\n    if(!centerLogo || !centerDotEl || !leftDot || !flyingDot) return;\n\n    const KEY = 'bre_dot_flight_seen';\n    let hasSeenFlight = false;\n    try { hasSeenFlight = sessionStorage.getItem(KEY) === 'yes'; } catch(e){}\n\n    let state = 'top';\n    let flying = false;\n\n    function doFlight(){\n      const centerRect = centerDotEl.getBoundingClientRect();\n      const startX = centerRect.left + centerRect.width/2;\n      const startY = centerRect.top + centerRect.height/2;\n      leftDot.classList.add('expanded');\n      setTimeout(()=>{\n        const leftRect = leftDot.getBoundingClientRect();\n        const endX = leftRect.left + leftRect.width/2;\n        const endY = leftRect.top + leftRect.height/2;\n        flyingDot.style.transition = 'none';\n        flyingDot.style.transform = 'translate('+(startX-7)+'px, '+(startY-7)+'px) scale(0.71)';\n        flyingDot.style.opacity = '1';\n        centerDotEl.classList.add('hidden');\n        flyingDot.getBoundingClientRect();\n        flyingDot.style.transition = 'transform .85s cubic-bezier(.5,0,.2,1)';\n        flyingDot.style.transform = 'translate('+(endX-7)+'px, '+(endY-7)+'px) scale(1)';\n        setTimeout(()=>{\n          leftDot.classList.add('visible','pulsing');\n          flyingDot.style.transition = 'none';\n          flyingDot.style.opacity = '0';\n          flying = false;\n          state = 'scrolled';\n          try { sessionStorage.setItem(KEY, 'yes'); } catch(e){}\n          hasSeenFlight = true;\n        }, 860);\n      }, 360);\n    }\n\n    function doFade(direction){\n      if(direction === 'out'){\n        centerDotEl.classList.add('hidden');\n        leftDot.classList.add('expanded');\n        setTimeout(()=> leftDot.classList.add('visible','pulsing'), 180);\n        state = 'scrolled';\n      } else {\n        leftDot.classList.remove('visible','pulsing');\n        setTimeout(()=>{\n          leftDot.classList.remove('expanded');\n          centerDotEl.classList.remove('hidden');\n        }, 200);\n        state = 'top';\n      }\n    }\n\n    function onScroll(){\n      const y = window.scrollY || document.documentElement.scrollTop;\n      if(flying) return;\n      if(y > 60 && state === 'top'){\n        if(!hasSeenFlight){\n          flying = true;\n          state = 'flying';\n          doFlight();\n        } else {\n          doFade('out');\n        }\n      } else if(y <= 60 && state === 'scrolled'){\n        doFade('in');\n      }\n    }\n\n    window.addEventListener('scroll', onScroll, {passive:true});\n    onScroll();\n  })();\n\n\n\n\n  // Topbar scroll state — adds .scrolled class when scrolled past hero\n  (function(){\n    const tb = document.querySelector('.topbar');\n    if(!tb) return;\n    function update(){\n      const y = window.scrollY || document.documentElement.scrollTop;\n      if(y > 40) tb.classList.add('scrolled');\n      else tb.classList.remove('scrolled');\n    }\n    window.addEventListener('scroll', update, {passive:true});\n    update();\n  })();"}></script>
+<script is:inline>
+  /* Keep scroll position when switching language (EN <-> RU are separate pages). */
+  (function(){
+    try {
+      var y = sessionStorage.getItem('rr_lang_scroll');
+      if (y !== null) {
+        var yy = parseInt(y, 10) || 0;
+        sessionStorage.removeItem('rr_lang_scroll');
+        window.scrollTo(0, yy);
+        requestAnimationFrame(function(){ window.scrollTo(0, yy); });
+      }
+    } catch(e){}
+    document.querySelectorAll('.lang, .menu-row-val, .foot-lang').forEach(function(a){
+      a.addEventListener('click', function(){
+        try { sessionStorage.setItem('rr_lang_scroll', String(window.scrollY || document.documentElement.scrollTop || 0)); } catch(e){}
+      });
+    });
+  })();
+</script>
+<script is:inline>
+  /* Site-styled dropdowns: turn every <select> into a branded dropdown. */
+  (function(){
+    function enhance(sel){
+      if(sel.dataset.rr) return; sel.dataset.rr='1';
+      var wrap=document.createElement('span'); wrap.className='rr-sel';
+      sel.parentNode.insertBefore(wrap, sel); wrap.appendChild(sel); sel.classList.add('rr-native');
+      var btn=document.createElement('button'); btn.type='button'; btn.className='rr-sel-btn';
+      var lbl=document.createElement('span'); lbl.className='rr-sel-lbl';
+      var arr=document.createElement('span'); arr.className='rr-sel-arr'; arr.textContent='▾';
+      btn.appendChild(lbl); btn.appendChild(arr);
+      var list=document.createElement('div'); list.className='rr-sel-list';
+      wrap.appendChild(btn); wrap.appendChild(list);
+      function sync(){ var o=sel.options[sel.selectedIndex]; lbl.textContent=o?o.textContent:''; }
+      function build(){ list.innerHTML=''; Array.prototype.forEach.call(sel.options,function(o,i){ var d=document.createElement('div'); d.className='rr-sel-opt'+(i===sel.selectedIndex?' sel':''); d.textContent=o.textContent; d.addEventListener('click',function(){ sel.selectedIndex=i; sel.dispatchEvent(new Event('change',{bubbles:true})); sync(); close(); }); list.appendChild(d); }); }
+      function open(){ build(); wrap.classList.add('open'); var r=list.getBoundingClientRect(); if(r.right > window.innerWidth-8){ list.style.left='auto'; list.style.right='0'; } else { list.style.left='0'; list.style.right='auto'; } }
+      function close(){ wrap.classList.remove('open'); }
+      btn.addEventListener('click',function(e){ e.stopPropagation(); wrap.classList.contains('open')?close():open(); });
+      document.addEventListener('click',function(e){ if(!wrap.contains(e.target)) close(); });
+      sel.addEventListener('change',sync);
+      sync();
+    }
+    document.querySelectorAll('select').forEach(enhance);
+  })();
+</script>
 </body>
 </html>

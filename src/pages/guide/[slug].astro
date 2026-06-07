@@ -1,0 +1,201 @@
+---
+import Site from '../../layouts/Site.astro';
+import '../../styles/guide.css';
+import { supabase } from '../../lib/supabase';
+
+const CAT = {
+  'eat-drink':   { color: '#ff5e1a', label: 'eat & drink' },
+  'wellness':    { color: '#00b5b0', label: 'wellness & slow living' },
+  'work':        { color: '#7f77dd', label: 'work & remote life' },
+  'move-around': { color: '#3D5AFE', label: 'move around' },
+};
+
+export async function getStaticPaths() {
+  const { data: gp } = await supabase.from('guide_places').select('*').eq('status', 'published');
+  const { data: apts } = await supabase
+    .from('apartments_public')
+    .select('slug,title,bedrooms,max_guests,price_from,photos,lat,lng');
+  const places = gp || [];
+  const apartments = (apts || []).filter((a) => a.lat != null && a.lng != null);
+  const hav = (a, b) => {
+    const R = 6371, r = (x) => (x * Math.PI) / 180;
+    const dLat = r(b.lat - a.lat), dLng = r(b.lng - a.lng);
+    const s = Math.sin(dLat / 2) ** 2 + Math.cos(r(a.lat)) * Math.cos(r(b.lat)) * Math.sin(dLng / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(s));
+  };
+  return places.map((p) => {
+    const nearby = (p.lat != null && p.lng != null)
+      ? apartments.map((a) => ({ a, d: hav(p, a) })).sort((x, y) => x.d - y.d).slice(0, 3)
+      : [];
+    const related = places.filter((x) => x.category === p.category && x.slug !== p.slug).slice(0, 3);
+    return { params: { slug: p.slug }, props: { p, nearby, related } };
+  });
+}
+
+const { p, nearby, related } = Astro.props;
+const cat = CAT[p.category] || { color: '#ff5e1a', label: p.category };
+const name = p.title || p.name;
+const photos = (p.photos && p.photos.length) ? p.photos : (p.image ? [p.image] : []);
+const esc = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const km = (d) => (d < 1 ? Math.round(d * 1000) + ' m' : d.toFixed(1) + ' km');
+
+// --- precompute every fragment as a plain string (no nested template literals) ---
+// --- rich-text foundation: body is markdown (**bold**, *italic*, "* " lists, "Label:" labels) ---
+// editors (via future admin) write markdown; mdInline renders it with brand styles.
+const mdInline = (raw) => esc(raw)
+  .replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>')
+  .replace(/\*([^*]+)\*/g, '<em>$1</em>');
+// until the admin exists, add light auto-accents to plain text (a bold hook + italic asides)
+const _hasMd = (t) => /\*\*|\*\(/.test(t);
+const autoEmph = (text, first) => {
+  if (_hasMd(text)) return text;
+  let s = text.replace(/\(([^)]{3,70})\)/g, '*($1)*');
+  if (first) { const m = s.match(/^([^*]{14,82}?[.,—])(\s)/); if (m) s = '**' + m[1] + '**' + s.slice(m[1].length); }
+  return s;
+};
+// big editorial intro headline (markdown, with an italic accent) — admin fills take_title
+const takeTitleH2 = p.take_title ? '<h2>' + mdInline(p.take_title) + '</h2>' : '';
+const _bl = String(p.body || p.summary || '').split('\n');
+let _ul = [], _firstP = true;
+const _bout = [];
+const _flush = () => { if (_ul.length) { _bout.push('<ul class="body-list">' + _ul.map((x) => '<li>' + mdInline(x) + '</li>').join('') + '</ul>'); _ul = []; } };
+_bl.forEach((raw) => {
+  const l = raw.trim();
+  if (!l) { _flush(); return; }
+  if (l[0] === '•' || /^\*\s/.test(l)) { const it = l.replace(/^[•*]\s*/, '').trim(); if (it) _ul.push(it); return; }
+  _flush();
+  if (/:$/.test(l) && l.length < 42) _bout.push('<p class="lead">' + mdInline(l) + '</p>');
+  else { _bout.push('<p>' + mdInline(autoEmph(l, _firstP)) + '</p>'); _firstP = false; }
+});
+_flush();
+const bodyHtml = _bout.join('');
+
+const tags = Array.isArray(p.tags) ? p.tags : [];
+const tagsHtml = tags.length
+  ? '<div class="tags">' + tags.map((t) => '<span class="tag">' + esc(t) + '</span>').join('') + '</div>'
+  : '';
+
+const hours = Array.isArray(p.hours) ? p.hours : [];
+const mapsUrl = p.gmaps_url || (p.lat != null ? 'https://www.google.com/maps/dir/?api=1&destination=' + p.lat + ',' + p.lng : '');
+const actBits = [];
+if (mapsUrl) actBits.push('<a class="act" href="' + esc(mapsUrl) + '" target="_blank" rel="noopener">↗ open in maps</a>');
+if (p.website) {
+  const isIg = /instagram\.com/i.test(p.website);
+  actBits.push('<a class="act" href="' + esc(p.website) + '" target="_blank" rel="noopener">↗ ' + (isIg ? 'instagram' : 'website') + '</a>');
+}
+if (nearby.length) actBits.push('<a class="act primary" href="#nearby">stay nearby →</a>');
+const openNowSpan = hours.length ? '<span class="open-now closed" id="openNow" hidden></span>' : '';
+const actionBar = (actBits.length || openNowSpan) ? '<div class="action-bar">' + openNowSpan + '<span class="spacer"></span>' + actBits.join('') + '</div>' : '';
+
+const ICON = {
+  clock: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="6.5" stroke="currentColor" stroke-width="1.4"/><path d="M8 4v4l2.5 1.5" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
+  pin: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 14s-5-4.5-5-9a5 5 0 0 1 10 0c0 4.5-5 9-5 9z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/><circle cx="8" cy="5" r="2" stroke="currentColor" stroke-width="1.4"/></svg>',
+  pinSm: '<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M7 12s-4-3.5-4-7a4 4 0 0 1 8 0c0 3.5-4 7-4 7z" stroke="currentColor" stroke-width="1.4" stroke-linejoin="round"/></svg>',
+  phone: '<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 2h2l1 3-1.6 1a7 7 0 0 0 3.6 3.6l1-1.6 3 1v2a1 1 0 0 1-1 1A9 9 0 0 1 2 3a1 1 0 0 1 1-1z" stroke="currentColor" stroke-width="1.2" stroke-linejoin="round"/></svg>',
+  coin: '<svg width="14" height="14" viewBox="0 0 14 14" fill="none"><circle cx="7" cy="7" r="2.5" stroke="currentColor" stroke-width="1.4"/><path d="M7 1v1.5M7 11.5V13M1 7h1.5M11.5 7H13" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>',
+};
+// parse google weekday_text -> 24h, group consecutive identical days (mon..sun)
+const to24 = (t) => { const m = t.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i); if (!m) return null; let h = (+m[1]) % 12; if (/pm/i.test(m[3])) h += 12; return String(h).padStart(2, '0') + ':' + m[2]; };
+const fmtDay = (rest) => {
+  if (!rest) return '';
+  if (/closed/i.test(rest)) return 'closed';
+  if (/24/.test(rest) && /hour/i.test(rest)) return '24 hours';
+  const parts = rest.split(/[–—-]/).map((s) => s.trim());
+  if (parts.length < 2) return rest;
+  const a = to24(parts[0]), b = to24(parts[1]);
+  return (a && b) ? a + ' — ' + b : rest;
+};
+const DAYS3 = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
+const DAYFULL = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+const hmap = {};
+hours.forEach((line) => { const i = line.indexOf(':'); if (i < 0) return; hmap[line.slice(0, i).trim().toLowerCase()] = fmtDay(line.slice(i + 1).trim()); });
+const dayVals = DAYFULL.map((d) => hmap[d] || '');
+const groups = [];
+dayVals.forEach((v, idx) => { const last = groups[groups.length - 1]; if (last && last.v === v) last.end = idx; else groups.push({ v, start: idx, end: idx }); });
+const hoursRows = groups.filter((g) => g.v).map((g) => {
+  const label = g.start === g.end ? DAYS3[g.start] : DAYS3[g.start] + ' — ' + DAYS3[g.end];
+  const dd = []; for (let k = g.start; k <= g.end; k++) dd.push(k);
+  return '<li data-days="' + dd.join(',') + '"><span class="day">' + label + '</span><b>' + esc(g.v) + '</b></li>';
+}).join('');
+const hoursPanel = hoursRows ? '<div class="panel"><h4>' + ICON.clock + 'hours</h4><ul>' + hoursRows + '</ul></div>' : '';
+
+const infoBits = [];
+if (p.address) infoBits.push('<div class="item">' + ICON.pinSm + '<div class="t"><b>' + esc(p.address) + '</b>' + (p.neighborhood ? '<span class="n">' + esc(p.neighborhood) + '</span>' : '') + '</div></div>');
+if (p.price) infoBits.push('<div class="item">' + ICON.coin + '<div class="t"><b>' + esc(p.price) + '</b><span class="n">approx · per visit</span></div></div>');
+if (p.phone) infoBits.push('<div class="item">' + ICON.phone + '<div class="t"><b>' + esc(p.phone) + '</b><span class="n">phone</span></div></div>');
+const infoPanel = infoBits.length ? '<div class="panel"><h4>' + ICON.pin + 'how to find it</h4><div class="quick">' + infoBits.join('') + '</div></div>' : '';
+const asideExtra = (!hoursPanel && !infoPanel)
+  ? '<div class="panel"><h4>more info</h4><div class="quick"><div class="item"><div class="t"><span class="n">details coming with the guide</span></div></div></div></div>'
+  : '';
+
+const galleryGs = photos.slice(1, 9).map((src) => '<div class="g"><img src="' + esc(src) + '" alt="" loading="lazy"></div>').join('');
+const gallerySection = galleryGs ? '<div class="gallery-wrap"><div class="gallery">' + galleryGs + '</div></div>' : '';
+
+const nearbyCards = nearby.map((o) => {
+  const a = o.a;
+  const ph = (a.photos && a.photos[0]) || ('https://picsum.photos/seed/' + a.slug + '/900/700');
+  const beds = a.bedrooms === 0 ? 'studio' : (a.bedrooms ?? 1) + ' bed';
+  const price = a.price_from ? ('₾' + a.price_from + '<span class="u">/NT</span>') : 'on request';
+  return '<a class="apt" href="/stays/' + a.slug + '"><div class="ph"><img src="' + esc(ph) + '" alt="" loading="lazy"></div><div class="top"><h4>' + esc(a.title) + '</h4><span class="price">' + price + '</span></div><div class="sub">' + beds + ' · ' + (a.max_guests ?? 2) + ' guests</div><div class="dist">' + km(o.d) + ' away</div></a>';
+}).join('');
+const nearbySection = nearbyCards
+  ? '<section class="nearby-wrap" id="nearby"><div class="nearby-head"><div><div class="kicker"><span class="dot"></span>— our flats nearby</div><h3>stay <em>nearby</em>.</h3></div><div class="right">a place here, a flat around the corner.</div></div><div class="nearby">' + nearbyCards + '</div></section>'
+  : '';
+
+const relatedCards = related.map((r) => {
+  const ph = (r.photos && r.photos[0]) || r.image || '';
+  const rl = (CAT[r.category] || cat).label;
+  return '<a class="pl" href="/guide/' + r.slug + '"><div class="ph"><img src="' + esc(ph) + '" alt="" loading="lazy"></div><span class="kicker"><span class="sw"></span>' + esc(rl) + '</span><h5>' + esc(r.title || r.name) + '</h5><p class="summary">' + esc(String(r.summary || '').slice(0, 90)) + '</p></a>';
+}).join('');
+const relatedSection = relatedCards
+  ? '<section class="related"><div class="container"><div class="top"><h3>more <em>spots</em> we like.</h3><div class="right">— from ' + esc(cat.label) + '</div></div><div class="grid">' + relatedCards + '</div></div></section>'
+  : '';
+
+const heroPhoto = photos[0] ? '<div class="hero-photo"><img src="' + esc(photos[0]) + '" alt="' + esc(name) + '"></div>' : '';
+// hero subtitle = the editorial take_title (with accent); raw summary no longer shown in hero
+const summaryP = p.take_title ? '<p class="summary">' + mdInline(p.take_title) + '</p>' : '';
+
+const content =
+  '<div class="meta-top"><div class="crumbs">' +
+    '<a href="/">rega rega</a><span class="sep">/</span>' +
+    '<a href="/guide">guide</a><span class="sep">/</span>' +
+    '<a href="/guide/' + p.category + '">' + esc(cat.label) + '</a><span class="sep">/</span>' +
+    '<span class="cur"><span class="dot"></span>' + esc(name) + '</span>' +
+  '</div><div class="actions"><a href="#nearby">stay nearby ↓</a></div></div>' +
+  '<section class="hero"><div class="inner"><div>' +
+    '<span class="pill"><span class="sw"></span>' + esc(cat.label) + '</span>' +
+    '<h1>' + esc(name) + '.</h1>' + summaryP +
+  '</div><div></div></div></section>' +
+  heroPhoto + actionBar +
+  '<section class="body"><div class="container"><div class="text">' +
+    '<div class="kicker"><span class="dot"></span>— our take</div>' + bodyHtml + tagsHtml +
+  '</div><aside class="aside">' + hoursPanel + infoPanel + asideExtra + '</aside></div></section>' +
+  gallerySection + nearbySection + relatedSection;
+---
+<Site title={`${name} — ${cat.label} — rega rega batumi`} description={p.summary || (p.name + ' in batumi.')}>
+<style is:inline set:html={`:root{--cat-color:${cat.color}}`}></style>
+<Fragment set:html={content} />
+<script type="application/json" id="gh-data" set:html={JSON.stringify(hours)}></script>
+<script is:inline>
+(function(){
+  var el=document.getElementById('openNow'), dataEl=document.getElementById('gh-data');
+  if(!el||!dataEl) return;
+  var GH; try{ GH=JSON.parse(dataEl.textContent); }catch(e){ return; }
+  if(!GH||!GH.length) return;
+  var days=['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+  function pt(s){ var m=s.match(/(\d{1,2}):(\d{2})\s*(AM|PM)/i); if(!m) return null; var h=(+m[1])%12; if(/pm/i.test(m[3])) h+=12; return h*60+(+m[2]); }
+  var map={};
+  GH.forEach(function(line){ var i=line.indexOf(':'); if(i<0) return; map[line.slice(0,i).trim()]=line.slice(i+1).trim(); });
+  function ranges(str){ if(!str||/closed/i.test(str)) return []; if(/24/.test(str)&&/hour/i.test(str)) return [{o:0,c:1440}]; return str.split(',').map(function(r){ var p=r.split(/[–—-]/); if(p.length<2) return null; var o=pt(p[0]), c=pt(p[1]); if(o==null||c==null) return null; if(c<=o) c+=1440; return {o:o,c:c}; }).filter(Boolean); }
+  var now=new Date(new Date().toLocaleString('en-US',{timeZone:'Asia/Tbilisi'}));
+  var dow=now.getDay(), t=now.getHours()*60+now.getMinutes();
+  function chk(d,tt){ var rs=ranges(map[days[d]]); for(var i=0;i<rs.length;i++){ if(tt>=rs[i].o && tt<rs[i].c) return rs[i]; } return null; }
+  var op=chk(dow,t) || chk((dow+6)%7, t+1440);
+  if(op){ var c=op.c%1440, h=Math.floor(c/60), mm=c%60, ap=h>=12?'PM':'AM', h12=(h%12)||12; el.className='open-now'; el.innerHTML='<span class="pulse"></span>open now · until '+h12+':'+(mm<10?'0':'')+mm+' '+ap; }
+  else { el.className='open-now closed'; el.textContent='closed now'; }
+  el.hidden=false;
+  var tm=(dow+6)%7;
+  document.querySelectorAll('.panel li[data-days]').forEach(function(li){ var ds=(li.getAttribute('data-days')||'').split(',').map(Number); if(ds.indexOf(tm)>=0) li.classList.add('today'); });
+})();
+</script>
+</Site>

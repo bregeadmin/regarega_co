@@ -1,0 +1,135 @@
+---
+import { supabase } from '../lib/supabase';
+const { category } = Astro.props as { category: string };
+
+const CAT: Record<string, any> = {
+  'eat-drink':   { color: '#ff5e1a', label: 'eat & drink', h1: 'eat <em>&amp;</em> drink.',
+    lede: 'our favourite <b>cafés, restaurants, bars, wine spots and bakeries</b> in batumi — the places <em>we actually go to ourselves</em>.' },
+  'wellness':    { color: '#00b5b0', label: 'wellness & slow living', h1: 'wellness <em>&amp;</em> slow.',
+    lede: '<b>spas, baths and slow-living spots</b> for a proper <em>reset day</em> in batumi.' },
+  'work':        { color: '#7f77dd', label: 'work & remote life', h1: 'work <em>&amp;</em> remote.',
+    lede: '<b>cafés and coworkings</b> that actually work for a remote day — <em>wifi, power, room to think</em>.' },
+  'move-around': { color: '#3D5AFE', label: 'move around', h1: 'move <em>around</em>.',
+    lede: 'how we get around batumi and beyond — <b>taxis, scooters and car rentals</b> we use ourselves.' },
+};
+const cat = CAT[category] || { color: '#ff5e1a', label: category, h1: category + '.', lede: '' };
+
+const { data } = await supabase.from('guide_places').select('*').eq('status', 'published').eq('category', category);
+const places = (data || []).slice().sort((a, b) => (b.rating || 0) - (a.rating || 0));
+const { data: allCats } = await supabase.from('guide_places').select('category').eq('status', 'published');
+const counts: Record<string, number> = {};
+(allCats || []).forEach((r) => { counts[r.category] = (counts[r.category] || 0) + 1; });
+
+const esc = (s: any) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const clip = (s: any, n: number) => { const t = String(s || '').replace(/\s+/g, ' ').trim(); return t.length > n ? t.slice(0, n).replace(/[ ,;:.]+\S*$/, '') + '…' : t; };
+const photo = (p: any) => (p.photos && p.photos[0]) || p.image || `https://picsum.photos/seed/${p.slug}/900/700`;
+
+const featured = places[0];
+const rest = featured ? places.slice(1) : places;
+
+// subcategory filter chips from tags
+const tagCount: Record<string, number> = {};
+places.forEach((p) => (p.tags || []).forEach((t: any) => { const k = String(t).toLowerCase(); tagCount[k] = (tagCount[k] || 0) + 1; }));
+const tagList = Object.entries(tagCount).sort((a, b) => b[1] - a[1]);
+const subnavHtml = tagList.length ? (
+  '<nav class="subnav"><span class="label">filter</span><div class="subs">' +
+  '<button class="active" data-tag="all">all · ' + places.length + '</button>' +
+  tagList.map(([t, n]) => '<button data-tag="' + esc(t) + '">' + esc(t) + ' · ' + n + '</button>').join('') +
+  '</div>' +
+  '<div class="sort"><span class="lab">sort:</span><button class="active" data-sort="rec">recommended</button><button data-sort="az">a–z</button><button data-sort="near">nearby</button></div>' +
+  '</nav>'
+) : '';
+const tagAttr = (p: any) => esc((p.tags || []).map((t: any) => String(t).toLowerCase()).join(','));
+
+const featuredHtml = featured ? (
+  '<section class="featured" data-tags="' + tagAttr(featured) + '"><a href="/guide/' + featured.slug + '">' +
+  '<div class="ph"><img src="' + esc(photo(featured)) + '" alt=""><span class="badge">our pick</span></div>' +
+  '<div class="body"><div class="meta"><span class="pill"><span class="swatch"></span>' + esc(cat.label) + '</span>' +
+  (featured.rating ? '<span>★ ' + featured.rating + '</span>' : '') + '</div>' +
+  '<h2>' + esc(featured.title || featured.name) + '.</h2>' +
+  '<p class="summary">' + esc(clip(featured.summary || featured.body, 180)) + '</p>' +
+  '<div class="info-row">' +
+  (featured.address ? '<span>' + esc(clip(featured.address, 36)) + '</span><span class="dot"></span>' : '') +
+  (featured.price ? '<span><b>' + esc(featured.price) + '</b></span>' : '') + '</div>' +
+  '<span class="read">read the post →</span>' +
+  '</div></a></section>'
+) : '';
+
+const cardHtml = (p: any, i: number) =>
+  '<a class="place" data-i="' + i + '" data-tags="' + tagAttr(p) + '" data-lat="' + (p.lat ?? '') + '" data-lng="' + (p.lng ?? '') + '" data-name="' + esc(String(p.title || p.name).toLowerCase()) + '" href="/guide/' + p.slug + '">' +
+  '<div class="ph"><img src="' + esc(photo(p)) + '" alt="" loading="lazy"><span class="pill"><span class="sw"></span>' + esc(cat.label) + '</span></div>' +
+  '<div class="info"><div class="top-row"><h4>' + esc(p.title || p.name) + '</h4>' +
+  (p.price ? '<span class="price"><b>' + esc(p.price) + '</b></span>' : '') + '</div>' +
+  '<p class="summary">' + esc(clip(p.summary || p.body, 96)) + '</p></div></a>';
+
+const placesHtml = rest.map((p, i) => cardHtml(p, i)).join('');
+
+const otherCats = Object.keys(CAT).filter((c) => c !== category);
+const moreHtml = otherCats.map((c) =>
+  '<a class="more-cat" href="/guide/' + c + '" style="--tile-color:' + CAT[c].color + ';--tile-text:#fff">' +
+  '<span class="num">' + (counts[c] || 0) + '</span>' +
+  '<h4>' + esc(CAT[c].label) + '</h4>' +
+  '<span class="go"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 11L11 3M11 3H4M11 3V10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span></a>'
+).join('');
+
+const content =
+  '<section class="cat-header"><div class="crumbs">' +
+  '<a href="/guide/">← back to the guide</a><span class="sep">/</span>' +
+  '<span class="current"><span class="dot"></span>' + esc(cat.label) + '</span></div>' +
+  '<h1>' + cat.h1 + '</h1>' +
+  '<p class="lede">' + cat.lede + '</p>' +
+  '<div class="cat-stats"><div><span class="num">' + places.length + '</span>places we love</div>' +
+  '<div><span class="num">100%</span>tried by us</div></div></section>' +
+  subnavHtml +
+  featuredHtml +
+  '<section class="places-wrap"><div class="places-head"><h3><em>' + places.length + '</em> places · sorted by recommended</h3></div>' +
+  '<div class="places">' + placesHtml + '</div></section>' +
+  '<section class="more-cats"><div class="more-cats-head"><h3>more from <em>the guide</em>.</h3><a href="/guide/" class="right">all worlds →</a></div>' +
+  '<div class="more-cats-grid">' + moreHtml + '</div></section>';
+---
+<style is:inline set:html={`:root{--cat-color:${cat.color}}`}></style>
+<Fragment set:html={content} />
+<script is:inline>
+(function(){
+  var btns=document.querySelectorAll('.subnav .subs button');
+  var cards=document.querySelectorAll('.places .place');
+  var feat=document.querySelector('.featured');
+  btns.forEach(function(b){
+    b.addEventListener('click', function(){
+      btns.forEach(function(x){ x.classList.remove('active'); });
+      b.classList.add('active');
+      var tag=b.getAttribute('data-tag');
+      var vis=0;
+      if(feat){ var ft=(feat.getAttribute('data-tags')||'').split(','); var fm=(tag==='all'||ft.indexOf(tag)>=0); feat.style.display=fm?'':'none'; if(fm) vis++; }
+      cards.forEach(function(c){
+        var tags=(c.getAttribute('data-tags')||'').split(',');
+        var m=(tag==='all' || tags.indexOf(tag)>=0);
+        c.style.display = m ? '' : 'none';
+        if(m) vis++;
+      });
+      var head=document.querySelector('.places-head h3 em');
+      if(head) head.textContent=vis;
+    });
+  });
+  // sort
+  var sortBtns=document.querySelectorAll('.subnav .sort button');
+  var grid=document.querySelector('.places');
+  function reorder(cmp){ if(!grid) return; var arr=[].slice.call(grid.children); arr.sort(cmp); arr.forEach(function(c){ grid.appendChild(c); }); }
+  sortBtns.forEach(function(b){
+    b.addEventListener('click', function(){
+      sortBtns.forEach(function(x){ x.classList.remove('active'); }); b.classList.add('active');
+      var s=b.getAttribute('data-sort');
+      if(s==='rec') reorder(function(a,c){ return (+a.dataset.i)-(+c.dataset.i); });
+      else if(s==='az') reorder(function(a,c){ return (a.dataset.name||'').localeCompare(c.dataset.name||''); });
+      else if(s==='near'){
+        if(!navigator.geolocation){ return; }
+        navigator.geolocation.getCurrentPosition(function(pos){
+          var ul=pos.coords.latitude, ug=pos.coords.longitude;
+          function d(c){ var la=+c.dataset.lat, ln=+c.dataset.lng; if(!la||!ln) return 1e12; var dx=(la-ul)*111, dy=(ln-ug)*83; return dx*dx+dy*dy; }
+          reorder(function(a,c){ return d(a)-d(c); });
+        }, function(){});
+      }
+    });
+  });
+})();
+</script>

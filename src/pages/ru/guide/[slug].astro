@@ -1,0 +1,124 @@
+---
+import SiteRu from '../../../layouts/SiteRu.astro';
+import '../../../styles/guide.css';
+import { supabase } from '../../../lib/supabase';
+
+const CAT = {
+  'eat-drink':   { color: '#ff5e1a', label: 'еда и напитки' },
+  'wellness':    { color: '#00b5b0', label: 'велнес' },
+  'work':        { color: '#7f77dd', label: 'работа' },
+  'move-around': { color: '#3D5AFE', label: 'транспорт' },
+};
+
+export async function getStaticPaths() {
+  const { data: gp } = await supabase.from('guide_places').select('*').eq('status', 'published');
+  const { data: apts } = await supabase
+    .from('apartments_public')
+    .select('slug,title,title_ru,bedrooms,max_guests,price_from,photos,lat,lng');
+  const places = gp || [];
+  const apartments = (apts || []).filter((a) => a.lat != null && a.lng != null);
+  const hav = (a, b) => {
+    const R = 6371, r = (x) => (x * Math.PI) / 180;
+    const dLat = r(b.lat - a.lat), dLng = r(b.lng - a.lng);
+    const s = Math.sin(dLat / 2) ** 2 + Math.cos(r(a.lat)) * Math.cos(r(b.lat)) * Math.sin(dLng / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(s));
+  };
+  return places.map((p) => {
+    const nearby = (p.lat != null && p.lng != null)
+      ? apartments.map((a) => ({ a, d: hav(p, a) })).sort((x, y) => x.d - y.d).slice(0, 3)
+      : [];
+    const related = places.filter((x) => x.category === p.category && x.slug !== p.slug).slice(0, 3);
+    return { params: { slug: p.slug }, props: { p, nearby, related } };
+  });
+}
+
+const { p, nearby, related } = Astro.props;
+const cat = CAT[p.category] || { color: '#ff5e1a', label: p.category };
+const name = p.title || p.name;
+const photos = (p.photos && p.photos.length) ? p.photos : (p.image ? [p.image] : []);
+const esc = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const km = (d) => (d < 1 ? Math.round(d * 1000) + ' м' : d.toFixed(1) + ' км');
+
+const bodyHtml = String(p.body || p.summary || '')
+  .split(/\n+/).map((x) => x.trim()).filter(Boolean).map((x) => '<p>' + esc(x) + '</p>').join('');
+
+const tags = Array.isArray(p.tags) ? p.tags : [];
+const tagsHtml = tags.length
+  ? '<div class="tags">' + tags.map((t) => '<span class="tag">' + esc(t) + '</span>').join('') + '</div>'
+  : '';
+
+const mapsUrl = p.gmaps_url || (p.lat != null ? 'https://www.google.com/maps/dir/?api=1&destination=' + p.lat + ',' + p.lng : '');
+const actBits = [];
+if (mapsUrl) actBits.push('<a class="act" href="' + esc(mapsUrl) + '" target="_blank" rel="noopener">↗ на карте</a>');
+if (p.website) {
+  const isIg = /instagram\.com/i.test(p.website);
+  actBits.push('<a class="act" href="' + esc(p.website) + '" target="_blank" rel="noopener">↗ ' + (isIg ? 'instagram' : 'сайт') + '</a>');
+}
+if (nearby.length) actBits.push('<a class="act primary" href="#nearby">квартиры рядом →</a>');
+const actionBar = actBits.length ? '<div class="action-bar"><span class="spacer"></span>' + actBits.join('') + '</div>' : '';
+
+const hours = Array.isArray(p.hours) ? p.hours : [];
+const RUDAY = { Monday: 'пн', Tuesday: 'вт', Wednesday: 'ср', Thursday: 'чт', Friday: 'пт', Saturday: 'сб', Sunday: 'вс' };
+const hoursLis = hours.map((h) => {
+  const i = h.indexOf(':');
+  const day = i > 0 ? h.slice(0, i) : h;
+  const val = i > 0 ? h.slice(i + 1).trim() : '';
+  return '<li><span class="day">' + esc(RUDAY[day] || day) + '</span><b>' + esc(val) + '</b></li>';
+}).join('');
+const hoursPanel = hoursLis ? '<div class="panel"><h4>часы</h4><ul>' + hoursLis + '</ul></div>' : '';
+
+const infoBits = [];
+if (p.address) infoBits.push('<div class="item"><div class="t"><b>' + esc(p.address) + '</b><span class="n">батуми</span></div></div>');
+if (p.phone) infoBits.push('<div class="item"><div class="t"><b>' + esc(p.phone) + '</b><span class="n">телефон</span></div></div>');
+const infoPanel = infoBits.length ? '<div class="panel"><h4>как добраться</h4><div class="quick">' + infoBits.join('') + '</div></div>' : '';
+const asideExtra = (!hoursPanel && !infoPanel)
+  ? '<div class="panel"><h4>инфо</h4><div class="quick"><div class="item"><div class="t"><span class="n">детали появятся с гидом</span></div></div></div></div>'
+  : '';
+
+const galleryGs = photos.slice(1, 9).map((src) => '<div class="g"><img src="' + esc(src) + '" alt="" loading="lazy"></div>').join('');
+const gallerySection = galleryGs ? '<div class="gallery-wrap"><div class="gallery">' + galleryGs + '</div></div>' : '';
+
+const nearbyCards = nearby.map((o) => {
+  const a = o.a;
+  const ph = (a.photos && a.photos[0]) || ('https://picsum.photos/seed/' + a.slug + '/900/700');
+  const beds = a.bedrooms === 0 ? 'студия' : (a.bedrooms ?? 1) + ' спальня';
+  const price = a.price_from ? ('₾' + a.price_from + '<span class="u">/ноч</span>') : 'по запросу';
+  return '<a class="apt" href="/ru/stays/' + a.slug + '"><div class="ph"><img src="' + esc(ph) + '" alt="" loading="lazy"></div><div class="top"><h4>' + esc(a.title_ru || a.title) + '</h4><span class="price">' + price + '</span></div><div class="sub">' + beds + ' · до ' + (a.max_guests ?? 2) + '</div><div class="dist">' + km(o.d) + '</div></a>';
+}).join('');
+const nearbySection = nearbyCards
+  ? '<section class="nearby-wrap" id="nearby"><div class="nearby-head"><div><div class="kicker"><span class="dot"></span>— наши квартиры рядом</div><h3>остановиться <em>рядом</em>.</h3></div><div class="right">место здесь, квартира за углом.</div></div><div class="nearby">' + nearbyCards + '</div></section>'
+  : '';
+
+const relatedCards = related.map((r) => {
+  const ph = (r.photos && r.photos[0]) || r.image || '';
+  const rl = (CAT[r.category] || cat).label;
+  return '<a class="pl" href="/ru/guide/' + r.slug + '"><div class="ph"><img src="' + esc(ph) + '" alt="" loading="lazy"></div><span class="kicker"><span class="sw"></span>' + esc(rl) + '</span><h5>' + esc(r.title || r.name) + '</h5><p class="summary">' + esc(String(r.summary || '').slice(0, 90)) + '</p></a>';
+}).join('');
+const relatedSection = relatedCards
+  ? '<section class="related"><div class="container"><div class="top"><h3>ещё <em>места</em> рядом.</h3><div class="right">— из «' + esc(cat.label) + '»</div></div><div class="grid">' + relatedCards + '</div></div></section>'
+  : '';
+
+const heroPhoto = photos[0] ? '<div class="hero-photo"><img src="' + esc(photos[0]) + '" alt="' + esc(name) + '"></div>' : '';
+const summaryP = p.summary ? '<p class="summary">' + esc(p.summary) + '</p>' : '';
+
+const content =
+  '<div class="meta-top"><div class="crumbs">' +
+    '<a href="/ru/">rega rega</a><span class="sep">/</span>' +
+    '<a href="/ru/guide">гид</a><span class="sep">/</span>' +
+    '<a href="/ru/guide/' + p.category + '">' + esc(cat.label) + '</a><span class="sep">/</span>' +
+    '<span class="cur"><span class="dot"></span>' + esc(name) + '</span>' +
+  '</div><div class="actions"><a href="#nearby">квартиры рядом ↓</a></div></div>' +
+  '<section class="hero"><div class="inner"><div>' +
+    '<span class="pill"><span class="sw"></span>' + esc(cat.label) + '</span>' +
+    '<h1>' + esc(name) + '.</h1>' + summaryP +
+  '</div><div></div></div></section>' +
+  heroPhoto + actionBar +
+  '<section class="body"><div class="container"><div class="text">' +
+    '<div class="kicker"><span class="dot"></span>— наше мнение</div>' + bodyHtml + tagsHtml +
+  '</div><aside class="aside">' + hoursPanel + infoPanel + asideExtra + '</aside></div></section>' +
+  gallerySection + nearbySection + relatedSection;
+---
+<SiteRu title={`${name} — ${cat.label} — rega rega batumi`} description={p.summary || (p.name + ' в батуми.')}>
+<style is:inline set:html={`:root{--cat-color:${cat.color}}`}></style>
+<Fragment set:html={content} />
+</SiteRu>
