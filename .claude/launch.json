@@ -1,0 +1,11 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "guide-preview",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["-y", "serve", "-l", "4321", "/Users/artemgrinberg/rega-guide-preview"],
+      "port": 4321
+    }
+  ]
+}
