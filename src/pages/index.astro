@@ -578,5 +578,22 @@ import Base from '../layouts/Base.astro';
     });
   });
 })();
+
+/* ── whole card clickable: doors + editorial cards follow their inner link ── */
+(function(){
+  document.querySelectorAll('.gt, .bf-block').forEach(function(card){
+    var link=card.querySelector('a[href]');
+    if(!link) return;
+    card.style.cursor='pointer';
+    card.addEventListener('click',function(e){
+      if(e.target.closest('a,button,input,select,label,.city-select')) return;
+      if(link.hasAttribute('data-scrollto')){
+        var t=document.getElementById(link.getAttribute('data-scrollto'));
+        if(t){e.preventDefault();window.scrollTo({top:t.offsetTop,behavior:'smooth'});return;}
+      }
+      var href=link.getAttribute('href'); if(href) window.location.href=href;
+    });
+  });
+})();
 </script>
 </Base>
