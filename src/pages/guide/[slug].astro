@@ -128,7 +128,7 @@ const asideExtra = (!hoursPanel && !infoPanel)
   ? '<div class="panel"><h4>more info</h4><div class="quick"><div class="item"><div class="t"><span class="n">details coming with the guide</span></div></div></div></div>'
   : '';
 
-const galleryGs = photos.slice(1, 9).map((src) => '<div class="g"><img src="' + esc(src) + '" alt="" loading="lazy"></div>').join('');
+const galleryGs = photos.slice(1, 9).map((src) => '<button class="g" type="button"><img src="' + esc(src) + '" alt="" loading="lazy"></button>').join('');
 const gallerySection = galleryGs ? '<div class="gallery-wrap"><div class="gallery">' + galleryGs + '</div></div>' : '';
 
 const nearbyCards = nearby.map((o) => {
@@ -196,6 +196,18 @@ const content =
   el.hidden=false;
   var tm=(dow+6)%7;
   document.querySelectorAll('.panel li[data-days]').forEach(function(li){ var ds=(li.getAttribute('data-days')||'').split(',').map(Number); if(ds.indexOf(tm)>=0) li.classList.add('today'); });
+})();
+</script>
+<script is:inline>
+(function () {
+  var ov = document.createElement('div'); ov.className = 'guide-lightbox'; ov.innerHTML = '<img alt="">';
+  document.body.appendChild(ov); var im = ov.querySelector('img');
+  document.addEventListener('click', function (e) {
+    var t = e.target.closest('.gallery .g');
+    if (t) { var img = t.querySelector('img'); if (img && img.src) { im.src = img.src; ov.classList.add('on'); } return; }
+    if (e.target === ov || e.target === im) ov.classList.remove('on');
+  });
+  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') ov.classList.remove('on'); });
 })();
 </script>
 </Site>
