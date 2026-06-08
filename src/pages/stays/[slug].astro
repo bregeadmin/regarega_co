@@ -10,6 +10,15 @@ export async function getStaticPaths() {
     .from('apartments_public')
     .select('id,slug,title,summary,neighborhood,bedrooms,max_guests,price_from,photos,rooms,amenities,lat,lng');
   const apartments = ((data as Apartment[]) || []).map(applyNames);
+  const { data: gpData } = await supabase.from('guide_places')
+    .select('slug,title,name,category,tags,lat,lng,photos,image').eq('status', 'published');
+  const guides = ((gpData as any[]) || []).filter((g) => g.lat != null && g.lng != null);
+  const havKm = (a: any, b: any) => {
+    const R = 6371, r = (x: number) => (x * Math.PI) / 180;
+    const dLat = r(b.lat - a.lat), dLng = r(b.lng - a.lng);
+    const s = Math.sin(dLat / 2) ** 2 + Math.cos(r(a.lat)) * Math.cos(r(b.lat)) * Math.sin(dLng / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(s));
+  };
   const hav = (a: Apartment, b: Apartment) => {
     const R = 6371, toRad = (x: number) => (x * Math.PI) / 180;
     const dLat = toRad((b.lat as number) - (a.lat as number));
@@ -23,11 +32,14 @@ export async function getStaticPaths() {
       ? others.filter((x) => x.lat != null && x.lng != null).sort((p, q) => hav(apt, p) - hav(apt, q))
       : others
     ).slice(0, 3);
-    return { params: { slug: apt.slug }, props: { apt, similar } };
+    const near = (apt.lat != null && apt.lng != null)
+      ? guides.map((g) => ({ g, d: havKm(apt, g) })).sort((x, y) => x.d - y.d).slice(0, 8)
+      : [];
+    return { params: { slug: apt.slug }, props: { apt, similar, near } };
   });
 }
 
-const { apt, similar } = Astro.props as { apt: Apartment; similar: Apartment[] };
+const { apt, similar, near } = Astro.props as { apt: Apartment; similar: Apartment[]; near: any[] };
 const photos = (apt.photos && apt.photos.length)
   ? apt.photos
   : ['https://picsum.photos/seed/' + apt.slug + '/1600/1000'];
@@ -79,6 +91,25 @@ let content = template
 content = apt.price_from
   ? content.replaceAll('%%PRICE%%', '₾' + apt.price_from)
   : content.replace('<em>from %%PRICE%%</em> <span class="per">/ night</span>', '<em>on request</em>');
+
+// "around here" — real nearest guide places (Haversine walking distance)
+const escG = (s: any) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const CATW: Record<string, string> = { 'eat-drink': 'eat & drink', 'wellness': 'wellness', 'work': 'work', 'move-around': 'getting around' };
+const walkMin = (km: number) => Math.max(1, Math.round(km * 12));
+const gPhoto = (g: any) => (g.photos && g.photos[0]) || g.image || '';
+const picksWithPhoto = (near || []).filter(({ g }: any) => gPhoto(g)).slice(0, 3);
+const guidePicksHtml = picksWithPhoto.length
+  ? picksWithPhoto.map(({ g, d }: any) => {
+      const kick = ((g.tags && g.tags[0]) ? String(g.tags[0]) : (CATW[g.category] || g.category)) + ' · ' + walkMin(d) + ' min walk';
+      return '<a class="pick" href="/guide/' + g.slug + '"><div class="ph"><img src="' + escG(gPhoto(g)) + '" alt="" loading="lazy"></div><span class="kicker">' + escG(kick) + '</span><h5>' + escG(g.title || g.name) + '</h5></a>';
+    }).join('')
+  : '<p style="color:var(--ink-soft)">guide picks coming soon.</p>';
+const locNearHtml = (near && near.length)
+  ? '<div class="loc-near">' + near.slice(0, 4).map(({ g, d }: any) => '<div class="ln"><a class="nm" href="/guide/' + g.slug + '">' + escG(g.title || g.name) + '</a><span class="ds">' + walkMin(d) + ' min walk</span></div>').join('') + '</div>'
+  : '';
+content = content
+  .replace(/<div class="guide-picks">[\s\S]*?<\/div>\s*<\/div>\s*<!-- RULES -->/, '<div class="guide-picks">' + guidePicksHtml + '</div>\n    </div>\n\n    <!-- RULES -->')
+  .replace(/<div class="loc-near pending">[\s\S]*?<\/div>\s*<\/div>/, locNearHtml);
 
 const photosJson = JSON.stringify(photos.map((p) => ({ src: p, alt: apt.title })));
 const script = pageScript.replaceAll('%%TITLE%%', apt.title).replace('%%PHOTOS%%', photosJson);

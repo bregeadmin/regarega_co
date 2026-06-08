@@ -46,6 +46,7 @@ for p in places:
     slug = p["slug"]
     photos = p.get("photos") or []
     if isinstance(photos, str): photos = [photos]
+    if not photos and p.get("image"): photos = [p["image"]]  # image-only places (no photos array)
     # de-dupe exact urls, keep order
     seen = set(); photos = [u for u in photos if not (u in seen or seen.add(u))]
     new_urls = []
