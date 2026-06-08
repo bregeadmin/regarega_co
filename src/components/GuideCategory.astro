@@ -1,9 +1,12 @@
 ---
 import { supabase } from '../lib/supabase';
 import { GMAPS_KEY } from '../lib/maps';
-const { category } = Astro.props as { category: string };
+import guideRu from '../data/guide_ru.json';
+const { category, lang = 'en' } = Astro.props as { category: string; lang?: 'en' | 'ru' };
+const isRu = lang === 'ru';
+const base = isRu ? '/ru/guide' : '/guide'; // place / category href prefix
 
-const CAT: Record<string, any> = {
+const CAT_EN: Record<string, any> = {
   'eat-drink':   { color: '#ff5e1a', label: 'eat & drink', h1: 'eat <em>&amp;</em> drink.',
     lede: 'our favourite <b>cafés, restaurants, bars, wine spots and bakeries</b> in batumi — the places <em>we actually go to ourselves</em>.' },
   'wellness':    { color: '#00b5b0', label: 'wellness & slow living', h1: 'wellness <em>&amp;</em> slow.',
@@ -13,7 +16,32 @@ const CAT: Record<string, any> = {
   'move-around': { color: '#3D5AFE', label: 'move around', h1: 'move <em>around</em>.',
     lede: 'how we get around batumi and beyond — <b>taxis, scooters and car rentals</b> we use ourselves.' },
 };
+const CAT_RU: Record<string, any> = {
+  'eat-drink':   { color: '#ff5e1a', label: 'еда и напитки', h1: 'еда <em>и</em> напитки.',
+    lede: 'наши любимые <b>кафе, рестораны, бары, винные и пекарни</b> в Батуми — места, <em>куда мы ходим сами</em>.' },
+  'wellness':    { color: '#00b5b0', label: 'велнес', h1: 'велнес <em>и</em> покой.',
+    lede: '<b>спа, бани и места для медленной жизни</b> — для настоящего <em>дня перезагрузки</em> в Батуми.' },
+  'work':        { color: '#7f77dd', label: 'работа', h1: 'работа <em>и</em> удалёнка.',
+    lede: '<b>кафе и коворкинги</b>, где реально можно работать — <em>вайфай, розетки, место подумать</em>.' },
+  'move-around': { color: '#3D5AFE', label: 'транспорт', h1: 'как <em>передвигаться</em>.',
+    lede: 'как мы перемещаемся по Батуми и вокруг — <b>такси, самокаты и аренда машин</b>, которыми пользуемся сами.' },
+};
+const CAT = isRu ? CAT_RU : CAT_EN;
 const cat = CAT[category] || { color: '#ff5e1a', label: category, h1: category + '.', lede: '' };
+
+// UI string dictionary — interface only; place titles/summaries stay as-is from the DB
+const STR: Record<string, Record<string, string>> = {
+  en: { back: '← back to the guide', filter: 'filter', all: 'all', sortLabel: 'sort:', sortRec: 'recommended',
+    sortAz: 'a–z', sortNear: 'nearby', ourPick: 'our pick', readPost: 'read the post →', loved: 'places we love',
+    tried: 'tried by us', placesSorted: 'places · sorted by recommended', list: 'list', map: 'map',
+    openNow: 'open now', nearMe: 'near me', moreFrom: 'more from <em>the guide</em>.', allWorlds: 'all worlds →' },
+  ru: { back: '← назад в гид', filter: 'фильтр', all: 'все', sortLabel: 'сорт.:', sortRec: 'рекомендуем',
+    sortAz: 'а–я', sortNear: 'рядом', ourPick: 'наш выбор', readPost: 'читать пост →', loved: 'мест, которые любим',
+    tried: 'проверено нами', placesSorted: 'мест · по рекомендованным', list: 'список', map: 'карта',
+    openNow: 'открыто', nearMe: 'рядом', moreFrom: 'ещё из <em>гида</em>.', allWorlds: 'все категории →' },
+};
+const L = STR[lang] || STR.en;
+const gLang = isRu ? 'ru' : 'en'; // google maps ui language
 
 // world metadata for the "more from the guide" tiles — mirrors the hub's world cards
 const ICO: Record<string, string> = {
@@ -22,16 +50,28 @@ const ICO: Record<string, string> = {
   work: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="9" rx="1" stroke="currentColor" stroke-width="1.3"/><path d="M5 14H11M8 12V14" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>',
   move: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="5" cy="11" r="2" stroke="currentColor" stroke-width="1.3"/><circle cx="11" cy="11" r="2" stroke="currentColor" stroke-width="1.3"/><path d="M5 9L7 4H10L12 8M3 4H6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>',
 };
-const WMETA: Record<string, any> = {
+const WMETA_EN: Record<string, any> = {
   'eat-drink': { ico: ICO.eat, sub: 'cafés · restaurants · bars', desc: 'our favourite cafés, brunch spots, restaurants, cocktail bars and bakeries.' },
   'wellness': { ico: ICO.wellness, sub: 'spa · baths · yoga · massage', desc: 'slow living done right: sulphur baths, massage rooms, spa days.' },
   'work': { ico: ICO.work, sub: 'co-workings · cafes with wifi', desc: 'cafés with reliable wifi, co-workings, and quiet corners for deep work.' },
   'move-around': { ico: ICO.move, sub: 'taxi · scooter · car', desc: 'how locals actually get around. apps, rentals, the ones we use.' },
 };
+const WMETA_RU: Record<string, any> = {
+  'eat-drink': { ico: ICO.eat, sub: 'кафе · рестораны · бары', desc: 'любимые кафе, бранчи, рестораны, коктейльные бары и пекарни.' },
+  'wellness': { ico: ICO.wellness, sub: 'спа · бани · йога · массаж', desc: 'медленная жизнь как надо: серные бани, массаж, спа-дни.' },
+  'work': { ico: ICO.work, sub: 'коворкинги · кафе с вайфаем', desc: 'кафе с надёжным интернетом, коворкинги и тихие углы для работы.' },
+  'move-around': { ico: ICO.move, sub: 'такси · самокат · машина', desc: 'как местные реально передвигаются. приложения, аренда, проверенное нами.' },
+};
+const WMETA = isRu ? WMETA_RU : WMETA_EN;
 const goArrow = '<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 9L9 3M9 3H4M9 3V8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 
 const { data } = await supabase.from('guide_places').select('*').eq('status', 'published').eq('category', category);
 const places = (data || []).slice().sort((a, b) => (b.rating || 0) - (a.rating || 0));
+// in RU, overlay local Russian summary/body over the English DB content (fallback to EN)
+if (isRu) {
+  const ruMap = guideRu as Record<string, { summary_ru?: string; body_ru?: string }>;
+  places.forEach((p: any) => { const t = ruMap[p.slug]; if (t) { if (t.summary_ru) p.summary = t.summary_ru; if (t.body_ru) p.body = t.body_ru; } });
+}
 const { data: allCats } = await supabase.from('guide_places').select('category').eq('status', 'published');
 const counts: Record<string, number> = {};
 (allCats || []).forEach((r) => { counts[r.category] = (counts[r.category] || 0) + 1; });
@@ -48,18 +88,18 @@ const tagCount: Record<string, number> = {};
 places.forEach((p) => (p.tags || []).forEach((t: any) => { const k = String(t).toLowerCase(); tagCount[k] = (tagCount[k] || 0) + 1; }));
 const tagList = Object.entries(tagCount).sort((a, b) => b[1] - a[1]);
 const subnavHtml = tagList.length ? (
-  '<nav class="subnav"><span class="label">filter</span><div class="subs">' +
-  '<button class="active" data-tag="all">all · ' + places.length + '</button>' +
+  '<nav class="subnav"><span class="label">' + L.filter + '</span><div class="subs">' +
+  '<button class="active" data-tag="all">' + L.all + ' · ' + places.length + '</button>' +
   tagList.map(([t, n]) => '<button data-tag="' + esc(t) + '">' + esc(t) + ' · ' + n + '</button>').join('') +
   '</div>' +
-  '<div class="sort"><span class="lab">sort:</span><button class="active" data-sort="rec">recommended</button><button data-sort="az">a–z</button><button data-sort="near">nearby</button></div>' +
+  '<div class="sort"><span class="lab">' + L.sortLabel + '</span><button class="active" data-sort="rec">' + L.sortRec + '</button><button data-sort="az">' + L.sortAz + '</button><button data-sort="near">' + L.sortNear + '</button></div>' +
   '</nav>'
 ) : '';
 const tagAttr = (p: any) => esc((p.tags || []).map((t: any) => String(t).toLowerCase()).join(','));
 
 const featuredHtml = featured ? (
-  '<section class="featured" data-tags="' + tagAttr(featured) + '"><a href="/guide/' + featured.slug + '">' +
-  '<div class="ph"><img src="' + esc(photo(featured)) + '" alt=""><span class="badge">our pick</span></div>' +
+  '<section class="featured" data-tags="' + tagAttr(featured) + '"><a href="' + base + '/' + featured.slug + '">' +
+  '<div class="ph"><img src="' + esc(photo(featured)) + '" alt=""><span class="badge">' + L.ourPick + '</span></div>' +
   '<div class="body"><div class="meta"><span class="pill"><span class="swatch"></span>' + esc(cat.label) + '</span>' +
   (featured.rating ? '<span>★ ' + featured.rating + '</span>' : '') + '</div>' +
   '<h2>' + esc(featured.title || featured.name) + '.</h2>' +
@@ -67,12 +107,12 @@ const featuredHtml = featured ? (
   '<div class="info-row">' +
   (featured.address ? '<span>' + esc(clip(featured.address, 36)) + '</span><span class="dot"></span>' : '') +
   (featured.price ? '<span><b>' + esc(featured.price) + '</b></span>' : '') + '</div>' +
-  '<span class="read">read the post →</span>' +
+  '<span class="read">' + L.readPost + '</span>' +
   '</div></a></section>'
 ) : '';
 
 const cardHtml = (p: any, i: number) =>
-  '<a class="place" data-i="' + i + '" data-slug="g-' + p.slug + '" data-tags="' + tagAttr(p) + '" data-lat="' + (p.lat ?? '') + '" data-lng="' + (p.lng ?? '') + '" data-name="' + esc(String(p.title || p.name).toLowerCase()) + '" href="/guide/' + p.slug + '">' +
+  '<a class="place" data-i="' + i + '" data-slug="g-' + p.slug + '" data-tags="' + tagAttr(p) + '" data-lat="' + (p.lat ?? '') + '" data-lng="' + (p.lng ?? '') + '" data-name="' + esc(String(p.title || p.name).toLowerCase()) + '" href="' + base + '/' + p.slug + '">' +
   '<div class="ph"><img src="' + esc(photo(p)) + '" alt="" loading="lazy"><span class="pill"><span class="sw"></span>' + esc(cat.label) + '</span></div>' +
   '<div class="info"><div class="top-row"><h4>' + esc(p.title || p.name) + '</h4>' +
   (p.price ? '<span class="price"><b>' + esc(p.price) + '</b></span>' : '') + '</div>' +
@@ -85,20 +125,20 @@ const placesHtml = featCardHtml + rest.map((p, i) => cardHtml(p, i)).join('');
 // map pins for this category's places (list <-> map toggle)
 const catPins = places.filter((p) => p.lat != null && p.lng != null).map((p) => ({
   slug: 'g-' + p.slug, title: p.title || p.name, lat: p.lat, lng: p.lng,
-  photo: (p.photos && p.photos[0]) || p.image || '', href: '/guide/' + p.slug,
+  photo: (p.photos && p.photos[0]) || p.image || '', href: base + '/' + p.slug,
   sub: cat.label, cta: p.price || 'see place →', color: cat.color, ring: '#ffffff',
   hours: Array.isArray(p.hours) ? p.hours : [],
 }));
 const locSvg = '<svg width="13" height="13" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2.6" fill="currentColor"/><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.4"/><path d="M8 0.5v3M8 12.5v3M0.5 8h3M12.5 8h3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>';
 const expandSvg = '<svg class="ic-exp" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M6 2H2v4M10 2h4v4M6 14H2v-4M10 14h4v-4" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg>';
 const closeSvg = '<svg class="ic-close" width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 4l8 8M12 4l-8 8" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"/></svg>';
-const viewToggle = catPins.length ? '<div class="view-toggle"><button class="vt active" data-view="list">list</button><button class="vt" data-view="map">map</button></div>' : '';
+const viewToggle = catPins.length ? '<div class="view-toggle"><button class="vt active" data-view="list">' + L.list + '</button><button class="vt" data-view="map">' + L.map + '</button></div>' : '';
 const catMapHtml = catPins.length ? (
   '<div class="cat-map" hidden>' +
     '<div class="map-controls"><div class="seg">' +
-      '<button class="mc active" data-act="all">all · ' + catPins.length + '</button>' +
-      '<button class="mc" data-act="opennow">open now</button></div>' +
-      '<button class="mc near" data-act="near">' + locSvg + ' near me</button></div>' +
+      '<button class="mc active" data-act="all">' + L.all + ' · ' + catPins.length + '</button>' +
+      '<button class="mc" data-act="opennow">' + L.openNow + '</button></div>' +
+      '<button class="mc near" data-act="near">' + locSvg + ' ' + L.nearMe + '</button></div>' +
     '<div class="map"><button class="map-expand" type="button" aria-label="expand map">' + expandSvg + closeSvg + '</button><div id="catMap"></div></div>' +
   '</div>'
 ) : '';
@@ -106,7 +146,7 @@ const catMapHtml = catPins.length ? (
 const otherCats = Object.keys(CAT).filter((c) => c !== category);
 const moreHtml = otherCats.map((c) => {
   const w = WMETA[c] || {};
-  return '<a class="cat-tile primary" href="/guide/' + c + '" style="--tile-color:' + CAT[c].color + '">' +
+  return '<a class="cat-tile primary" href="' + base + '/' + c + '" style="--tile-color:' + CAT[c].color + '">' +
     '<div class="top"><span class="num">' + (counts[c] || 0) + '</span>' + (w.ico ? '<span class="ico">' + w.ico + '</span>' : '') + '</div>' +
     '<h3>' + esc(CAT[c].label) + '</h3>' +
     (w.sub ? '<div class="sub">' + w.sub + '</div>' : '') +
@@ -116,17 +156,17 @@ const moreHtml = otherCats.map((c) => {
 
 const content =
   '<section class="cat-header"><div class="crumbs">' +
-  '<a href="/guide/">← back to the guide</a><span class="sep">/</span>' +
+  '<a href="' + base + '/">' + L.back + '</a><span class="sep">/</span>' +
   '<span class="current"><span class="dot"></span>' + esc(cat.label) + '</span></div>' +
   '<h1>' + cat.h1 + '</h1>' +
   '<p class="lede">' + cat.lede + '</p>' +
-  '<div class="cat-stats"><div><span class="num">' + places.length + '</span>places we love</div>' +
-  '<div><span class="num">100%</span>tried by us</div></div></section>' +
+  '<div class="cat-stats"><div><span class="num">' + places.length + '</span>' + L.loved + '</div>' +
+  '<div><span class="num">100%</span>' + L.tried + '</div></div></section>' +
   subnavHtml +
   featuredHtml +
-  '<section class="places-wrap"><div class="places-head"><h3><em>' + places.length + '</em> places · sorted by recommended</h3>' + viewToggle + '</div>' +
+  '<section class="places-wrap"><div class="places-head"><h3><em>' + places.length + '</em> ' + L.placesSorted + '</h3>' + viewToggle + '</div>' +
   '<div class="places">' + placesHtml + '</div>' + catMapHtml + '</section>' +
-  '<section class="more-cats"><div class="more-cats-head"><h3>more from <em>the guide</em>.</h3><a href="/guide/" class="right">all worlds →</a></div>' +
+  '<section class="more-cats"><div class="more-cats-head"><h3>' + L.moreFrom + '</h3><a href="' + base + '/" class="right">' + L.allWorlds + '</a></div>' +
   '<div class="more-cats-grid">' + moreHtml + '</div></section>';
 ---
 <style is:inline set:html={`:root{--cat-color:${cat.color}}`}></style>
@@ -177,7 +217,7 @@ const content =
 </script>
 <style is:inline set:html={".places-head{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}\n.view-toggle{display:inline-flex;background:var(--paper);border:1px solid var(--line);border-radius:999px;padding:3px}\n.view-toggle .vt{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--ink-soft);padding:8px 16px;border:0;background:transparent;border-radius:999px;cursor:pointer;transition:all .18s ease}\n.view-toggle .vt.active{background:var(--ink);color:#fff}\n.cat-map{margin-top:6px}\n.cat-map .map-controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 16px}\n.cat-map .map-controls .seg{display:inline-flex;background:var(--paper);border:1px solid var(--line);border-radius:999px;padding:3px}\n.cat-map .mc{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--ink-soft);padding:9px 16px;border-radius:999px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;border:0;background:transparent;transition:all .18s ease}\n.cat-map .seg .mc.active{background:var(--ink);color:#fff}\n.cat-map .mc.near{border:1px solid var(--line);background:var(--paper);color:var(--ink)}\n.cat-map .mc.near:hover{border-color:var(--cat-color);color:var(--cat-color)}\n.cat-map .mc.near.loading{opacity:.55;pointer-events:none}\n.cat-map .mc.near.err{border-color:#d9402a;color:#d9402a}\n.cat-map .map{position:relative;height:560px;border-radius:14px;overflow:hidden;border:1px solid var(--line);background:var(--bg-2)}\n#catMap{position:absolute;inset:0;width:100%;height:100%}\n.feat-card{display:none}\n.places-wrap.split{display:grid;grid-template-columns:minmax(0,1.04fr) minmax(0,1fr);grid-template-rows:auto 1fr;column-gap:28px;align-items:start;padding:96px 28px 8px;margin:0;min-height:100vh}\n.places-wrap.split .places-head{grid-column:1;grid-row:1;margin:0 0 16px}\n.places-wrap.split .places{grid-column:1;grid-row:2;grid-template-columns:1fr 1fr;gap:16px;align-self:start}\n.places-wrap.split .feat-card{display:flex}\n.places-wrap.split .cat-map{grid-column:2;grid-row:1 / span 2;position:sticky;top:76px;height:calc(100vh - 96px);margin:0;display:flex;flex-direction:column}\n.places-wrap.split .cat-map .map-controls{flex:none;margin:0 0 10px}\n.places-wrap.split .cat-map .map{flex:1;height:auto}\n.places-wrap.split .place.active{outline:2px solid var(--cat-color);outline-offset:3px;border-radius:12px}\n@media(max-width:880px){.cat-map .map{height:440px}.places-wrap.split{display:block;padding:0}.places-wrap.split .places{grid-template-columns:1fr}.places-wrap.split .cat-map{position:static;height:auto;display:block}.places-wrap.split .cat-map .map{height:62vh}}\n.more-cats-grid{grid-template-columns:repeat(3,1fr);gap:16px}\n.more-cats .cat-tile{position:relative;display:flex;flex-direction:column;justify-content:space-between;padding:24px;min-height:240px;border-radius:14px;overflow:hidden;transition:transform .3s cubic-bezier(.2,.7,.2,1);border:1px solid transparent;color:#fff;background:var(--tile-color)}\n.more-cats .cat-tile:hover{transform:translateY(-4px)}\n.more-cats .cat-tile > *{position:relative;z-index:2}\n.more-cats .cat-tile .top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}\n.more-cats .cat-tile .num{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:44px;line-height:.9;letter-spacing:-.03em}\n.more-cats .cat-tile .ico{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.2)}\n.more-cats .cat-tile h3{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:26px;line-height:1;letter-spacing:-.03em;text-transform:lowercase;margin-top:auto}\n.more-cats .cat-tile .sub{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;font-weight:500;margin-top:8px;opacity:.75}\n.more-cats .cat-tile .desc{font-size:13px;line-height:1.45;margin-top:8px;max-width:24ch;opacity:.92}\n.more-cats .cat-tile .go{position:absolute;right:18px;bottom:18px;z-index:3;width:32px;height:32px;border-radius:50%;border:1px solid currentColor;display:flex;align-items:center;justify-content:center;opacity:.6;transition:all .25s ease}\n.more-cats .cat-tile:hover .go{opacity:1;transform:translate(2px,-2px);background:#fff;color:var(--tile-color);border-color:#fff}\n.more-cats .cat-tile::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at top right,rgba(255,255,255,.16) 0%,transparent 60%);z-index:0}\n.more-cats .cat-tile::after{content:'';position:absolute;left:-30%;bottom:-40%;width:140%;height:80%;background:radial-gradient(ellipse at center,rgba(0,0,0,.12) 0%,transparent 60%);z-index:0}\n@media(max-width:880px){.more-cats-grid{grid-template-columns:1fr}}\n.cat-map .map-expand{position:absolute;top:14px;right:14px;z-index:6;width:42px;height:42px;border-radius:50%;background:#fff;border:1px solid rgba(10,9,8,.1);box-shadow:0 3px 12px rgba(0,0,0,.16);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink);transition:background .18s ease,transform .15s ease,box-shadow .15s ease}\n.cat-map .map-expand:hover{transform:translateY(-1px);box-shadow:0 5px 16px rgba(0,0,0,.2)}\n.cat-map .map-expand:hover{background:var(--bg-2)}\n.cat-map .map-expand .ic-close{display:none}\n.places-wrap.split .cat-map.expanded{position:fixed;top:76px;left:0;right:0;height:calc(100vh - 96px);z-index:60;margin:0;padding:0 16px 16px 16px;background:var(--bg)}\n.cat-map.expanded .map{flex:1;height:auto;border-radius:14px}\n.cat-map.expanded .map-controls{margin:0 0 10px}\n.cat-map.expanded .map-expand .ic-exp{display:none}\n.cat-map.expanded .map-expand .ic-close{display:block}\nhtml.map-locked,body.map-locked{overflow:hidden}\n.places-wrap.split .cat-map .map{margin:0 10px 16px 0}\n.places-wrap.split .cat-map.expanded .map{margin:0}\n@media(max-width:880px){.places-wrap.split .cat-map .map{margin:0}}"}></style>
 <script is:inline src="/rega-map.js"></script>
-<script is:inline define:vars={{ CAT_PINS: catPins, GKEY: GMAPS_KEY }}>
+<script is:inline define:vars={{ CAT_PINS: catPins, GKEY: GMAPS_KEY, GLANG: gLang }}>
 (function () {
   var vt = document.querySelectorAll('.view-toggle .vt');
   var mapWrap = document.querySelector('.cat-map');
@@ -214,7 +254,7 @@ const content =
     c.src = 'https://unpkg.com/@googlemaps/markerclusterer@2.5.3/dist/index.min.js';
     document.head.appendChild(c);
     var s = document.createElement('script'); s.async = true;
-    s.src = 'https://maps.googleapis.com/maps/api/js?key=' + GKEY + '&callback=__catMapReady&loading=async&language=en&region=GE';
+    s.src = 'https://maps.googleapis.com/maps/api/js?key=' + GKEY + '&callback=__catMapReady&loading=async&language=' + GLANG + '&region=GE';
     document.head.appendChild(s);
   }
   vt.forEach(function (b) {
