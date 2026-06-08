@@ -200,14 +200,29 @@ const content =
 </script>
 <script is:inline>
 (function () {
-  var ov = document.createElement('div'); ov.className = 'guide-lightbox'; ov.innerHTML = '<img alt="">';
-  document.body.appendChild(ov); var im = ov.querySelector('img');
-  document.addEventListener('click', function (e) {
-    var t = e.target.closest('.gallery .g');
-    if (t) { var img = t.querySelector('img'); if (img && img.src) { im.src = img.src; ov.classList.add('on'); } return; }
-    if (e.target === ov || e.target === im) ov.classList.remove('on');
-  });
-  document.addEventListener('keydown', function (e) { if (e.key === 'Escape') ov.classList.remove('on'); });
+  var tiles = [].slice.call(document.querySelectorAll('.gallery .g'));
+  var srcs = tiles.map(function (t) { var i = t.querySelector('img'); return i ? i.src : ''; }).filter(Boolean);
+  if (!srcs.length) return;
+  var ov = document.createElement('div'); ov.className = 'gx-lb';
+  ov.innerHTML = '<button class="gx-close" type="button" aria-label="close">×</button>' +
+    '<button class="gx-nav gx-prev" type="button" aria-label="previous">‹</button>' +
+    '<figure class="gx-stage"><img class="gx-img" alt=""></figure>' +
+    '<button class="gx-nav gx-next" type="button" aria-label="next">›</button>' +
+    '<div class="gx-count"></div>';
+  document.body.appendChild(ov);
+  var im = ov.querySelector('.gx-img'), cnt = ov.querySelector('.gx-count'), i = 0;
+  function show(n) { i = (n + srcs.length) % srcs.length; im.src = srcs[i]; cnt.textContent = (i + 1) + ' / ' + srcs.length; }
+  function open(n) { show(n); ov.classList.add('on'); document.documentElement.style.overflow = 'hidden'; }
+  function close() { ov.classList.remove('on'); document.documentElement.style.overflow = ''; }
+  tiles.forEach(function (t, idx) { t.addEventListener('click', function (e) { e.preventDefault(); open(idx); }); });
+  ov.querySelector('.gx-prev').addEventListener('click', function (e) { e.stopPropagation(); show(i - 1); });
+  ov.querySelector('.gx-next').addEventListener('click', function (e) { e.stopPropagation(); show(i + 1); });
+  ov.querySelector('.gx-close').addEventListener('click', close);
+  ov.addEventListener('click', function (e) { if (e.target === ov || e.target.classList.contains('gx-stage')) close(); });
+  document.addEventListener('keydown', function (e) { if (!ov.classList.contains('on')) return; if (e.key === 'Escape') close(); else if (e.key === 'ArrowLeft') show(i - 1); else if (e.key === 'ArrowRight') show(i + 1); });
+  var x0 = null;
+  ov.addEventListener('touchstart', function (e) { x0 = e.touches[0].clientX; }, { passive: true });
+  ov.addEventListener('touchend', function (e) { if (x0 === null) return; var dx = e.changedTouches[0].clientX - x0; if (Math.abs(dx) > 40) show(i + (dx < 0 ? 1 : -1)); x0 = null; }, { passive: true });
 })();
 </script>
 </Site>
