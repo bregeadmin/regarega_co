@@ -4,7 +4,7 @@ import { GMAPS_KEY } from '../lib/maps';
 import guideRu from '../data/guide_ru.json';
 const { category, lang = 'en' } = Astro.props as { category: string; lang?: 'en' | 'ru' };
 const isRu = lang === 'ru';
-const base = isRu ? '/ru/guide' : '/guide'; // place / category href prefix
+const base = isRu ? '/ru/georgia/batumi/guide' : '/georgia/batumi/guide'; // place / category href prefix
 
 const CAT_EN: Record<string, any> = {
   'eat-drink':   { color: '#ff5e1a', label: 'eat & drink', h1: 'eat <em>&amp;</em> drink.',

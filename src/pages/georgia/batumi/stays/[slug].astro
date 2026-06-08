@@ -1,0 +1,124 @@
+---
+import Site from '../../../../layouts/Site.astro';
+import '../../../../styles/apt.css';
+import { supabase, applyNames, type Apartment } from '../../../../lib/supabase';
+import { template, pageScript } from '../../../../lib/aptDetail';
+import { GMAPS_KEY } from '../../../../lib/maps';
+
+export async function getStaticPaths() {
+  const { data } = await supabase
+    .from('apartments_public')
+    .select('id,slug,title,summary,neighborhood,bedrooms,max_guests,price_from,photos,rooms,amenities,lat,lng');
+  const apartments = ((data as Apartment[]) || []).map(applyNames);
+  const { data: gpData } = await supabase.from('guide_places')
+    .select('slug,title,name,category,tags,lat,lng,photos,image').eq('status', 'published');
+  const guides = ((gpData as any[]) || []).filter((g) => g.lat != null && g.lng != null);
+  const havKm = (a: any, b: any) => {
+    const R = 6371, r = (x: number) => (x * Math.PI) / 180;
+    const dLat = r(b.lat - a.lat), dLng = r(b.lng - a.lng);
+    const s = Math.sin(dLat / 2) ** 2 + Math.cos(r(a.lat)) * Math.cos(r(b.lat)) * Math.sin(dLng / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(s));
+  };
+  const hav = (a: Apartment, b: Apartment) => {
+    const R = 6371, toRad = (x: number) => (x * Math.PI) / 180;
+    const dLat = toRad((b.lat as number) - (a.lat as number));
+    const dLng = toRad((b.lng as number) - (a.lng as number));
+    const s = Math.sin(dLat / 2) ** 2 + Math.cos(toRad(a.lat as number)) * Math.cos(toRad(b.lat as number)) * Math.sin(dLng / 2) ** 2;
+    return 2 * R * Math.asin(Math.sqrt(s));
+  };
+  return apartments.map((apt) => {
+    const others = apartments.filter((x) => x.slug !== apt.slug);
+    const similar = (apt.lat != null && apt.lng != null
+      ? others.filter((x) => x.lat != null && x.lng != null).sort((p, q) => hav(apt, p) - hav(apt, q))
+      : others
+    ).slice(0, 3);
+    const near = (apt.lat != null && apt.lng != null)
+      ? guides.map((g) => ({ g, d: havKm(apt, g) })).sort((x, y) => x.d - y.d).slice(0, 8)
+      : [];
+    return { params: { slug: apt.slug }, props: { apt, similar, near } };
+  });
+}
+
+const { apt, similar, near } = Astro.props as { apt: Apartment; similar: Apartment[]; near: any[] };
+const photos = (apt.photos && apt.photos.length)
+  ? apt.photos
+  : ['https://picsum.photos/seed/' + apt.slug + '/1600/1000'];
+
+const gallery =
+  photos.slice(0, 5).map((p, i) =>
+    `<div class="${i === 0 ? 'ph main' : 'ph'}" data-idx="${i}"><img src="${p}" alt="${apt.title}"></div>`
+  ).join('\n') +
+  `\n<button class="gallery-all" id="galleryAll" type="button">↗ view all ${photos.length} photos</button>`;
+
+const meta =
+  (apt.bedrooms === 0 ? `<span><b>studio</b></span>` : `<span><b>${apt.bedrooms ?? 1}</b> bed</span>`) +
+  `<span class="sep">·</span><span>fits <b>${apt.max_guests ?? 2}</b> guests</span>` +
+  (apt.neighborhood ? `<span class="sep">·</span><span>${apt.neighborhood}</span>` : '');
+
+const about =
+  `<h2>checked, stocked, <em>ready</em>.</h2>` +
+  (apt.summary ? apt.summary.split(/\n\n+/).map((p) => `<p>${p.replace(/\n/g, ' ').trim()}</p>`).join('') : '') +
+  `<p>local operations by <b>bre</b> — real check-in, real support, someone local one message away. the photos are the flat.</p>`;
+
+const ROOM_SKIP = new Set(['Additional photos']);
+const inside = (apt.rooms || [])
+  .filter((r) => r && r.amenities && r.amenities.length && !ROOM_SKIP.has(r.room))
+  .map((r) => `<div class="item"><h5>${r.room.replace(/^Full /, '').replace(/^./, (c) => c.toUpperCase())}</h5><p>${r.amenities.join(', ')}.</p></div>`)
+  .join('\n');
+const amenities = (apt.amenities || [])
+  .map((a) => `<div class="am"><span class="ic">✓</span> ${a}</div>`)
+  .join('\n');
+
+const simPhoto = (s: Apartment) => (s.photos && s.photos[0]) || `https://picsum.photos/seed/${s.slug}/900/700`;
+const similarHtml = similar
+  .map((s) => {
+    const beds = s.bedrooms === 0 ? 'studio' : (s.bedrooms ?? 1) + ' bed';
+    const price = s.price_from ? 'from ₾' + s.price_from + ' / night' : 'on request';
+    return `<a class="sim" href="/georgia/batumi/stays/${s.slug}"><div class="ph"><img src="${simPhoto(s)}" alt="${s.title}"></div><div class="body"><h5>${s.title}</h5><div class="meta">${beds} · ${s.max_guests ?? 2} guests</div><div class="price">${price}</div></div></a>`;
+  })
+  .join('');
+
+let content = template
+  .replaceAll('%%TITLE%%', apt.title)
+  .replaceAll('%%GUESTS%%', String(apt.max_guests ?? 2))
+  .replaceAll('%%PHOTOCOUNT%%', String(photos.length))
+  .replace('%%GALLERY%%', gallery)
+  .replace('%%META%%', meta)
+  .replace('%%ABOUT%%', about)
+  .replace('%%INSIDE%%', inside)
+  .replace('%%AMENITIES%%', amenities)
+  .replace('%%SIMILAR%%', similarHtml);
+content = apt.price_from
+  ? content.replaceAll('%%PRICE%%', '₾' + apt.price_from)
+  : content.replace('<em>from %%PRICE%%</em> <span class="per">/ night</span>', '<em>on request</em>');
+
+// "around here" — real nearest guide places (Haversine walking distance)
+const escG = (s: any) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const CATW: Record<string, string> = { 'eat-drink': 'eat & drink', 'wellness': 'wellness', 'work': 'work', 'move-around': 'getting around' };
+const walkMin = (km: number) => Math.max(1, Math.round(km * 12));
+const gPhoto = (g: any) => (g.photos && g.photos[0]) || g.image || '';
+const picksWithPhoto = (near || []).filter(({ g }: any) => gPhoto(g)).slice(0, 3);
+const guidePicksHtml = picksWithPhoto.length
+  ? picksWithPhoto.map(({ g, d }: any) => {
+      const kick = ((g.tags && g.tags[0]) ? String(g.tags[0]) : (CATW[g.category] || g.category)) + ' · ' + walkMin(d) + ' min walk';
+      return '<a class="pick" href="/georgia/batumi/guide/' + g.slug + '"><div class="ph"><img src="' + escG(gPhoto(g)) + '" alt="" loading="lazy"></div><span class="kicker">' + escG(kick) + '</span><h5>' + escG(g.title || g.name) + '</h5></a>';
+    }).join('')
+  : '<p style="color:var(--ink-soft)">guide picks coming soon.</p>';
+const locNearHtml = (near && near.length)
+  ? '<div class="loc-near">' + near.slice(0, 4).map(({ g, d }: any) => '<div class="ln"><a class="nm" href="/georgia/batumi/guide/' + g.slug + '">' + escG(g.title || g.name) + '</a><span class="ds">' + walkMin(d) + ' min walk</span></div>').join('') + '</div>'
+  : '';
+content = content
+  .replace(/<div class="guide-picks">[\s\S]*?<\/div>\s*<\/div>\s*<!-- RULES -->/, '<div class="guide-picks">' + guidePicksHtml + '</div>\n    </div>\n\n    <!-- RULES -->')
+  .replace(/<div class="loc-near pending">[\s\S]*?<\/div>\s*<\/div>/, locNearHtml);
+
+const photosJson = JSON.stringify(photos.map((p) => ({ src: p, alt: apt.title })));
+const script = pageScript.replaceAll('%%TITLE%%', apt.title).replace('%%PHOTOS%%', photosJson);
+const aptMapInit = "window.__initAptMap=function(){RegaMap.single('aptMap',APT_GEO,{routeLabel:'↗ get directions'});};";
+---
+<Site title={apt.title + ' — rega rega batumi'} description={apt.summary || 'a checked flat in batumi.'}>
+<Fragment set:html={content} />
+<script is:inline set:html={script}></script>
+<script is:inline src="/rega-map.js"></script>
+<script is:inline set:html={'const APT_GEO=' + JSON.stringify({lat:apt.lat,lng:apt.lng,title:apt.title}) + ';' + aptMapInit}></script>
+<script is:inline async src={'https://maps.googleapis.com/maps/api/js?key=' + GMAPS_KEY + '&callback=__initAptMap&loading=async&language=en&region=GE'}></script>
+</Site>
