@@ -39,6 +39,27 @@
   }
   function dot(on, fill, stroke) { return on ? icon(26, 10, fill, stroke) : icon(18, 7, fill, stroke); }
 
+  // airbnb-style price pill marker (used when a pin carries a label, e.g. "GEL 240")
+  function priceIcon(text, active) {
+    text = String(text);
+    var fs = 12.5, padX = 13, h = 30;
+    var w = Math.max(42, Math.round(text.length * 7.6) + padX * 2);
+    var bg = active ? '#0a0908' : '#ffffff', fg = active ? '#ffffff' : '#0a0908';
+    var safe = text.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+    var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + w + '" height="' + h + '" viewBox="0 0 ' + w + ' ' + h + '">' +
+      '<rect x="1" y="1" width="' + (w - 2) + '" height="' + (h - 2) + '" rx="' + ((h - 2) / 2) + '" fill="' + bg + '" stroke="#0a0908" stroke-width="1.3"/>' +
+      '<text x="' + (w / 2) + '" y="' + (h / 2 + 1) + '" text-anchor="middle" dominant-baseline="middle" font-family="system-ui,-apple-system,Arial,sans-serif" font-size="' + fs + '" font-weight="700" fill="' + fg + '">' + safe + '</text></svg>';
+    return {
+      url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg),
+      scaledSize: new google.maps.Size(w, h), anchor: new google.maps.Point(w / 2, h / 2)
+    };
+  }
+  // choose a price pill if the pin has a label, else a coloured dot
+  function pick(a, on) {
+    var lbl = a.label || a.pill;
+    return lbl ? priceIcon(lbl, on) : dot(on, a.color || '#ff5e1a', a.ring || '#ffffff');
+  }
+
   // "you are here" marker — blue, with a soft halo so it reads as the viewer
   function userIcon() {
     var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="34" height="34" viewBox="0 0 34 34">' +
@@ -108,12 +129,12 @@
       if (a.lat == null || a.lng == null) return;
       var fill = a.color || '#ff5e1a', stroke = a.ring || '#ffffff';
       var pos = { lat: a.lat, lng: a.lng };
-      var m = new google.maps.Marker({ position: pos, map: useCluster ? null : map, icon: dot(false, fill, stroke), title: a.title, zIndex: 1 });
-      byslug[a.slug] = { m: m, fill: fill, stroke: stroke };
+      var m = new google.maps.Marker({ position: pos, map: useCluster ? null : map, icon: pick(a, false), title: a.title, zIndex: 1 });
+      byslug[a.slug] = { m: m, a: a };
       markers.push({ m: m, item: a, fill: fill, stroke: stroke, pos: pos, on: true });
       var html = '<a class="map-mini" href="' + a.href + '"><div class="mm-ph"><img src="' + a.photo + '" alt=""></div><div class="mm-info"><h5>' + a.title + '</h5><div class="mm-sub">' + a.sub + '</div><div class="mm-cta">' + a.cta + ' →</div></div></a>';
-      function on() { m.setIcon(dot(true, fill, stroke)); m.setZIndex(20); var c = card(a.slug); if (c) c.classList.add('active'); }
-      function off() { m.setIcon(dot(false, fill, stroke)); m.setZIndex(1); var c = card(a.slug); if (c) c.classList.remove('active'); }
+      function on() { m.setIcon(pick(a, true)); m.setZIndex(20); var c = card(a.slug); if (c) c.classList.add('active'); }
+      function off() { m.setIcon(pick(a, false)); m.setZIndex(1); var c = card(a.slug); if (c) c.classList.remove('active'); }
       if (canHover) {
         m.addListener('mouseover', function () { clearTimeout(closeT); on(); info.setContent(html); info.open(map, m); });
         m.addListener('mouseout', function () { off(); shut(); });
@@ -161,8 +182,8 @@
 
     document.querySelectorAll(cardSel + '[data-slug]').forEach(function (c) {
       var ref = byslug[c.dataset.slug]; if (!ref) return;
-      c.addEventListener('mouseenter', function () { ref.m.setIcon(dot(true, ref.fill, ref.stroke)); ref.m.setZIndex(20); });
-      c.addEventListener('mouseleave', function () { ref.m.setIcon(dot(false, ref.fill, ref.stroke)); ref.m.setZIndex(1); });
+      c.addEventListener('mouseenter', function () { ref.m.setIcon(pick(ref.a, true)); ref.m.setZIndex(20); });
+      c.addEventListener('mouseleave', function () { ref.m.setIcon(pick(ref.a, false)); ref.m.setZIndex(1); });
     });
     window.__staysMap = map;
     var mb = document.getElementById(opts.resizeBtn || 'viewMap');
