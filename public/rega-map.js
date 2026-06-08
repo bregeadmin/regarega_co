@@ -9,6 +9,12 @@
    stays() returns a small controller: { map, locate(), setFilter(fn),
    clearFilter(), refit() } so a page can wire "near me" / "open now" chrome. */
 (function () {
+  // Vercel image optimizer for runtime-built photo thumbnails (map popups)
+  function optImg(u, w) {
+    return (u && /^https:\/\/(qkzinjawtumhjbezlyog\.supabase\.co|images\.unsplash\.com|static\.tildacdn\.(?:com|one)|picsum\.photos)\//.test(u))
+      ? '/_vercel/image?url=' + encodeURIComponent(u) + '&w=' + (w || 640) + '&q=72'
+      : (u || '');
+  }
   // cream brand style (matches site palette; orange pins, muted POIs)
   var STYLE = [
     { elementType: 'geometry', stylers: [{ color: '#f4f0e7' }] },
@@ -149,7 +155,7 @@
       var m = new google.maps.Marker({ position: pos, map: useCluster ? null : map, icon: pick(a, false), title: a.title, zIndex: 1 });
       byslug[a.slug] = { m: m, a: a };
       markers.push({ m: m, item: a, fill: fill, stroke: stroke, pos: pos, on: true });
-      var html = '<a class="map-mini" href="' + a.href + '"><div class="mm-ph"><img src="' + a.photo + '" alt=""></div><div class="mm-info"><h5>' + a.title + '</h5><div class="mm-sub">' + a.sub + '</div><div class="mm-cta">' + a.cta + ' →</div></div></a>';
+      var html = '<a class="map-mini" href="' + a.href + '"><div class="mm-ph"><img src="' + optImg(a.photo, 640) + '" alt=""></div><div class="mm-info"><h5>' + a.title + '</h5><div class="mm-sub">' + a.sub + '</div><div class="mm-cta">' + a.cta + ' →</div></div></a>';
       function on() { m.setIcon(pick(a, true)); m.setZIndex(20); var c = card(a.slug); if (c) c.classList.add('active'); }
       function off() { m.setIcon(pick(a, false)); m.setZIndex(1); var c = card(a.slug); if (c) c.classList.remove('active'); }
       if (canHover) {
