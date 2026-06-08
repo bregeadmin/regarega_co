@@ -1,0 +1,15 @@
+{
+  "buildCommand": "astro build && node scripts/optimize-images.mjs",
+  "images": {
+    "sizes": [320, 480, 640, 750, 828, 1080, 1200, 1920],
+    "formats": ["image/avif", "image/webp"],
+    "minimumCacheTTL": 2592000,
+    "remotePatterns": [
+      { "protocol": "https", "hostname": "qkzinjawtumhjbezlyog.supabase.co" },
+      { "protocol": "https", "hostname": "images.unsplash.com" },
+      { "protocol": "https", "hostname": "static.tildacdn.com" },
+      { "protocol": "https", "hostname": "static.tildacdn.one" },
+      { "protocol": "https", "hostname": "picsum.photos" }
+    ]
+  }
+}
