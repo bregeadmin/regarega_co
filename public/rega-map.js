@@ -90,8 +90,9 @@
     if (!elc || elc.dataset.init) return; elc.dataset.init = '1';
     var map = new google.maps.Map(elc, {
       center: opts.center || { lat: 41.64, lng: 41.62 }, zoom: opts.zoom || 13, disableDefaultUI: true,
-      zoomControl: true, gestureHandling: 'greedy', clickableIcons: false, styles: STYLE
+      zoomControl: true, fullscreenControl: true, gestureHandling: 'greedy', clickableIcons: false, styles: STYLE
     });
+    var useCluster = !!(opts.cluster && window.markerClusterer && window.markerClusterer.MarkerClusterer);
     var info = new google.maps.InfoWindow();
     var canHover = window.matchMedia('(hover:hover) and (pointer:fine)').matches;
     var closeT = null;
@@ -107,7 +108,7 @@
       if (a.lat == null || a.lng == null) return;
       var fill = a.color || '#ff5e1a', stroke = a.ring || '#ffffff';
       var pos = { lat: a.lat, lng: a.lng };
-      var m = new google.maps.Marker({ position: pos, map: map, icon: dot(false, fill, stroke), title: a.title, zIndex: 1 });
+      var m = new google.maps.Marker({ position: pos, map: useCluster ? null : map, icon: dot(false, fill, stroke), title: a.title, zIndex: 1 });
       byslug[a.slug] = { m: m, fill: fill, stroke: stroke };
       markers.push({ m: m, item: a, fill: fill, stroke: stroke, pos: pos, on: true });
       var html = '<a class="map-mini" href="' + a.href + '"><div class="mm-ph"><img src="' + a.photo + '" alt=""></div><div class="mm-info"><h5>' + a.title + '</h5><div class="mm-sub">' + a.sub + '</div><div class="mm-cta">' + a.cta + ' →</div></div></a>';
@@ -121,6 +122,33 @@
         m.addListener('click', function () { on(); info.setContent(html); info.open(map, m); });
       }
     });
+
+    // marker clustering — pins group into branded count-bubbles when zoomed out,
+    // and break apart as you zoom in (Airbnb behaviour). Falls back to plain pins
+    // if the clusterer library is not present.
+    var clusterer = null;
+    if (useCluster) {
+      clusterer = new markerClusterer.MarkerClusterer({
+        map: map, markers: markers.map(function (x) { return x.m; }),
+        renderer: {
+          render: function (c) {
+            var count = c.count, position = c.position;
+            var size = count < 10 ? 40 : count < 30 ? 48 : 56;
+            var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + size + '" height="' + size + '"><circle cx="' + (size / 2) + '" cy="' + (size / 2) + '" r="' + (size / 2 - 2) + '" fill="#0a0908" stroke="#fff" stroke-width="2.5"/></svg>';
+            return new google.maps.Marker({
+              position: position,
+              icon: { url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg), scaledSize: new google.maps.Size(size, size), anchor: new google.maps.Point(size / 2, size / 2) },
+              label: { text: String(count), color: '#ffffff', fontSize: '13px', fontFamily: 'JetBrains Mono, monospace', fontWeight: '700' },
+              zIndex: 1000 + count
+            });
+          }
+        }
+      });
+    }
+    function applyVisibility() {
+      if (clusterer) { clusterer.clearMarkers(); clusterer.addMarkers(markers.filter(function (m) { return m.on; }).map(function (m) { return m.m; })); }
+      else { markers.forEach(function (mk) { mk.m.setMap(mk.on ? map : null); }); }
+    }
 
     function refit(extra) {
       var b = new google.maps.LatLngBounds(), n = 0;
@@ -142,10 +170,11 @@
 
     var userMarker = null;
     function setFilter(fn) {
-      markers.forEach(function (mk) { var vis = !!fn(mk.item); mk.on = vis; mk.m.setMap(vis ? map : null); });
+      markers.forEach(function (mk) { mk.on = !!fn(mk.item); });
+      applyVisibility();
       refit(userMarker ? userMarker.getPosition() : null);
     }
-    function clearFilter() { markers.forEach(function (mk) { mk.on = true; mk.m.setMap(map); }); refit(userMarker ? userMarker.getPosition() : null); }
+    function clearFilter() { markers.forEach(function (mk) { mk.on = true; }); applyVisibility(); refit(userMarker ? userMarker.getPosition() : null); }
     function locate(cb) {
       if (!navigator.geolocation) { if (cb) cb(null, 'unsupported'); return; }
       navigator.geolocation.getCurrentPosition(function (p) {
