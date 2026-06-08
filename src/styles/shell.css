@@ -139,6 +139,7 @@ footer{padding:40px 18px 20px}
 .foot-line .foot-meta,.foot-line .foot-right{justify-self:start}
 }
 footer{padding:32px 28px;background:var(--ink);color:#a99e8e;font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;font-weight:500;line-height:1.5}
+.foot-copy{text-transform:none;letter-spacing:.05em}
 footer a{color:#a99e8e;text-decoration:none;transition:color .2s ease}
 footer a:hover{color:#fff}
 .foot-line{max-width:1400px;margin:0 auto;display:flex;justify-content:space-between;align-items:center;gap:24px;flex-wrap:wrap}
