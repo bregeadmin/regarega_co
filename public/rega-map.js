@@ -90,7 +90,7 @@
     if (!elc || elc.dataset.init) return; elc.dataset.init = '1';
     var map = new google.maps.Map(elc, {
       center: opts.center || { lat: 41.64, lng: 41.62 }, zoom: opts.zoom || 13, disableDefaultUI: true,
-      zoomControl: true, fullscreenControl: true, gestureHandling: 'greedy', clickableIcons: false, styles: STYLE
+      zoomControl: true, fullscreenControl: opts.fullscreen !== false, gestureHandling: 'greedy', clickableIcons: false, styles: STYLE
     });
     var useCluster = !!(opts.cluster && window.markerClusterer && window.markerClusterer.MarkerClusterer);
     var info = new google.maps.InfoWindow();
