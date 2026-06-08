@@ -15,6 +15,21 @@ const CAT: Record<string, any> = {
 };
 const cat = CAT[category] || { color: '#ff5e1a', label: category, h1: category + '.', lede: '' };
 
+// world metadata for the "more from the guide" tiles — mirrors the hub's world cards
+const ICO: Record<string, string> = {
+  eat: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M4 1V8M4 8C3 8 2.5 8 2.5 9V15M4 8C5 8 5.5 8 5.5 9V15M11 1C9.5 1 9 2 9 3.5C9 5 9.5 6 11 6.5V14.5C11 14.7 11.2 15 11.5 15S12 14.7 12 14.5V6.5C13.5 6 14 5 14 3.5C14 2 13.5 1 12 1" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>',
+  wellness: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><path d="M8 2C7 5 5 6 4 7C2.5 8 3 10 5 10.5C7 11 8.5 9.5 8 7M8 7C7.5 5 9 4 11 4.5C13 5 13.5 7 12 8.5C11 9.5 9 9 8 7Z" stroke="currentColor" stroke-width="1.3" stroke-linecap="round" stroke-linejoin="round"/></svg>',
+  work: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><rect x="2" y="3" width="12" height="9" rx="1" stroke="currentColor" stroke-width="1.3"/><path d="M5 14H11M8 12V14" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>',
+  move: '<svg width="16" height="16" viewBox="0 0 16 16" fill="none"><circle cx="5" cy="11" r="2" stroke="currentColor" stroke-width="1.3"/><circle cx="11" cy="11" r="2" stroke="currentColor" stroke-width="1.3"/><path d="M5 9L7 4H10L12 8M3 4H6" stroke="currentColor" stroke-width="1.3" stroke-linecap="round"/></svg>',
+};
+const WMETA: Record<string, any> = {
+  'eat-drink': { ico: ICO.eat, sub: 'cafés · restaurants · bars', desc: 'our favourite cafés, brunch spots, restaurants, cocktail bars and bakeries.' },
+  'wellness': { ico: ICO.wellness, sub: 'spa · baths · yoga · massage', desc: 'slow living done right: sulphur baths, massage rooms, spa days.' },
+  'work': { ico: ICO.work, sub: 'co-workings · cafes with wifi', desc: 'cafés with reliable wifi, co-workings, and quiet corners for deep work.' },
+  'move-around': { ico: ICO.move, sub: 'taxi · scooter · car', desc: 'how locals actually get around. apps, rentals, the ones we use.' },
+};
+const goArrow = '<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><path d="M3 9L9 3M9 3H4M9 3V8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>';
+
 const { data } = await supabase.from('guide_places').select('*').eq('status', 'published').eq('category', category);
 const places = (data || []).slice().sort((a, b) => (b.rating || 0) - (a.rating || 0));
 const { data: allCats } = await supabase.from('guide_places').select('category').eq('status', 'published');
@@ -87,12 +102,15 @@ const catMapHtml = catPins.length ? (
 ) : '';
 
 const otherCats = Object.keys(CAT).filter((c) => c !== category);
-const moreHtml = otherCats.map((c) =>
-  '<a class="more-cat" href="/guide/' + c + '" style="--tile-color:' + CAT[c].color + ';--tile-text:#fff">' +
-  '<span class="num">' + (counts[c] || 0) + '</span>' +
-  '<h4>' + esc(CAT[c].label) + '</h4>' +
-  '<span class="go"><svg width="14" height="14" viewBox="0 0 14 14" fill="none"><path d="M3 11L11 3M11 3H4M11 3V10" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round"/></svg></span></a>'
-).join('');
+const moreHtml = otherCats.map((c) => {
+  const w = WMETA[c] || {};
+  return '<a class="cat-tile primary" href="/guide/' + c + '" style="--tile-color:' + CAT[c].color + '">' +
+    '<div class="top"><span class="num">' + (counts[c] || 0) + '</span>' + (w.ico ? '<span class="ico">' + w.ico + '</span>' : '') + '</div>' +
+    '<h3>' + esc(CAT[c].label) + '</h3>' +
+    (w.sub ? '<div class="sub">' + w.sub + '</div>' : '') +
+    (w.desc ? '<p class="desc">' + esc(w.desc) + '</p>' : '') +
+    '<span class="go">' + goArrow + '</span></a>';
+}).join('');
 
 const content =
   '<section class="cat-header"><div class="crumbs">' +
@@ -155,14 +173,14 @@ const content =
   });
 })();
 </script>
-<style is:inline set:html={".places-head{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}\n.view-toggle{display:inline-flex;background:var(--paper);border:1px solid var(--line);border-radius:999px;padding:3px}\n.view-toggle .vt{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--ink-soft);padding:8px 16px;border:0;background:transparent;border-radius:999px;cursor:pointer;transition:all .18s ease}\n.view-toggle .vt.active{background:var(--ink);color:#fff}\n.cat-map{margin-top:6px}\n.cat-map .map-controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 16px}\n.cat-map .map-controls .seg{display:inline-flex;background:var(--paper);border:1px solid var(--line);border-radius:999px;padding:3px}\n.cat-map .mc{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--ink-soft);padding:9px 16px;border-radius:999px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;border:0;background:transparent;transition:all .18s ease}\n.cat-map .seg .mc.active{background:var(--ink);color:#fff}\n.cat-map .mc.near{border:1px solid var(--line);background:var(--paper);color:var(--ink)}\n.cat-map .mc.near:hover{border-color:var(--cat-color);color:var(--cat-color)}\n.cat-map .mc.near.loading{opacity:.55;pointer-events:none}\n.cat-map .mc.near.err{border-color:#d9402a;color:#d9402a}\n.cat-map .map{position:relative;height:560px;border-radius:16px;overflow:hidden;border:1px solid var(--line);background:var(--bg-2)}\n#catMap{position:absolute;inset:0;width:100%;height:100%}\n.feat-card{display:none}\n.places-wrap.split{position:fixed;top:76px;left:0;right:0;bottom:0;z-index:30;background:var(--bg);display:grid;grid-template-columns:minmax(0,1.04fr) minmax(0,1fr);grid-template-rows:auto minmax(0,1fr);column-gap:24px;padding:18px 28px 0;margin:0;box-sizing:border-box}\n.places-wrap.split .places-head{grid-column:1;grid-row:1;margin:0 0 12px}\n.places-wrap.split .places{grid-column:1;grid-row:2;grid-template-columns:1fr 1fr;gap:16px;overflow-y:auto;height:100%;align-content:start;padding:0 8px 22px 0;scrollbar-width:thin}\n.places-wrap.split .feat-card{display:flex}\n.places-wrap.split .cat-map{grid-column:2;grid-row:1 / span 2;position:static;height:100%;margin:0;padding-bottom:18px;display:flex;flex-direction:column}\n.places-wrap.split .cat-map .map-controls{flex:none;margin:0 0 10px}\n.places-wrap.split .cat-map .map{flex:1;height:auto}\n.places-wrap.split .place.active{outline:2px solid var(--cat-color);outline-offset:3px;border-radius:12px}\nhtml.map-locked,body.map-locked{overflow:hidden}\n@media(max-width:880px){.cat-map .map{height:440px}.places-wrap.split{position:static;display:block;padding:0;background:transparent}.places-wrap.split .places{grid-template-columns:1fr;overflow:visible;height:auto;padding:0}.places-wrap.split .cat-map{display:block;height:auto;padding-bottom:0}.places-wrap.split .cat-map .map{height:62vh}html.map-locked,body.map-locked{overflow:auto}}"}></style>
+<style is:inline set:html={".places-head{display:flex;justify-content:space-between;align-items:center;gap:16px;flex-wrap:wrap}\n.view-toggle{display:inline-flex;background:var(--paper);border:1px solid var(--line);border-radius:999px;padding:3px}\n.view-toggle .vt{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--ink-soft);padding:8px 16px;border:0;background:transparent;border-radius:999px;cursor:pointer;transition:all .18s ease}\n.view-toggle .vt.active{background:var(--ink);color:#fff}\n.cat-map{margin-top:6px}\n.cat-map .map-controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:0 0 16px}\n.cat-map .map-controls .seg{display:inline-flex;background:var(--paper);border:1px solid var(--line);border-radius:999px;padding:3px}\n.cat-map .mc{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--ink-soft);padding:9px 16px;border-radius:999px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;border:0;background:transparent;transition:all .18s ease}\n.cat-map .seg .mc.active{background:var(--ink);color:#fff}\n.cat-map .mc.near{border:1px solid var(--line);background:var(--paper);color:var(--ink)}\n.cat-map .mc.near:hover{border-color:var(--cat-color);color:var(--cat-color)}\n.cat-map .mc.near.loading{opacity:.55;pointer-events:none}\n.cat-map .mc.near.err{border-color:#d9402a;color:#d9402a}\n.cat-map .map{position:relative;height:560px;border-radius:16px;overflow:hidden;border:1px solid var(--line);background:var(--bg-2)}\n#catMap{position:absolute;inset:0;width:100%;height:100%}\n.feat-card{display:none}\n.places-wrap.split{display:grid;grid-template-columns:minmax(0,1.04fr) minmax(0,1fr);grid-template-rows:auto 1fr;column-gap:28px;align-items:start;padding:96px 28px 8px;margin:0}\n.places-wrap.split .places-head{grid-column:1;grid-row:1;margin:0 0 16px}\n.places-wrap.split .places{grid-column:1;grid-row:2;grid-template-columns:1fr 1fr;gap:16px;align-self:start}\n.places-wrap.split .feat-card{display:flex}\n.places-wrap.split .cat-map{grid-column:2;grid-row:1 / span 2;position:sticky;top:76px;height:calc(100vh - 96px);margin:0;display:flex;flex-direction:column}\n.places-wrap.split .cat-map .map-controls{flex:none;margin:0 0 10px}\n.places-wrap.split .cat-map .map{flex:1;height:auto}\n.places-wrap.split .place.active{outline:2px solid var(--cat-color);outline-offset:3px;border-radius:12px}\n@media(max-width:880px){.cat-map .map{height:440px}.places-wrap.split{display:block;padding:0}.places-wrap.split .places{grid-template-columns:1fr}.places-wrap.split .cat-map{position:static;height:auto;display:block}.places-wrap.split .cat-map .map{height:62vh}}\n.more-cats-grid{grid-template-columns:repeat(3,1fr);gap:16px}\n.more-cats .cat-tile{position:relative;display:flex;flex-direction:column;justify-content:space-between;padding:24px;min-height:240px;border-radius:14px;overflow:hidden;transition:transform .3s cubic-bezier(.2,.7,.2,1);border:1px solid transparent;color:#fff;background:var(--tile-color)}\n.more-cats .cat-tile:hover{transform:translateY(-4px)}\n.more-cats .cat-tile > *{position:relative;z-index:2}\n.more-cats .cat-tile .top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}\n.more-cats .cat-tile .num{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:44px;line-height:.9;letter-spacing:-.03em}\n.more-cats .cat-tile .ico{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.2)}\n.more-cats .cat-tile h3{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:26px;line-height:1;letter-spacing:-.03em;text-transform:lowercase;margin-top:auto}\n.more-cats .cat-tile .sub{font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;font-weight:500;margin-top:8px;opacity:.75}\n.more-cats .cat-tile .desc{font-size:13px;line-height:1.45;margin-top:8px;max-width:24ch;opacity:.92}\n.more-cats .cat-tile .go{position:absolute;right:18px;bottom:18px;z-index:3;width:32px;height:32px;border-radius:50%;border:1px solid currentColor;display:flex;align-items:center;justify-content:center;opacity:.6;transition:all .25s ease}\n.more-cats .cat-tile:hover .go{opacity:1;transform:translate(2px,-2px);background:#fff;color:var(--tile-color);border-color:#fff}\n.more-cats .cat-tile::before{content:'';position:absolute;inset:0;background:radial-gradient(circle at top right,rgba(255,255,255,.16) 0%,transparent 60%);z-index:0}\n.more-cats .cat-tile::after{content:'';position:absolute;left:-30%;bottom:-40%;width:140%;height:80%;background:radial-gradient(ellipse at center,rgba(0,0,0,.12) 0%,transparent 60%);z-index:0}\n@media(max-width:880px){.more-cats-grid{grid-template-columns:1fr}}"}></style>
 <script is:inline src="/rega-map.js"></script>
 <script is:inline define:vars={{ CAT_PINS: catPins, GKEY: GMAPS_KEY }}>
 (function () {
   var vt = document.querySelectorAll('.view-toggle .vt');
   var mapWrap = document.querySelector('.cat-map');
   var wrap = document.querySelector('.places-wrap');
-  var hideEls = ['.featured', '.subnav', '.cat-header', '.more-cats'].map(function (s) { return document.querySelector(s); });
+  var hideEls = ['.featured', '.subnav', '.cat-header'].map(function (s) { return document.querySelector(s); });
   if (!vt.length || !mapWrap || !wrap) return;
   var api = null;
   function wire() {
@@ -195,8 +213,6 @@ const content =
       wrap.classList.toggle('split', showMap);
       mapWrap.hidden = !showMap;
       hideEls.forEach(function (el) { if (el) el.style.display = showMap ? 'none' : ''; });
-      document.documentElement.classList.toggle('map-locked', showMap);
-      document.body.classList.toggle('map-locked', showMap);
       if (showMap) { window.scrollTo(0, 0); window.__wantMap = true; if (window.__gReady) make(); else loadG(); }
       else if (api && window.google && api.map) { setTimeout(function () { google.maps.event.trigger(api.map, 'resize'); api.refit(); }, 60); }
     });
