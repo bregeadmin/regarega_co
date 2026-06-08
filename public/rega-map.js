@@ -71,6 +71,22 @@
     };
   }
 
+  // custom round zoom controls (replaces Google's blocky default) — used on every map
+  function addZoom(map) {
+    var plus = '<svg viewBox="0 0 16 16" fill="none"><path d="M8 3.2v9.6M3.2 8h9.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+    var minus = '<svg viewBox="0 0 16 16" fill="none"><path d="M3.2 8h9.6" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"/></svg>';
+    function btn(svg, label, dz) {
+      var b = document.createElement('button');
+      b.type = 'button'; b.className = 'rega-zoom'; b.setAttribute('aria-label', label); b.innerHTML = svg;
+      b.addEventListener('click', function () { map.setZoom((map.getZoom() || 13) + dz); });
+      return b;
+    }
+    var wrap = document.createElement('div'); wrap.className = 'rega-zoom-wrap';
+    wrap.appendChild(btn(plus, 'zoom in', 1));
+    wrap.appendChild(btn(minus, 'zoom out', -1));
+    map.controls[google.maps.ControlPosition.RIGHT_BOTTOM].push(wrap);
+  }
+
   // free walking-directions deep-link to a coordinate
   function directionsUrl(lat, lng) {
     return 'https://www.google.com/maps/dir/?api=1&destination=' +
@@ -111,8 +127,9 @@
     if (!elc || elc.dataset.init) return; elc.dataset.init = '1';
     var map = new google.maps.Map(elc, {
       center: opts.center || { lat: 41.64, lng: 41.62 }, zoom: opts.zoom || 13, disableDefaultUI: true,
-      zoomControl: true, fullscreenControl: opts.fullscreen !== false, gestureHandling: 'greedy', clickableIcons: false, styles: STYLE
+      zoomControl: false, fullscreenControl: opts.fullscreen !== false, gestureHandling: 'greedy', clickableIcons: false, styles: STYLE
     });
+    addZoom(map);
     var useCluster = !!(opts.cluster && window.markerClusterer && window.markerClusterer.MarkerClusterer);
     var info = new google.maps.InfoWindow();
     var canHover = window.matchMedia('(hover:hover) and (pointer:fine)').matches;
@@ -225,9 +242,10 @@
     var el = document.getElementById(elId); if (!el || el.dataset.init) return; el.dataset.init = '1';
     var pos = { lat: geo.lat, lng: geo.lng };
     var map = new google.maps.Map(el, {
-      center: pos, zoom: opts.zoom || 15, disableDefaultUI: true, zoomControl: true,
+      center: pos, zoom: opts.zoom || 15, disableDefaultUI: true, zoomControl: false,
       gestureHandling: 'cooperative', clickableIcons: false, styles: STYLE
     });
+    addZoom(map);
     new google.maps.Marker({ position: pos, map: map, title: geo.title || '', icon: icon(24, 9) });
     if (opts.routeLabel) {
       var a = document.createElement('a');

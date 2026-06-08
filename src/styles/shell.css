@@ -204,6 +204,12 @@ footer{padding:24px 14px}
 .map-mini .mm-sub{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft);font-weight:500;margin-top:4px}
 .map-mini .mm-cta{font-family:"JetBrains Mono",monospace;font-size:11px;font-weight:700;color:var(--page);margin-top:6px}
 .map-mini{display:block;width:236px;text-decoration:none;color:inherit;cursor:pointer}
+/* round custom zoom controls (replaces Google's default), every map */
+.rega-zoom-wrap{display:flex;flex-direction:column;gap:8px;margin:0 14px 14px 0}
+.rega-zoom{width:40px;height:40px;border-radius:50%;background:#fff;border:1px solid rgba(10,9,8,.1);box-shadow:0 3px 12px rgba(0,0,0,.16);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink);transition:transform .15s ease,background .15s ease,box-shadow .15s ease;padding:0}
+.rega-zoom:hover{background:var(--bg-2);transform:translateY(-1px);box-shadow:0 5px 16px rgba(0,0,0,.2)}
+.rega-zoom:active{transform:translateY(0)}
+.rega-zoom svg{width:16px;height:16px;display:block}
 /* Google InfoWindow → brand card */
 .gm-style .gm-style-iw-c{padding:0 !important;border-radius:14px !important;box-shadow:0 14px 40px rgba(10,9,8,.22) !important;overflow:hidden;max-width:none !important}
 .gm-style .gm-style-iw-d{overflow:hidden !important;max-width:none !important}
