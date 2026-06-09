@@ -2,32 +2,34 @@
 import { supabase } from '../lib/supabase';
 import { GMAPS_KEY } from '../lib/maps';
 import guideRu from '../data/guide_ru.json';
+import { GUIDE_CATS, catColor, catLabel } from '../lib/guideCats';
 const { category, lang = 'en' } = Astro.props as { category: string; lang?: 'en' | 'ru' };
 const isRu = lang === 'ru';
 const base = isRu ? '/ru/georgia/batumi/guide' : '/georgia/batumi/guide'; // place / category href prefix
 
-const CAT_EN: Record<string, any> = {
-  'eat-drink':   { color: '#ff5e1a', label: 'eat & drink', h1: 'eat <em>&amp;</em> drink.',
+// colour + label live in src/lib/guideCats.ts (single source, city-agnostic); h1/lede stay here
+const H1LEDE_EN: Record<string, { h1: string; lede: string }> = {
+  'eat-drink':   { h1: 'eat <em>&amp;</em> drink.',
     lede: 'our favourite <b>cafés, restaurants, bars, wine spots and bakeries</b> in batumi — the places <em>we actually go to ourselves</em>.' },
-  'wellness':    { color: '#00b5b0', label: 'wellness & slow living', h1: 'wellness <em>&amp;</em> slow.',
+  'wellness':    { h1: 'wellness <em>&amp;</em> slow.',
     lede: '<b>spas, baths and slow-living spots</b> for a proper <em>reset day</em> in batumi.' },
-  'work':        { color: '#7f77dd', label: 'work & remote life', h1: 'work <em>&amp;</em> remote.',
+  'work':        { h1: 'work <em>&amp;</em> remote.',
     lede: '<b>cafés and coworkings</b> that actually work for a remote day — <em>wifi, power, room to think</em>.' },
-  'move-around': { color: '#3D5AFE', label: 'move around', h1: 'move <em>around</em>.',
+  'move-around': { h1: 'move <em>around</em>.',
     lede: 'how we get around batumi and beyond — <b>taxis, scooters and car rentals</b> we use ourselves.' },
 };
-const CAT_RU: Record<string, any> = {
-  'eat-drink':   { color: '#ff5e1a', label: 'еда и напитки', h1: 'еда <em>и</em> напитки.',
+const H1LEDE_RU: Record<string, { h1: string; lede: string }> = {
+  'eat-drink':   { h1: 'еда <em>и</em> напитки.',
     lede: 'наши любимые <b>кафе, рестораны, бары, винные и пекарни</b> в Батуми — места, <em>куда мы ходим сами</em>.' },
-  'wellness':    { color: '#00b5b0', label: 'велнес', h1: 'велнес <em>и</em> покой.',
+  'wellness':    { h1: 'велнес <em>и</em> покой.',
     lede: '<b>спа, бани и места для медленной жизни</b> — для настоящего <em>дня перезагрузки</em> в Батуми.' },
-  'work':        { color: '#7f77dd', label: 'работа', h1: 'работа <em>и</em> удалёнка.',
+  'work':        { h1: 'работа <em>и</em> удалёнка.',
     lede: '<b>кафе и коворкинги</b>, где реально можно работать — <em>вайфай, розетки, место подумать</em>.' },
-  'move-around': { color: '#3D5AFE', label: 'транспорт', h1: 'как <em>передвигаться</em>.',
+  'move-around': { h1: 'как <em>передвигаться</em>.',
     lede: 'как мы перемещаемся по Батуми и вокруг — <b>такси, самокаты и аренда машин</b>, которыми пользуемся сами.' },
 };
-const CAT = isRu ? CAT_RU : CAT_EN;
-const cat = CAT[category] || { color: '#ff5e1a', label: category, h1: category + '.', lede: '' };
+const H1L = isRu ? H1LEDE_RU : H1LEDE_EN;
+const cat = { color: catColor(category), label: catLabel(category, lang), h1: H1L[category]?.h1 || category + '.', lede: H1L[category]?.lede || '' };
 
 // UI string dictionary — interface only; place titles/summaries stay as-is from the DB
 const STR: Record<string, Record<string, string>> = {
@@ -143,12 +145,12 @@ const catMapHtml = catPins.length ? (
   '</div>'
 ) : '';
 
-const otherCats = Object.keys(CAT).filter((c) => c !== category);
+const otherCats = Object.keys(GUIDE_CATS).filter((c) => c !== category);
 const moreHtml = otherCats.map((c) => {
   const w = WMETA[c] || {};
-  return '<a class="cat-tile primary" href="' + base + '/' + c + '" style="--tile-color:' + CAT[c].color + '">' +
+  return '<a class="cat-tile primary" href="' + base + '/' + c + '" style="--tile-color:' + catColor(c) + '">' +
     '<div class="top"><span class="num">' + (counts[c] || 0) + '</span>' + (w.ico ? '<span class="ico">' + w.ico + '</span>' : '') + '</div>' +
-    '<h3>' + esc(CAT[c].label) + '</h3>' +
+    '<h3>' + esc(catLabel(c, lang)) + '</h3>' +
     (w.sub ? '<div class="sub">' + w.sub + '</div>' : '') +
     (w.desc ? '<p class="desc">' + esc(w.desc) + '</p>' : '') +
     '<span class="go">' + goArrow + '</span></a>';

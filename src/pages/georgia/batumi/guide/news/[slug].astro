@@ -2,13 +2,9 @@
 import Site from '../../../../../layouts/Site.astro';
 import news from '../../../../../data/news.json';
 import { supabase } from '../../../../../lib/supabase';
+import { GUIDE_CATS } from '../../../../../lib/guideCats';
 
-const CAT = {
-  'eat-drink':   { color: '#ff5e1a', label: 'eat & drink' },
-  'wellness':    { color: '#00b5b0', label: 'wellness & slow living' },
-  'work':        { color: '#7f77dd', label: 'work & remote life' },
-  'move-around': { color: '#3D5AFE', label: 'move around' },
-};
+const CAT = Object.fromEntries(Object.entries(GUIDE_CATS).map(([k, v]) => [k, { color: v.color, label: v.label.en }]));
 
 export async function getStaticPaths() {
   const { data: gp } = await supabase

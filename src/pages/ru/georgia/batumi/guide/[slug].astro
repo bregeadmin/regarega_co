@@ -3,13 +3,9 @@ import SiteRu from '../../../../../layouts/SiteRu.astro';
 import '../../../../../styles/guide.css';
 import { supabase } from '../../../../../lib/supabase';
 import guideRu from '../../../../../data/guide_ru.json';
+import { GUIDE_CATS } from '../../../../../lib/guideCats';
 
-const CAT = {
-  'eat-drink':   { color: '#ff5e1a', label: 'еда и напитки' },
-  'wellness':    { color: '#00b5b0', label: 'велнес' },
-  'work':        { color: '#7f77dd', label: 'работа' },
-  'move-around': { color: '#3D5AFE', label: 'транспорт' },
-};
+const CAT = Object.fromEntries(Object.entries(GUIDE_CATS).map(([k, v]) => [k, { color: v.color, label: v.label.ru }]));
 
 export async function getStaticPaths() {
   const { data: gp } = await supabase.from('guide_places').select('*').eq('status', 'published');
