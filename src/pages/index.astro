@@ -322,15 +322,20 @@ import Base from '../layouts/Base.astro';
 
 /* ══ RESPONSIVE ══ */
 @media(max-width:768px){
-  /* ── MOBILE = clean vertical scroll (NO sticky overlap) ── */
-  .blk{position:relative!important;top:auto;height:auto;min-height:100vh;min-height:100svh}
-  .b2-spacer{display:none}
-  .b2{position:relative;height:auto;min-height:0;overflow:visible;border-radius:0;box-shadow:none;background:transparent}
+  /* ── MOBILE = TOUR: sticky slides fly up over each other (clean, no overlap) ── */
+  .blk{height:100svh}                /* b1, b3 stay sticky (base); refine to small-vh */
+  .b2-spacer{display:none}           /* drop the desktop dwell gap that caused the bleed */
+  .b2{position:relative;height:auto;min-height:0;overflow:visible;border-radius:0;box-shadow:none;background:transparent;z-index:2}
   .b2-tiles{position:static;display:block}
   .gt{
-    position:relative;top:auto;height:auto;min-height:100vh;min-height:100svh;border-right:0;
+    position:sticky;top:0;height:100svh;border-right:0;
     border-radius:30px 30px 0 0;box-shadow:0 -22px 60px rgba(0,0,0,.45)
   }
+  /* each door covers the previous one as it rises */
+  .gt:nth-child(1){z-index:1}
+  .gt:nth-child(2){z-index:2}
+  .gt:nth-child(3){z-index:3}
+  .gt:nth-child(4){z-index:4}
   .gt:first-child{border-radius:0;box-shadow:none}
   /* full text shown on every slide (no hover on touch) */
   .gt-plate{padding:40px 22px 52px!important;gap:12px}
