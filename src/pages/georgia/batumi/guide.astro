@@ -1,5 +1,6 @@
 ---
 import Site from '../../../layouts/Site.astro';
+import GuideIntro from '../../../components/GuideIntro.astro';
 import '../../../styles/guide-hub.css';
 import { supabase } from '../../../lib/supabase';
 import { GMAPS_KEY } from '../../../lib/maps';
@@ -15,19 +16,19 @@ const { data: apts } = await supabase.from('apartments_public').select('slug,tit
 const aptCount = (apts || []).length;
 const total = places.length;
 
-const CAT_COLOR: Record<string, string> = { 'eat-drink': '#ff5e1a', 'wellness': '#00b5b0', 'work': '#7f77dd', 'move-around': '#3D5AFE' };
+const CAT_COLOR: Record<string, string> = { 'eat-drink': '#3A4868', 'wellness': '#1F8A5B', 'work': '#1F8A5B', 'move-around': '#3A4868' };
 const placePins = places.filter((p) => p.show_on_map && p.lat != null && p.lng != null).map((p) => ({
   slug: 'g-' + p.slug, title: p.title || p.name, lat: p.lat, lng: p.lng,
   photo: (p.photos && p.photos[0]) || '', href: '/georgia/batumi/guide/' + p.slug,
   sub: String(p.category).replace('-', ' '), cta: p.price || 'see place →',
-  color: CAT_COLOR[p.category] || '#ff5e1a', ring: '#ffffff',
+  color: CAT_COLOR[p.category] || '#3A4868', ring: '#ffffff', outline: (p.category === 'move-around' || p.category === 'work'),
   hours: Array.isArray(p.hours) ? p.hours : [],
 }));
 const aptPins = (apts || []).filter((a) => a.lat != null && a.lng != null).map((a) => ({
   slug: 'a-' + a.slug, title: a.title, lat: a.lat, lng: a.lng,
   photo: (a.photos && a.photos[0]) || '', href: '/georgia/batumi/stays/' + a.slug,
-  sub: 'bre flat', cta: a.price_from ? ('₾' + a.price_from + ' / night') : 'on request',
-  color: '#ff5e1a', ring: '#0a0908',
+  sub: 'flat', cta: a.price_from ? ('₾' + a.price_from + ' / night') : 'on request',
+  color: '#ff5e1a', ring: '#0a0908', flat: true,
 }));
 const mapData = placePins.concat(aptPins);
 
@@ -49,7 +50,7 @@ const CATS = [
   { cls: 'eat primary', href: '/georgia/batumi/guide/eat-drink', n: counts['eat-drink'] || 0, ico: ICO.eat, h: 'eat &amp; drink', sub: 'cafés · restaurants · bars', desc: 'our favourite cafés, brunch spots, restaurants, cocktail bars and bakeries.' },
   { cls: 'wellness primary', href: '/georgia/batumi/guide/wellness', n: counts['wellness'] || 0, ico: ICO.wellness, h: 'wellness', sub: 'spa · baths · yoga · massage', desc: 'slow living done right: sulphur baths, massage rooms, spa days.' },
   { cls: 'nightlife primary', href: '#', n: '—', ico: ICO.nightlife, h: 'nightlife', sub: 'wine bars · clubs · late spots', desc: 'where to drink late, dance properly, or find a wine bar with vinyl.', soon: true },
-  { cls: 'experiences primary', href: '#', n: '—', ico: ICO.experiences, h: 'experiences', sub: 'tours · classes · day trips', desc: 'wine tastings, cooking classes, boat trips, day trips we\'d go on again.', soon: true },
+  { cls: 'experiences secondary', href: '#', n: '—', ico: ICO.experiences, h: 'experiences', sub: 'tours · classes · day trips', desc: 'wine tastings, cooking classes, boat trips, day trips we\'d go on again.', soon: true },
   { cls: 'move secondary', href: '/georgia/batumi/guide/move-around', n: counts['move-around'] || 0, ico: ICO.move, h: 'move around', sub: 'taxi · scooter · car', desc: 'how locals actually get around. apps, rentals, the ones we use.' },
   { cls: 'work secondary', href: '/georgia/batumi/guide/work', n: counts['work'] || 0, ico: ICO.work, h: 'work &amp; remote', sub: 'co-workings · cafes with wifi', desc: 'cafés with reliable wifi, co-workings, and quiet corners for deep work.' },
   { cls: 'explore secondary', href: '#', n: '—', ico: ICO.explore, h: 'explore', sub: 'beaches · old town · parks', desc: 'batumi\'s neighbourhoods, beaches, parks and viewpoints worth a walk.', soon: true },
@@ -68,7 +69,7 @@ const catsHtml = CATS.map(tile).join('');
 const fmtDate = (d: string) => { const m = (d || '').match(/(\d{4})-(\d{2})-(\d{2})/); if (!m) return 'this week'; const mo = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'][+m[2] - 1]; return (+m[3]) + ' ' + mo; };
 const newsArr = news as any[];
 const mdEm = (raw: string) => esc(raw).replace(/\*([^*]+)\*/g, '<em>$1</em>');
-const slidesHtml = newsArr.map((nx, i) =>
+const slidesHtml = [...newsArr].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))).slice(0,2).map((nx, i) =>
   '<a class="cover-slide' + (i === 0 ? ' active' : '') + '" href="/georgia/batumi/guide/news/' + nx.slug + '">' +
   '<img class="cs-bg" src="' + esc(nx.image || (nx.photos && nx.photos[0]) || '') + '" alt=""><span class="cs-tint"></span><span class="cs-shade"></span>' +
   '<div class="body"><h3>' + mdEm(nx.headline || nx.title) + '</h3>' +
@@ -81,10 +82,7 @@ const coverHtml = newsArr.length ? (
 
 // longreads (stories) — templates kept; articles to be written
 const storiesHtml = (
-  '<a class="story" href="#"><div class="ph"><img src="https://images.unsplash.com/photo-1521336575822-6da63fb45455?w=1200&q=80" alt=""><span class="nr">people · 03</span></div><span class="kicker">mr. x recommends</span><h4>15 places by<br/><em>nika</em>, our<br/>favourite barista.</h4><p class="summary">we asked nika from milevski to show us his batumi — where he eats, drinks, and sends friends from abroad.</p><span class="read">read interview →</span></a>' +
-  '<a class="story" href="/georgia/batumi/guide/morning-in-old-batumi"><div class="ph"><img src="https://images.unsplash.com/photo-1604542031658-5799ca5d7936?w=1200&q=80" alt=""><span class="nr">routine · 02</span></div><span class="kicker">routine</span><h4>a morning in <em>old batumi</em>.</h4><p class="summary">three coffees, a bookstore, two churches, the synagogue, and lunch at a place with no sign.</p><span class="read">read routine →</span></a>' +
-  '<a class="story" href="#"><div class="ph"><img src="https://images.unsplash.com/photo-1554995207-c18c203602cb?w=1200&q=80" alt=""><span class="nr">photo · 01</span></div><span class="kicker">photo essay</span><h4>one day <em>in gonio</em>.</h4><p class="summary">cape, fortress, a fish lunch, the best beach south of batumi, and the trip back through tea plantations.</p><span class="read">open the essay →</span></a>' +
-  '<a class="story" href="#"><div class="ph"><img src="https://images.unsplash.com/photo-1559496417941-fd6b9c34c4ef?w=1200&q=80" alt=""><span class="nr">deep dive · 04</span></div><span class="kicker">deep dive</span><h4>why <em>khachapuri</em> is never just bread.</h4><p class="summary">a small obsession with adjaran khachapuri — five places, five recipes, why the yolk matters.</p><span class="read">read essay →</span></a>'
+  '<a class="story" href="/georgia/batumi/guide/day-in-old-batumi"><div class="ph"><img src="/img/old-batumi.jpg" alt=""><span class="nr">routine · 02</span></div><span class="kicker">routine</span><h4>a day in <em>old batumi</em>.</h4><p class="summary">coffee in the old town, two squares, four faiths, khinkali, and an afternoon down to the sea.</p><span class="read">read routine →</span></a>'
 );
 
 // news — real items from tilda
@@ -97,7 +95,7 @@ const newsHtml = (news as any[]).map((n) =>
 
 const content =
   '<section class="masthead">' +
-    '<a class="masthead-photo" href="#cats"><img src="https://images.unsplash.com/photo-1604542031658-5799ca5d7936?w=2000&q=80" alt="batumi old town">' +
+    '<a class="masthead-photo" href="#cats"><img src="/img/hero-batumi.jpg" alt="batumi old town">' +
     '<div class="caption"><h1>the batumi<br/>we <em>actually</em><br/>recommend.</h1><span class="credit">— our own<br/>local journal</span></div></a>' +
     '<div class="masthead-side"><div class="masthead-intro"><div class="kicker">about the guide</div>' +
       '<p class="lede"><b>cafés, restaurants, wellness, work spots and how to get around</b> — places we send our guests to, and would <em>hand to a friend without thinking</em>. not from tripadvisor, not optimised for clicks.</p>' +
@@ -113,12 +111,13 @@ const content =
   '<section class="mapblock" id="map">' +
     '<div class="mapblock-head"><div class="mh-left"><span class="eyebrow">— the map</span>' +
       '<h3>everything near you,<br/><em>and near your stay</em>.</h3>' +
-      '<p class="mh-sub">all ' + total + ' spots and every bre flat on one map — <b>find what\'s good around you right now</b>.</p></div>' +
+      '<p class="mh-sub">all ' + total + ' spots and every flat on one map — <b>find what\'s good around you right now</b>.</p></div>' +
       '<div class="right"><span class="legend">' +
-        '<span class="dot"><span class="sw" style="background:#ff5e1a"></span>eat</span>' +
-        '<span class="dot"><span class="sw" style="background:#00b5b0"></span>wellness</span>' +
-        '<span class="dot"><span class="sw" style="background:#7f77dd"></span>work</span>' +
-        '<span class="dot"><span class="sw" style="background:#ff5e1a;box-shadow:0 0 0 2px #0a0908"></span>bre flat</span>' +
+        '<span class="dot"><span class="sw" style="background:#3A4868"></span>eat</span>' +
+        '<span class="dot"><span class="sw" style="background:#1F8A5B"></span>wellness</span>' +
+        '<span class="dot"><span class="sw" style="background:transparent;border:2px solid #1F8A5B"></span>work</span>' +
+        '<span class="dot"><span class="sw" style="background:transparent;border:2px solid #3A4868"></span>move</span>' +
+        '<span class="dot"><svg width="13" height="13" viewBox="0 0 100 100" style="display:block"><path fill-rule="evenodd" fill="#ff5e1a" d="M 50,50 m -50,0 a 50,50 0 1,1 100,0 a 50,50 0 1,1 -100,0 z M 62,62 m -16.5,0 a 16.5,16.5 0 1,1 33,0 a 16.5,16.5 0 1,1 -33,0 z"/></svg>flat</span>' +
       '</span></div></div>' +
     '<div class="map-controls"><div class="seg">' +
       '<button class="mc active" data-act="all">all · ' + total + '</button>' +
@@ -140,8 +139,9 @@ const content =
   '<a class="map-fab" href="#map" aria-label="open the map"><span class="mf-ico"><svg viewBox="0 0 48 48"><defs><clipPath id="mfc"><circle cx="24" cy="24" r="24"/></clipPath></defs><g clip-path="url(#mfc)"><rect width="48" height="48" fill="#f4f0e7"/><path d="M0 37 Q14 33 26 35 T48 29 L48 48 L0 48 Z" fill="#bfdaee" opacity="0.6"/><path d="M0 37 Q14 33 26 35 T48 29" stroke="#7bafd2" stroke-width="1.2" fill="none" opacity="0.7"/><line x1="0" y1="17" x2="48" y2="17" stroke="#00000010" stroke-width="2"/><line x1="17" y1="0" x2="17" y2="48" stroke="#00000010" stroke-width="2"/><line x1="34" y1="0" x2="34" y2="48" stroke="#00000010" stroke-width="2"/><circle cx="20" cy="19" r="3.4" fill="#ff5e1a" stroke="#fff" stroke-width="1.5"/><circle cx="33" cy="26" r="2.6" fill="#00b5b0" stroke="#fff" stroke-width="1.3"/></g></svg></span><span class="mf-txt">map</span></a>';
 ---
 <Site title={"the batumi guide — rega rega"}>
+<GuideIntro />
 <Fragment set:html={content} />
-<style is:inline set:html={"#guideMap{position:absolute;inset:0;width:100%;height:100%}\n.masthead-cover.rotator{position:relative}\n.masthead-cover.rotator .slides{position:absolute;inset:0;overflow:hidden;z-index:1}\n.masthead-cover .cover-slide{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;color:#fff;transform:translateY(100%);opacity:0;transition:transform .6s cubic-bezier(.2,.7,.2,1),opacity .5s ease;pointer-events:none;overflow:hidden}\n.masthead-cover .cover-slide.active{transform:translateY(0);opacity:1;pointer-events:auto}\n.masthead-cover .cover-slide.leaving{transform:translateY(-100%);opacity:0}\n.masthead-cover .cs-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;filter:grayscale(1) brightness(1.55) contrast(.9)}\n.masthead-cover .cs-tint{position:absolute;inset:0;z-index:1;background:#ff5e1a;mix-blend-mode:multiply}\n.masthead-cover .cs-shade{position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(120,38,8,.28) 0%,rgba(120,38,8,0) 34%,rgba(90,28,6,.42) 100%)}\n.masthead-cover .cover-slide .body{position:relative;z-index:2;flex:1;width:100%;box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between;padding:64px 28px 26px}\n.masthead-cover .cover-slide h3{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:clamp(28px,2.9vw,42px);line-height:1.03;letter-spacing:-.035em;text-transform:lowercase;color:#fff;margin:0}\n.masthead-cover .cover-slide h3 em{font-style:italic;color:#fff}\n.masthead-cover .cover-slide .read{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.24em;text-transform:uppercase;font-weight:700;color:#fff;opacity:.92}\n.masthead-cover .kicker-top{position:absolute;top:26px;left:28px;z-index:3;display:flex;align-items:center;gap:11px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;font-weight:600;color:#fff}\n.masthead-cover .kicker-top::before{content:'';width:22px;height:1px;background:#fff;display:inline-block}\n.masthead-cover .rot-dots{position:absolute;bottom:14px;right:18px;z-index:5;display:flex;gap:6px}\n.masthead-cover .rot-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.4);border:0;cursor:pointer;padding:0;transition:background .2s ease}\n.masthead-cover .rot-dot.active{background:#fff}\n.mapblock .mapblock-head .mh-left{max-width:560px}\n.mapblock .eyebrow{display:inline-flex;align-items:center;gap:10px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;font-weight:600;color:var(--accent-deep);margin-bottom:14px}\n.mapblock .mh-sub{margin-top:12px;font-size:15px;line-height:1.5;color:var(--ink-soft);max-width:470px}\n.mapblock .mh-sub b{color:var(--ink);font-weight:600}\n.map-controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:24px 0 16px}\n.map-controls .seg{display:inline-flex;background:var(--paper);border:1px solid var(--line);border-radius:999px;padding:3px}\n.map-controls .mc{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--ink-soft);padding:9px 16px;border-radius:999px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;border:0;background:transparent;transition:all .18s ease}\n.map-controls .seg .mc.active{background:var(--ink);color:#fff}\n.map-controls .mc.near{border:1px solid var(--line);background:var(--paper);color:var(--ink)}\n.map-controls .mc.near:hover{border-color:var(--accent);color:var(--accent)}\n.map-controls .mc.near.loading{opacity:.55;pointer-events:none}\n.map-controls .mc.near.err{border-color:#d9402a;color:#d9402a}\n.map-fab{position:fixed;right:20px;bottom:20px;z-index:60;display:inline-flex;align-items:center;gap:9px;height:52px;padding:0 18px 0 7px;border-radius:999px;background:var(--ink);border:2px solid var(--ink);box-shadow:0 8px 24px rgba(0,0,0,.3);transition:transform .2s ease,box-shadow .2s ease}\n.map-fab:hover{transform:translateY(-2px);box-shadow:0 12px 30px rgba(0,0,0,.36)}\n.map-fab .mf-ico{width:38px;height:38px;border-radius:50%;overflow:hidden;flex:none;border:1.5px solid rgba(255,255,255,.5)}\n.map-fab .mf-ico svg{width:100%;height:100%;display:block}\n.map-fab .mf-txt{font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.18em;text-transform:uppercase;font-weight:700;color:#fff}"}></style>
+<style is:inline set:html={"#guideMap{position:absolute;inset:0;width:100%;height:100%}\n.masthead-cover.rotator{position:relative}\n.masthead-cover.rotator .slides{position:absolute;inset:0;overflow:hidden;z-index:1}\n.masthead-cover .cover-slide{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;color:#fff;transform:translateY(100%);opacity:0;transition:transform .6s cubic-bezier(.2,.7,.2,1),opacity .5s ease;pointer-events:none;overflow:hidden}\n.masthead-cover .cover-slide.active{transform:translateY(0);opacity:1;pointer-events:auto}\n.masthead-cover .cover-slide.leaving{transform:translateY(-100%);opacity:0}\n.masthead-cover .cs-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;filter:grayscale(1) brightness(1.55) contrast(.9)}\n.masthead-cover .cs-tint{position:absolute;inset:0;z-index:1;background:#ff5e1a;mix-blend-mode:multiply}\n.masthead-cover .cs-shade{position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(120,38,8,.28) 0%,rgba(120,38,8,0) 34%,rgba(90,28,6,.42) 100%)}\n.masthead-cover .cover-slide .body{position:relative;z-index:2;flex:1;width:100%;box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between;padding:64px 28px 26px}\n.masthead-cover .cover-slide h3{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:clamp(28px,2.9vw,42px);line-height:1.03;letter-spacing:-.035em;text-transform:lowercase;color:#fff;margin:0}\n.masthead-cover .cover-slide h3 em{font-style:italic;color:#fff}\n.masthead-cover .cover-slide .read{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.24em;text-transform:uppercase;font-weight:700;color:#fff;opacity:.92}\n.masthead-cover .kicker-top{position:absolute;top:26px;left:28px;z-index:3;display:flex;align-items:center;gap:11px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;font-weight:600;color:#fff}\n.masthead-cover .kicker-top::before{content:'';width:22px;height:1px;background:#fff;display:inline-block}\n.masthead-cover .rot-dots{position:absolute;bottom:14px;right:18px;z-index:5;display:flex;gap:6px}\n.masthead-cover .rot-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.4);border:0;cursor:pointer;padding:0;transition:background .2s ease}\n.masthead-cover .rot-dot.active{background:#fff}\n.mapblock .mapblock-head .mh-left{max-width:560px}\n.mapblock .eyebrow{display:inline-flex;align-items:center;gap:10px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;font-weight:600;color:var(--accent-deep);background:var(--accent-soft);padding:5px 11px;border-radius:999px;width:fit-content;margin-bottom:14px}\n.mapblock .mh-sub{margin-top:12px;font-size:15px;line-height:1.5;color:var(--ink-soft);max-width:470px}\n.mapblock .mh-sub b{color:var(--ink);font-weight:600}\n.map-controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:24px 0 16px}\n.map-controls .seg{display:inline-flex;background:var(--paper);border:1px solid var(--line);border-radius:999px;padding:3px}\n.map-controls .mc{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--ink-soft);padding:9px 16px;border-radius:999px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;border:0;background:transparent;transition:all .18s ease}\n.map-controls .seg .mc.active{background:var(--ink);color:#fff}\n.map-controls .mc.near{border:1px solid var(--line);background:var(--paper);color:var(--ink)}\n.map-controls .mc.near:hover{border-color:var(--accent);color:var(--accent)}\n.map-controls .mc.near.loading{opacity:.55;pointer-events:none}\n.map-controls .mc.near.err{border-color:#d9402a;color:#d9402a}\n.map-fab{position:fixed;right:20px;bottom:20px;z-index:60;display:inline-flex;align-items:center;gap:9px;height:52px;padding:0 18px 0 7px;border-radius:999px;background:var(--ink);border:2px solid var(--ink);box-shadow:0 8px 24px rgba(0,0,0,.3);transition:transform .2s ease,box-shadow .2s ease}\n.map-fab:hover{transform:translateY(-2px);box-shadow:0 12px 30px rgba(0,0,0,.36)}\n.map-fab .mf-ico{width:38px;height:38px;border-radius:50%;overflow:hidden;flex:none;border:1.5px solid rgba(255,255,255,.5)}\n.map-fab .mf-ico svg{width:100%;height:100%;display:block}\n.map-fab .mf-txt{font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.18em;text-transform:uppercase;font-weight:700;color:#fff}"}></style>
 <script is:inline>
 (function(){
   var rot=document.querySelector('.masthead-cover.rotator'); if(!rot) return;
@@ -154,23 +154,91 @@ const content =
   start();
 })();
 </script>
+<script is:inline src="https://unpkg.com/@googlemaps/markerclusterer@2.5.3/dist/index.min.js"></script>
 <script is:inline src="/rega-map.js"></script>
-<script is:inline define:vars={{ MAP_DATA: mapData }}>
-window.__initGuideMap = function () {
-  var api = RegaMap.stays("guideMap", MAP_DATA, { cardSel: ".__no-list" });
-  if (!api) return;
-  var bar = document.querySelector(".map-controls"); if (!bar) return;
-  var bAll = bar.querySelector('[data-act="all"]');
-  var bOpen = bar.querySelector('[data-act="opennow"]');
-  var bNear = bar.querySelector('[data-act="near"]');
-  function seg(a) { if (bAll) bAll.classList.toggle("active", a === "all"); if (bOpen) bOpen.classList.toggle("active", a === "opennow"); }
-  if (bAll) bAll.addEventListener("click", function () { seg("all"); api.clearFilter(); });
-  if (bOpen) bOpen.addEventListener("click", function () { seg("opennow"); api.setFilter(function (it) { return RegaMap.isOpenNow(it.hours) !== false; }); });
-  if (bNear) bNear.addEventListener("click", function () {
-    var b = this; b.classList.add("loading");
-    api.locate(function (u) { b.classList.remove("loading"); if (!u) { b.classList.add("err"); setTimeout(function () { b.classList.remove("err"); }, 2200); } });
-  });
-};
+<script is:inline define:vars={{ MAP_DATA: mapData, GMAPS_KEY }}>
+(function () {
+  var GI = window.__guideIntro || { armed: false };
+
+  window.__initGuideMap = function () {
+    // while the intro is pending the map ignores gestures entirely ('none') — otherwise the
+    // page-scroll that triggers the intro makes Google flash its "use cmd+scroll" scrim right
+    // over the animation; the intro (or the static fallback) switches it to 'cooperative'.
+    var api = RegaMap.stays("guideMap", MAP_DATA, { cardSel: ".__no-list", cluster: true, deferCluster: GI.armed, holdPlaces: GI.armed, gesture: GI.armed ? "none" : "cooperative", frameFlats: true, clusterMaxZoom: 14 });
+    if (!api) return;
+    var bar = document.querySelector(".map-controls");
+    if (bar) {
+      var bAll = bar.querySelector('[data-act="all"]');
+      var bOpen = bar.querySelector('[data-act="opennow"]');
+      var bNear = bar.querySelector('[data-act="near"]');
+      function seg(a) { if (bAll) bAll.classList.toggle("active", a === "all"); if (bOpen) bOpen.classList.toggle("active", a === "opennow"); }
+      if (bAll) bAll.addEventListener("click", function () { seg("all"); api.clearFilter(); });
+      if (bOpen) bOpen.addEventListener("click", function () { seg("opennow"); api.setFilter(function (it) { return RegaMap.isOpenNow(it.hours) !== false; }); });
+      if (bNear) bNear.addEventListener("click", function () {
+        var b = this; b.classList.add("loading");
+        api.locate(function (u) { b.classList.remove("loading"); if (!u) { b.classList.add("err"); setTimeout(function () { b.classList.remove("err"); }, 2200); } });
+      });
+    }
+
+    // §5/§7-A intro: fire only when the map is idle AND ≥60% of it is in view. Otherwise the
+    // map renders normally (clustering on, places visible). A backstop reveals held pins if the
+    // user never reaches the 60% mark, so the map is never left showing only the flats.
+    if (!(GI.armed && window.__runGuideIntro)) return;
+    var mapEl = document.getElementById("guideMap");
+    var fired = false, backstop = 0;
+    function visEnough() {
+      if (!mapEl) return true;
+      var r = mapEl.getBoundingClientRect(), h = window.innerHeight || document.documentElement.clientHeight;
+      if (r.height <= 0) return false;
+      var shown = Math.min(r.bottom, h) - Math.max(r.top, 0);
+      return (shown / Math.min(r.height, h)) >= 0.6 || r.top < h * 0.15; // in view, or scrolled to/past
+    }
+    function run() {
+      if (fired) return; fired = true; clearTimeout(backstop);
+      var go = function () { window.__runGuideIntro(api); };
+      if (window.requestIdleCallback) requestIdleCallback(go, { timeout: 400 }); else setTimeout(go, 60);
+    }
+    function revealStatic() {
+      // fallback only — the intro never played, so do NOT mark the session as seen
+      if (fired) return; fired = true;
+      api.markers.forEach(function (m) { if (m.item && !m.item.flat) { try { m.m.setOpacity(1); } catch (e) {} } });
+      try { api.enableCluster(); } catch (e) {}
+      try { api.map.setOptions({ gestureHandling: "cooperative" }); } catch (e) {}
+      document.documentElement.classList.remove("guide-intro-armed");
+    }
+    google.maps.event.addListenerOnce(api.map, "idle", function () {
+      if (visEnough()) { run(); return; }
+      function onScroll() { if (visEnough()) { run(); window.removeEventListener("scroll", onScroll); } }
+      window.addEventListener("scroll", onScroll, { passive: true });
+      // never leave pins hidden: if the user lingers at the map's edge (partially visible)
+      // without ever crossing 60%, reveal statically — counted from when the map first
+      // appears on screen, NOT from map init (it loads 600px ahead of the viewport).
+      if (mapEl && "IntersectionObserver" in window) {
+        var bio = new IntersectionObserver(function (es) {
+          es.forEach(function (e) { if (e.isIntersecting && !backstop) { backstop = setTimeout(revealStatic, 5000); bio.disconnect(); } });
+        }, { threshold: 0.05 });
+        bio.observe(mapEl);
+      } else backstop = setTimeout(revealStatic, 8000);
+    });
+  };
+
+  // §8 — load the Google Maps SDK lazily, only as the map section nears the viewport.
+  var loaded = false;
+  function loadSDK() {
+    if (loaded) return; loaded = true;
+    var s = document.createElement("script");
+    s.async = true;
+    s.src = "https://maps.googleapis.com/maps/api/js?key=" + GMAPS_KEY + "&callback=__initGuideMap&loading=async&language=en&region=GE";
+    document.head.appendChild(s);
+  }
+  var target = document.querySelector(".mapblock") || document.getElementById("guideMap");
+  if (!target || !("IntersectionObserver" in window)) { loadSDK(); }
+  else {
+    var io = new IntersectionObserver(function (es) {
+      es.forEach(function (e) { if (e.isIntersecting) { io.disconnect(); loadSDK(); } });
+    }, { rootMargin: "600px 0px" });
+    io.observe(target);
+  }
+})();
 </script>
-<script is:inline async src={'https://maps.googleapis.com/maps/api/js?key=' + GMAPS_KEY + '&callback=__initGuideMap&loading=async&language=en&region=GE'}></script>
 </Site>

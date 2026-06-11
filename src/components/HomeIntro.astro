@@ -1,0 +1,228 @@
+---
+// Homepage-only: map-teaser styling + the "hole-punch → map" intro overlay (§3/§4/§6).
+// Motion is transform/opacity only (CLS=0); plays once per session, never blocks content,
+// instant skip, prefers-reduced-motion + slow-device → static fallback. See §2 safety.
+---
+
+<!-- Arming decision runs synchronously, before the hero paints, so static pins never flash. -->
+<script is:inline>
+  (function () {
+    var d = document.documentElement;
+    try { if (sessionStorage.getItem('rr_intro_seen') === 'yes') return; } catch (e) {}
+    // §1 — do not play for hot / transactional traffic (paid, campaign, click ids).
+    try {
+      var p = new URLSearchParams(location.search);
+      var hot = ['utm_source','utm_medium','utm_campaign','utm_term','utm_content','gclid','fbclid','msclkid','yclid'];
+      for (var i = 0; i < hot.length; i++) { if (p.has(hot[i])) return; }
+    } catch (e) {}
+    // §9 — reduced motion / save-data / slow connection / narrow screen → static fallback.
+    try { if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return; } catch (e) {}
+    var c = navigator.connection;
+    if (c && (c.saveData || /(^|[^a-z])(slow-)?2g$/.test(c.effectiveType || ''))) return;
+    if (window.innerWidth < 600) return;
+    d.classList.add('intro-armed');
+  })();
+</script>
+
+<div id="introOverlay" aria-hidden="true">
+  <div class="intro-sign" id="introSign">
+    <svg viewBox="0 0 100 100" aria-hidden="true"><path fill-rule="evenodd" fill="#FF5E1A" d="M 50,50 m -50,0 a 50,50 0 1,1 100,0 a 50,50 0 1,1 -100,0 z M 62,62 m -16.5,0 a 16.5,16.5 0 1,1 33,0 a 16.5,16.5 0 1,1 -33,0 z"/></svg>
+  </div>
+  <div class="intro-piece" id="introPiece"></div>
+  <button class="intro-skip" id="introSkip" type="button">skip</button>
+</div>
+
+<style is:global>
+  /* ===== map teaser (§3) ===== */
+  .map-teaser { display: block; text-decoration: none; color: inherit; background: var(--paper); cursor: pointer; }
+  .map-teaser .mt-canvas { position: absolute; inset: 0; }
+  .map-teaser .mt-canvas svg { width: 100%; height: 100%; display: block; }
+  .map-teaser .mt-label {
+    position: absolute; top: 16px; left: 16px; z-index: 3;
+    font-family: "JetBrains Mono", monospace; font-size: 9px; font-weight: 600;
+    letter-spacing: .22em; text-transform: uppercase; color: var(--ink-soft);
+    display: flex; align-items: center; gap: 8px;
+  }
+  .map-teaser .mt-label::before { content: ""; width: 18px; height: 1px; background: var(--ink-soft); }
+  .map-teaser .mt-cta {
+    position: absolute; right: 16px; bottom: 16px; z-index: 3;
+    display: inline-flex; align-items: center; gap: 10px; padding: 10px 16px;
+    border: 1px solid var(--line-strong); border-radius: 999px;
+    background: rgba(252,250,244,.72); backdrop-filter: blur(6px); -webkit-backdrop-filter: blur(6px);
+    font-family: "JetBrains Mono", monospace; font-size: 10px; font-weight: 600;
+    letter-spacing: .18em; text-transform: uppercase; color: var(--ink);
+    transition: border-color .2s ease, gap .2s ease;
+  }
+  .map-teaser .mt-cta .mt-arr { transition: transform .2s ease; }
+  .map-teaser:hover .mt-cta { border-color: var(--ink); gap: 14px; }
+  .map-teaser:hover .mt-cta .mt-arr { transform: translateX(3px); }
+  /* pin visuals (brandbook, matches rega-map.js): solid = colour disc + white 2.5px ring;
+     outline = cream disc + colour ring; logo = the orange Rega mark with the punched hole. */
+  .rega-pin { width: 17px; height: 17px; }
+  .rega-pin span { display: block; width: 100%; height: 100%; border-radius: 50%; box-sizing: border-box; }
+  .rega-pin.solid span { background: var(--c, #3A4868); border: 2.5px solid #fff; }
+  .rega-pin.outline span { background: #FAF7F0; border: 2.5px solid var(--c, #3A4868); }
+  .rega-pin.logo svg { width: 100%; height: 100%; display: block; }
+  .mt-pin { position: absolute; z-index: 2; transform: translate(-50%,-50%); }
+
+  /* ===== intro overlay (§4) ===== */
+  #introOverlay { position: fixed; inset: 0; z-index: 70; pointer-events: none; display: none; }
+  .intro-sign { position: fixed; z-index: 71; opacity: 0; }
+  .intro-sign svg { width: 100%; height: 100%; display: block; }
+  .intro-piece {
+    position: fixed; z-index: 72; border-radius: 50%; background: #FF5E1A; opacity: 0;
+    transform: translate(-50%,-50%); will-change: transform, opacity;
+  }
+  .intro-pin {
+    position: fixed; z-index: 72; opacity: 0;
+    transform: translate(-50%,-50%); will-change: transform, opacity; pointer-events: none;
+  }
+  .intro-skip {
+    position: fixed; right: 20px; bottom: 20px; z-index: 73; pointer-events: auto; cursor: pointer;
+    background: none; border: none; padding: 6px 4px;
+    font-family: "JetBrains Mono", monospace; font-size: 10px; font-weight: 600;
+    letter-spacing: .22em; text-transform: uppercase; color: var(--ink-soft);
+    opacity: .65; transition: opacity .2s ease, color .2s ease;
+  }
+  .intro-skip:hover, .intro-skip:focus-visible { opacity: 1; color: var(--accent); outline: none; }
+
+  /* armed state: hide the real corner sign + the GUIDE pins until the intro hands off.
+     Flats (.logo) stay visible from frame 0 — they are the anchor the surroundings assemble around. */
+  html.intro-armed .brand-sign { opacity: 0; transition: opacity .25s ease; }
+  html.intro-armed .mt-pin:not(.logo) { opacity: 0; transition: opacity .45s ease; }
+</style>
+
+<script is:inline>
+  (function () {
+    var html = document.documentElement;
+    if (!html.classList.contains('intro-armed')) return; // static fallback: nothing to do
+
+    // skip on real user intent only — NOT 'scroll' (browsers + scroll-restore fire a phantom
+    // scroll on load that would kill the intro instantly). Real scrolling still fires wheel/touchstart.
+    var done = false, anims = [], skipEvents = ['pointerdown','keydown','wheel','touchstart'];
+    var overlay, pinsStatic = [], armAt = 0;
+    var nowMs = function () { return (window.performance && performance.now) ? performance.now() : Date.now(); };
+
+    function onSkip() {
+      // ignore the spurious scroll/input that browsers + scroll-restore fire right after load
+      if (nowMs() - armAt < 250) return;
+      finish(true);
+    }
+    function removeSkipListeners() {
+      skipEvents.forEach(function (ev) { window.removeEventListener(ev, onSkip, true); });
+    }
+    function addSkipListeners() {
+      armAt = nowMs();
+      skipEvents.forEach(function (ev) { window.addEventListener(ev, onSkip, { capture: true, passive: true }); });
+    }
+
+    function finish(cut) {
+      if (done) return; done = true;
+      try { sessionStorage.setItem('rr_intro_seen', 'yes'); } catch (e) {}
+      removeSkipListeners();
+      pinsStatic.forEach(function (p) { if (cut) p.style.transition = 'none'; p.style.opacity = '1'; });
+      html.classList.remove('intro-armed'); // reveal the real corner sign
+      if (!overlay) return;
+      if (cut) {
+        anims.forEach(function (a) { try { a.cancel(); } catch (e) {} });
+        if (overlay.parentNode) overlay.remove();
+      } else {
+        overlay.style.transition = 'opacity .3s ease';
+        overlay.style.opacity = '0';
+        setTimeout(function () { if (overlay && overlay.parentNode) overlay.remove(); }, 340);
+      }
+    }
+
+    // clone the real teaser pin so the bloom shows the exact brandbook pin (solid/outline/logo)
+    function makePin(srcEl) {
+      var d = srcEl.cloneNode(true);
+      d.className = d.className.replace('mt-pin', 'intro-pin');
+      return d;
+    }
+
+    function start() {
+      overlay = document.getElementById('introOverlay');
+      var sign = document.getElementById('introSign');
+      var piece = document.getElementById('introPiece');
+      var skipBtn = document.getElementById('introSkip');
+      var brand = document.querySelector('.brand-sign svg');
+      var teaser = document.querySelector('.map-teaser');
+      // only the GUIDE places bloom in; the flats (.logo) are already on the map as the anchor
+      pinsStatic = Array.prototype.slice.call(document.querySelectorAll('.map-teaser .mt-pin:not(.logo)'));
+      if (!overlay || !sign || !piece || !brand || !teaser || !pinsStatic.length) { finish(true); return; }
+
+      // place the overlay sign exactly over the real corner sign
+      var b = brand.getBoundingClientRect();
+      sign.style.left = b.left + 'px'; sign.style.top = b.top + 'px';
+      sign.style.width = b.width + 'px'; sign.style.height = b.height + 'px';
+
+      // hole geometry (§6: favicon viewBox — centre 62,62, r 16.5 → 33% radius, +24% offset)
+      var hx = b.left + 0.62 * b.width, hy = b.top + 0.62 * b.height, hr = 0.165 * b.width;
+      var pd = hr * 2; // piece = hole diameter
+      piece.style.width = pd + 'px'; piece.style.height = pd + 'px';
+      piece.style.left = hx + 'px'; piece.style.top = hy + 'px';
+
+      // guide places — these are the surroundings that bloom in
+      var targets = pinsStatic.map(function (el) {
+        var r = el.getBoundingClientRect();
+        return { x: r.left + r.width / 2, y: r.top + r.height / 2 };
+      });
+
+      // bloom origin = the flats (already on the map): the surroundings unfold AROUND them
+      var flats = Array.prototype.slice.call(document.querySelectorAll('.map-teaser .mt-pin.logo'));
+      var src = flats.length ? flats : pinsStatic, bx = 0, by = 0;
+      src.forEach(function (el) { var r = el.getBoundingClientRect(); bx += r.left + r.width / 2; by += r.top + r.height / 2; });
+      bx /= src.length; by /= src.length;
+
+      overlay.style.display = 'block';
+      sign.style.opacity = '1';
+      piece.style.opacity = '1';
+      addSkipListeners();
+      if (skipBtn) skipBtn.addEventListener('click', onSkip);
+
+      var T = 2200;
+      var dx = bx - hx, dy = by - hy;
+      // shallow, always on-screen arc (apex just above the path midpoint — never off the top, never a fall §2)
+      var apexX = (hx + bx) / 2 - hx;
+      var apexY = Math.max(24, (hy + by) / 2 - 70) - hy;
+
+      // Bit 1 extraction → Bit 2 gentle arc to the flats; the piece grows so it reads on the busy hero
+      anims.push(piece.animate([
+        { transform: 'translate(-50%,-50%) translate(0,0) scale(1)', opacity: 1, offset: 0 },
+        { transform: 'translate(-50%,-50%) translate(' + (dx * 0.12) + 'px,' + (dy * 0.12) + 'px) scale(1.8)', opacity: 1, offset: 0.16 },
+        { transform: 'translate(-50%,-50%) translate(' + apexX + 'px,' + apexY + 'px) scale(2)', opacity: 1, offset: 0.42 },
+        { transform: 'translate(-50%,-50%) translate(' + dx + 'px,' + dy + 'px) scale(1.7)', opacity: 1, offset: 0.62 },
+        { transform: 'translate(-50%,-50%) translate(' + dx + 'px,' + dy + 'px) scale(0.9)', opacity: 1, offset: 0.68 },
+        { transform: 'translate(-50%,-50%) translate(' + dx + 'px,' + dy + 'px) scale(0.3)', opacity: 0, offset: 0.76 }
+      ], { duration: T, easing: 'cubic-bezier(.4,.05,.25,1)', fill: 'forwards' }));
+
+      // Bit 3 the surroundings unfold: guide pins emanate from the flats and settle on their spots
+      var bloomStart = Math.round(T * 0.56), stagger = 70, dur = 920;
+      targets.forEach(function (t, i) {
+        var pin = makePin(pinsStatic[i]);
+        pin.style.left = bx + 'px'; pin.style.top = by + 'px';
+        overlay.appendChild(pin);
+        var ddx = t.x - bx, ddy = t.y - by;
+        anims.push(pin.animate([
+          { transform: 'translate(-50%,-50%) translate(0,0) scale(.2)', opacity: 0, offset: 0 },
+          { transform: 'translate(-50%,-50%) translate(' + (ddx * 0.42) + 'px,' + (ddy * 0.42) + 'px) scale(1.08)', opacity: 1, offset: 0.32 },
+          { transform: 'translate(-50%,-50%) translate(' + ddx + 'px,' + ddy + 'px) scale(1)', opacity: 1, offset: 1 }
+        ], { duration: dur, delay: bloomStart + i * stagger, easing: 'cubic-bezier(.2,.7,.2,1)', fill: 'forwards' }));
+      });
+
+      // hand off to the static pins right after the last one settles (crossfade in place), then clean up
+      var lastEnd = bloomStart + (targets.length - 1) * stagger + dur;
+      var handoff = setTimeout(function () { if (!done) finish(false); }, lastEnd + 40);
+      anims.push({ cancel: function () { clearTimeout(handoff); } });
+      // safety: never leave pins hidden if anything stalls
+      setTimeout(function () { if (!done) finish(true); }, lastEnd + 500);
+    }
+
+    var started = false;
+    function go() { if (started) return; started = true; start(); }
+    // rAF for layout-ready, with a setTimeout fallback so a throttled/offscreen tab still starts
+    function init() { requestAnimationFrame(function () { requestAnimationFrame(go); }); setTimeout(go, 120); }
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', init);
+    else init();
+  })();
+</script>

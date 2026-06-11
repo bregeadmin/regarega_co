@@ -1,0 +1,265 @@
+---
+// Guide-only: the "hole-punch → live map" intro (§5/§7-A). Scroll-triggered, not load-
+// triggered: it fires when the map section is ≥60% in view AND the Google map is idle.
+// The punched piece glides in on a shallow glissade (constant horizontal speed, gentle
+// flare — never a fall, §2), then rolls the guide places out like a ball through pins and
+// lands each one pixel-perfect on its REAL Google marker (projection.fromLatLngToContainerPixel),
+// crossfading in place. Orange flats are on the map from frame 0 and never animate.
+// transform/opacity only (CLS=0); plays once per session (shared 'rr_intro_seen' flag with
+// the homepage); reduced-motion / slow device / hot traffic → static fallback (no intro).
+---
+
+<!-- Arming runs synchronously, before the map ever loads, so the loader knows whether to
+     defer clustering + hold the place pins. Same gates and the SAME session flag as the home intro. -->
+<script is:inline>
+  (function () {
+    var d = document.documentElement;
+    window.__guideIntro = { armed: false };
+    try { if (sessionStorage.getItem('rr_intro_seen') === 'yes') return; } catch (e) {}
+    // §1 — skip hot / transactional traffic (paid, campaign, click ids).
+    try {
+      var p = new URLSearchParams(location.search);
+      var hot = ['utm_source', 'utm_medium', 'utm_campaign', 'utm_term', 'utm_content', 'gclid', 'fbclid', 'msclkid', 'yclid'];
+      for (var i = 0; i < hot.length; i++) { if (p.has(hot[i])) return; }
+    } catch (e) {}
+    // §9 — reduced motion / save-data / slow connection / narrow screen → static fallback.
+    try { if (window.matchMedia && matchMedia('(prefers-reduced-motion: reduce)').matches) return; } catch (e) {}
+    var c = navigator.connection;
+    if (c && (c.saveData || /(^|[^a-z])(slow-)?2g$/.test(c.effectiveType || ''))) return;
+    if (window.innerWidth < 600) return;
+    window.__guideIntro.armed = true;
+    d.classList.add('guide-intro-armed');
+  })();
+</script>
+
+<div id="guideIntroOverlay" aria-hidden="true">
+  <!-- same path as the header .brand-sign (hole r12 @ 64,64) so the live sign → overlay swap is invisible -->
+  <div class="gi-sign" id="giSign">
+    <svg viewBox="0 0 100 100" aria-hidden="true"><path fill-rule="evenodd" fill="#FF5E1A" d="M 50,50 m -50,0 a 50,50 0 1,1 100,0 a 50,50 0 1,1 -100,0 z M 64,64 m -12,0 a 12,12 0 1,1 24,0 a 12,12 0 1,1 -24,0 z"/></svg>
+  </div>
+  <div class="gi-piece" id="giPiece"></div>
+  <button class="gi-skip" id="giSkip" type="button">skip</button>
+</div>
+
+<style is:global>
+  #guideIntroOverlay { position: fixed; inset: 0; z-index: 70; pointer-events: none; display: none; }
+  .gi-sign { position: fixed; z-index: 71; opacity: 0; }
+  .gi-sign svg { width: 100%; height: 100%; display: block; }
+  .gi-piece {
+    position: fixed; z-index: 72; border-radius: 50%; background: #FF5E1A; opacity: 0;
+    transform: translate(-50%, -50%); will-change: transform, opacity;
+  }
+  /* bloom pin = the brandbook guide pin (matches rega-map.js dot(): solid colour disc + white
+     ring, or cream disc + colour ring for outline categories) — so the crossfade is invisible. */
+  .gi-pin { position: fixed; z-index: 72; width: 18px; height: 18px; opacity: 0; transform: translate(-50%, -50%); will-change: transform, opacity; pointer-events: none; }
+  .gi-pin span { display: block; width: 100%; height: 100%; border-radius: 50%; box-sizing: border-box; }
+  .gi-pin.solid span { background: var(--c, #3A4868); border: 2.5px solid #fff; }
+  .gi-pin.outline span { background: #FAF7F0; border: 2.5px solid var(--c, #3A4868); }
+  .gi-skip {
+    position: fixed; right: 20px; bottom: 84px; z-index: 73; pointer-events: auto; cursor: pointer;
+    background: none; border: none; padding: 6px 4px;
+    font-family: "JetBrains Mono", monospace; font-size: 10px; font-weight: 600;
+    letter-spacing: .22em; text-transform: uppercase; color: var(--ink-soft);
+    opacity: .65; transition: opacity .2s ease, color .2s ease;
+  }
+  .gi-skip:hover, .gi-skip:focus-visible { opacity: 1; color: var(--accent); outline: none; }
+  /* the corner sign stays visible while armed (the user may never reach the map);
+     it is hidden ONLY while the intro is actually playing — the overlay clone takes
+     its place pixel-for-pixel, so the swap is invisible. */
+  html.gi-live .brand-sign { opacity: 0 !important; transition: none; }
+</style>
+
+<script is:inline>
+  (function () {
+    var html = document.documentElement;
+
+    // Called by the guide map loader once the map is idle AND the section is ≥60% in view.
+    // api = { map, markers:[{m,item,pos}], enableCluster() } from RegaMap.stays().
+    window.__runGuideIntro = function (api) {
+      if (!window.__guideIntro || !window.__guideIntro.armed) return;
+      if (window.__guideIntro.ran) return; window.__guideIntro.ran = true;
+
+      var map = api.map, markers = api.markers || [];
+      var places = markers.filter(function (m) { return m.item && !m.item.flat; });
+      var flats = markers.filter(function (m) { return m.item && m.item.flat; });
+
+      var overlay = document.getElementById('guideIntroOverlay');
+      var sign = document.getElementById('giSign');
+      var piece = document.getElementById('giPiece');
+      var skipBtn = document.getElementById('giSkip');
+      var brand = document.querySelector('.brand-sign svg');
+
+      var done = false, anims = [], armAt = 0;
+      // scroll is NOT a skip trigger here — the intro is triggered BY scrolling, so wheel
+      // momentum would kill it on frame 1. Instead: we wait for the scroll to settle before
+      // starting, and cut to the final state if the page actually moves away mid-play
+      // (which also guarantees the overlay pins can never shear against the map).
+      var skipEvents = ['pointerdown', 'keydown'];
+      var nowMs = function () { return (window.performance && performance.now) ? performance.now() : Date.now(); };
+
+      function reveal() { places.forEach(function (p) { try { p.m.setOpacity(1); } catch (e) {} }); }
+      function onSkip() { if (nowMs() - armAt < 250) return; finish(true); }
+      var baseY = 0;
+      function onScrollAway() { if (Math.abs((window.scrollY || 0) - baseY) > 24) finish(true); }
+      function removeSkip() {
+        skipEvents.forEach(function (ev) { window.removeEventListener(ev, onSkip, true); });
+        window.removeEventListener('scroll', onScrollAway);
+      }
+
+      function finish(cut) {
+        if (done) return; done = true;
+        try { sessionStorage.setItem('rr_intro_seen', 'yes'); } catch (e) {}
+        removeSkip();
+        reveal();
+        try { api.enableCluster(); } catch (e) {}
+        // hand the map to the user: 'cooperative' (page scroll never zooms; cmd+scroll does).
+        // The map was 'none' the whole armed phase, so there is nothing to "restore".
+        try { map.setOptions({ gestureHandling: 'cooperative', disableDoubleClickZoom: false }); } catch (e) {}
+        html.classList.remove('guide-intro-armed');
+        html.classList.remove('gi-live'); // restore the real corner sign
+        if (!overlay) return;
+        if (cut) {
+          anims.forEach(function (a) { try { a.cancel(); } catch (e) {} });
+          if (overlay.parentNode) overlay.remove();
+        } else {
+          overlay.style.transition = 'opacity .3s ease'; overlay.style.opacity = '0';
+          setTimeout(function () { if (overlay && overlay.parentNode) overlay.remove(); }, 340);
+        }
+      }
+
+      // nothing to bloom (no places / DOM missing) → just reveal the static map
+      if (!overlay || !sign || !piece || !brand || !places.length) { finish(true); return; }
+
+      // wait for the triggering scroll (and its momentum) to settle before starting, so the
+      // sign/map geometry is read at rest and the glissade isn't fighting a moving page
+      var lastScrollT = nowMs();
+      var onSettleScroll = function () { lastScrollT = nowMs(); };
+      window.addEventListener('scroll', onSettleScroll, { passive: true });
+      (function waitQuiet(deadline) {
+        if (done) { window.removeEventListener('scroll', onSettleScroll); return; }
+        if (nowMs() - lastScrollT >= 180 || nowMs() > deadline) {
+          window.removeEventListener('scroll', onSettleScroll);
+          startProjection();
+        } else setTimeout(function () { waitQuiet(deadline); }, 60);
+      })(nowMs() + 2000);
+
+      function startProjection() {
+        // freeze the map so projected pixels stay put while the bloom flies
+        try { map.setOptions({ gestureHandling: 'none', disableDoubleClickZoom: true }); } catch (e) {}
+        // projection: an OverlayView gives us container-pixel coords for every marker's latLng
+        var proj = null, ov = new google.maps.OverlayView();
+        ov.onAdd = function () {};
+        ov.draw = function () { if (proj) return; proj = ov.getProjection(); if (proj) requestAnimationFrame(function () { begin(proj); }); };
+        ov.setMap(map);
+        // safety: if the projection never arrives, don't leave the map blank
+        setTimeout(function () { if (!proj && !done) finish(true); }, 1200);
+      }
+
+      function begin(proj) {
+        if (done) return;
+        var mapEl = map.getDiv();
+        var rect = mapEl.getBoundingClientRect();
+        function px(latLng) { var p = proj.fromLatLngToContainerPixel(latLng); return { x: rect.left + p.x, y: rect.top + p.y }; }
+
+        // bloom origin = centroid of the orange flats already on the map (the surroundings
+        // unfold AROUND the certified flats). Fall back to the map centre if there are none.
+        var cx, cy;
+        if (flats.length) {
+          cx = 0; cy = 0;
+          flats.forEach(function (f) { var q = px(f.m.getPosition()); cx += q.x; cy += q.y; });
+          cx /= flats.length; cy /= flats.length;
+        } else { cx = rect.left + rect.width / 2; cy = rect.top + rect.height / 2; }
+
+        // hole geometry over the real corner sign — matches the header mark (hole r12 @ 64,64
+        // in a 100 viewBox), so the live sign → overlay swap is pixel-identical.
+        var b = brand.getBoundingClientRect();
+        sign.style.left = b.left + 'px'; sign.style.top = b.top + 'px';
+        sign.style.width = b.width + 'px'; sign.style.height = b.height + 'px';
+        var hx = b.left + 0.64 * b.width, hy = b.top + 0.64 * b.height, hr = 0.12 * b.width;
+        var pd = hr * 2; // piece = hole diameter
+        piece.style.width = pd + 'px'; piece.style.height = pd + 'px';
+        piece.style.left = hx + 'px'; piece.style.top = hy + 'px';
+
+        html.classList.add('gi-live'); // hide the real sign exactly as its clone appears
+        overlay.style.display = 'block';
+        sign.style.opacity = '1';
+        piece.style.opacity = '1';
+        armAt = nowMs();
+        baseY = window.scrollY || 0;
+        skipEvents.forEach(function (ev) { window.addEventListener(ev, onSkip, { capture: true, passive: true }); });
+        window.addEventListener('scroll', onScrollAway, { passive: true }); // leaving the map = cut to final
+        if (skipBtn) skipBtn.addEventListener('click', onSkip);
+
+        // ---- Bit 2: glissade (§5) — x linear (constant horizontal speed); y follows a
+        // smoothstep: level cruise out of the sign → gentle banked descent → shallow flare
+        // onto the target. Never a drop (§2): the path starts and ends horizontal. The curve
+        // is baked into sampled positions so WAAPI interpolates them linearly. ----
+        var T = 1500, gStart = 0.14, gEnd = 0.92;
+        var Dx = cx - hx, Dy = cy - hy;
+        var ss = function (t) { return t * t * (3 - 2 * t); }; // smoothstep: flat → descend → flat
+        var frames = [
+          { transform: 'translate(-50%,-50%) translate(0,0) scale(1)', opacity: 1, offset: 0, easing: 'cubic-bezier(.3,.5,.2,1)' },
+          { transform: 'translate(-50%,-50%) translate(' + (Dx * 0.03) + 'px,0) scale(3)', opacity: 1, offset: gStart, easing: 'linear' }
+        ];
+        var N = 8;
+        for (var k = 1; k <= N; k++) {
+          var t = k / N;
+          var off = gStart + (gEnd - gStart) * t;
+          var x = Dx * t, y = Dy * ss(t);
+          var sc = 3 - t; // ease the piece down to ~2 as it delivers
+          frames.push({ transform: 'translate(-50%,-50%) translate(' + x + 'px,' + y + 'px) scale(' + sc + ')', opacity: 1, offset: Math.min(off, 0.999), easing: 'linear' });
+        }
+        // hand the piece's energy to the spread: it shrinks to nothing right as the pins roll out
+        frames.push({ transform: 'translate(-50%,-50%) translate(' + Dx + 'px,' + Dy + 'px) scale(.45)', opacity: 0, offset: 1 });
+        anims.push(piece.animate(frames, { duration: T, easing: 'linear', fill: 'forwards' }));
+
+        // ---- Bit 3: raskat "ball through pins" — places roll out from the flats and settle on
+        // their real coords. easeOutCubic (fast start → soft settle, NO overshoot). Overlaps the
+        // end of the glissade so the energy flows through without a braking seam. ----
+        // only places whose marker is inside the visible map take part in the roll-out —
+        // off-frame places must not fly across the page; they appear via reveal() at finish
+        // (they are outside the current map view anyway).
+        var bloomers = [];
+        places.forEach(function (pl) {
+          var t = px(pl.m.getPosition());
+          if (t.x >= rect.left - 8 && t.x <= rect.right + 8 && t.y >= rect.top - 8 && t.y <= rect.bottom + 8) bloomers.push({ pl: pl, tgt: t });
+        });
+
+        var bloomStart = Math.round(T * 0.74);           // begins before the piece fully arrives
+        var dur = 950;
+        var stagger = Math.max(40, Math.min(80, Math.round(1100 / (bloomers.length || 1))));
+        var lastEnd = bloomers.length ? (bloomStart + (bloomers.length - 1) * stagger + dur) : T;
+
+        bloomers.forEach(function (b, i) {
+          var pl = b.pl, tgt = b.tgt;
+          var item = pl.item || {};
+          var pin = document.createElement('div');
+          pin.className = 'gi-pin ' + (item.outline ? 'outline' : 'solid');
+          pin.style.setProperty('--c', item.color || '#3A4868');
+          pin.innerHTML = '<span></span>';
+          pin.style.left = cx + 'px'; pin.style.top = cy + 'px';
+          overlay.appendChild(pin);
+          var dx = tgt.x - cx, dy = tgt.y - cy;
+          var a = pin.animate([
+            { transform: 'translate(-50%,-50%) translate(0,0) scale(.25)', opacity: 0, offset: 0 },
+            { transform: 'translate(-50%,-50%) translate(' + (dx * 0.5) + 'px,' + (dy * 0.5) + 'px) scale(1.04)', opacity: 1, offset: 0.36 },
+            { transform: 'translate(-50%,-50%) translate(' + dx + 'px,' + dy + 'px) scale(1)', opacity: 1, offset: 1 }
+          ], { duration: dur, delay: bloomStart + i * stagger, easing: 'cubic-bezier(.16,.84,.3,1)', fill: 'forwards' });
+          // crossfade in place: reveal the real Google marker under the pin, fade the pin out (~120ms)
+          a.onfinish = function () {
+            if (done) return;
+            try { pl.m.setOpacity(1); } catch (e) {}
+            pin.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 120, fill: 'forwards' });
+          };
+          anims.push(a);
+        });
+
+        // hand off → enable clustering + clean up shortly after the last pin lands
+        var handoff = setTimeout(function () { if (!done) finish(false); }, lastEnd + 220);
+        anims.push({ cancel: function () { clearTimeout(handoff); } });
+        // backstop: never leave pins hidden if anything stalls
+        setTimeout(function () { if (!done) finish(true); }, lastEnd + 800);
+      }
+    };
+  })();
+</script>

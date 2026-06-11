@@ -1,16 +1,25 @@
 ---
 // Shared shell: head, topbar, mobile menu, footer, cursor + shell JS. Edit ONCE.
 import '../styles/shell.css';
-export interface Props { title?: string; description?: string; accent?: string; accentDeep?: string; }
+export interface Props { title?: string; description?: string; ogTitle?: string; ogDescription?: string; accent?: string; accentDeep?: string; image?: string; ogType?: string; }
 const {
   title = 'rega rega — apartments & the batumi guide',
   description = 'checked flats and a city guide. batumi edition. local operations by bre.',
   accent = 'var(--accent)',
   accentDeep = 'var(--accent-deep)',
+  image = '/og/default.png',
+  ogType = 'website',
 } = Astro.props;
+// Social preview text: the OG card image is the hero — keep link-preview text minimal.
+// ogTitle defaults to the page title; pass ogDescription='' to drop og/twitter description entirely.
+const ogTitle = Astro.props.ogTitle ?? title;
+const ogDescription = Astro.props.ogDescription === undefined ? description : Astro.props.ogDescription;
 // Language toggle → same page in Russian (not the RU home).
 const path = Astro.url.pathname;
 const ruHref = path === '/' ? '/ru/' : '/ru' + path;
+// Absolute URLs for social link previews (Open Graph needs absolute).
+const canonical = new URL(path, Astro.site).href;
+const ogImage = new URL(image, Astro.site).href;
 ---
 <!doctype html>
 <html lang="en">
@@ -19,6 +28,21 @@ const ruHref = path === '/' ? '/ru/' : '/ru' + path;
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>{title}</title>
   <meta name="description" content={description} />
+  <link rel="canonical" href={canonical} />
+  <meta property="og:type" content={ogType} />
+  <meta property="og:site_name" content="rega rega" />
+  <meta property="og:locale" content="en_US" />
+  <meta property="og:title" content={ogTitle} />
+  {ogDescription && <meta property="og:description" content={ogDescription} />}
+  <meta property="og:url" content={canonical} />
+  <meta property="og:image" content={ogImage} />
+  <meta property="og:image:alt" content={ogTitle} />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content={ogTitle} />
+  {ogDescription && <meta name="twitter:description" content={ogDescription} />}
+  <meta name="twitter:image" content={ogImage} />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
   <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@10..48,200..900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
@@ -30,16 +54,16 @@ const ruHref = path === '/' ? '/ru/' : '/ru' + path;
 </head>
 <body style={`--page:${accent};--page-deep:${accentDeep}`}>
 <span id="flyingDot"></span>
+<a class="brand-sign" href="/georgia/batumi" aria-label="rega rega home"><svg viewBox="0 0 100 100" aria-hidden="true"><path fill-rule="evenodd" fill="#FF5E1A" d="M 50,50 m -50,0 a 50,50 0 1,1 100,0 a 50,50 0 1,1 -100,0 z M 64,64 m -12,0 a 12,12 0 1,1 24,0 a 12,12 0 1,1 -24,0 z"/></svg></a>
 
 <header class="topbar" id="top">
   <div class="left">
-    <a class="home-dot" href="/georgia/batumi" aria-label="home"></a>
     <a href="/georgia/batumi/stays">stays</a>
     <a href="/georgia/batumi/guide">guide</a>
     <a href="/georgia/batumi/own" class="nav-b2b">own</a>
     <a href="/georgia/batumi/invest" class="nav-b2b">invest</a>
   </div>
-  <a href="/georgia/batumi" class="ctr">rega<span class="d"></span><span class="twin">rega</span></a>
+  <a href="/georgia/batumi" class="ctr">rega<span class="twin">rega</span></a>
   <div class="right">
     <a href="#" class="city">batumi <span class="arr">▾</span></a>
     <a href={ruHref} class="lang" title="русский">ru</a>
@@ -48,6 +72,7 @@ const ruHref = path === '/' ? '/ru/' : '/ru' + path;
 </header>
 
 <div class="menu-overlay" id="menuOverlay" hidden>
+  <button class="menu-close" id="menuClose" type="button" aria-label="close menu"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 5l14 14M19 5L5 19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
   <div class="menu-inner">
     <a href="/georgia/batumi/stays" class="menu-item">stays</a>
     <a href="/georgia/batumi/guide" class="menu-item">guide</a>
@@ -90,7 +115,7 @@ const ruHref = path === '/' ? '/ru/' : '/ru' + path;
   </div>
 </footer>
 
-<script is:inline set:html={"const io = new IntersectionObserver((entries) => {\n    entries.forEach(e => {\n      if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); }\n    });\n  }, {threshold: 0.12, rootMargin: '0px 0px -80px 0px'});\n  document.querySelectorAll('.reveal').forEach(el => io.observe(el));\n\n  let calYear = 2026, calMonth = 4;\n\n  // burger menu\n  (function(){\n    const burger = document.getElementById('burger');\n    const overlay = document.getElementById('menuOverlay');\n    if (!burger || !overlay) return;\n    function open(){\n      overlay.hidden = false;\n      requestAnimationFrame(()=> overlay.classList.add('open'));\n      burger.classList.add('open');\n      document.body.style.overflow = 'hidden';\n    }\n    function close(){\n      overlay.classList.remove('open');\n      burger.classList.remove('open');\n      document.body.style.overflow = '';\n      setTimeout(()=> overlay.hidden = true, 320);\n    }\n    burger.addEventListener('click', () => {\n      if (overlay.classList.contains('open')) close(); else open();\n    });\n    overlay.addEventListener('click', e => {\n      if (e.target === overlay) close();\n    });\n    overlay.querySelectorAll('.menu-item, .menu-tg').forEach(a => {\n      a.addEventListener('click', close);\n    });\n    document.addEventListener('keydown', e => {\n      if (e.key === 'Escape' && overlay.classList.contains('open')) close();\n    });\n  })();\n\n  // HOME DOT — flies on first scroll, fades after (per session)\n  (function(){\n    if(window.innerWidth < 880) return;\n    const centerLogo = document.querySelector('.topbar .ctr');\n    const centerDotEl = centerLogo && centerLogo.querySelector('.d');\n    const leftDot = document.querySelector('.home-dot');\n    const flyingDot = document.getElementById('flyingDot');\n    if(!centerLogo || !centerDotEl || !leftDot || !flyingDot) return;\n\n    const KEY = 'bre_dot_flight_seen';\n    let hasSeenFlight = false;\n    try { hasSeenFlight = sessionStorage.getItem(KEY) === 'yes'; } catch(e){}\n\n    let state = 'top';\n    let flying = false;\n\n    function doFlight(){\n      const centerRect = centerDotEl.getBoundingClientRect();\n      const startX = centerRect.left + centerRect.width/2;\n      const startY = centerRect.top + centerRect.height/2;\n      leftDot.classList.add('expanded');\n      setTimeout(()=>{\n        const leftRect = leftDot.getBoundingClientRect();\n        const endX = leftRect.left + leftRect.width/2;\n        const endY = leftRect.top + leftRect.height/2;\n        flyingDot.style.transition = 'none';\n        flyingDot.style.transform = 'translate('+(startX-7)+'px, '+(startY-7)+'px) scale(0.71)';\n        flyingDot.style.opacity = '1';\n        centerDotEl.classList.add('hidden');\n        flyingDot.getBoundingClientRect();\n        flyingDot.style.transition = 'transform .85s cubic-bezier(.5,0,.2,1)';\n        flyingDot.style.transform = 'translate('+(endX-7)+'px, '+(endY-7)+'px) scale(1)';\n        setTimeout(()=>{\n          leftDot.classList.add('visible','pulsing');\n          flyingDot.style.transition = 'none';\n          flyingDot.style.opacity = '0';\n          flying = false;\n          state = 'scrolled';\n          try { sessionStorage.setItem(KEY, 'yes'); } catch(e){}\n          hasSeenFlight = true;\n        }, 860);\n      }, 360);\n    }\n\n    function doFade(direction){\n      if(direction === 'out'){\n        centerDotEl.classList.add('hidden');\n        leftDot.classList.add('expanded');\n        setTimeout(()=> leftDot.classList.add('visible','pulsing'), 180);\n        state = 'scrolled';\n      } else {\n        leftDot.classList.remove('visible','pulsing');\n        setTimeout(()=>{\n          leftDot.classList.remove('expanded');\n          centerDotEl.classList.remove('hidden');\n        }, 200);\n        state = 'top';\n      }\n    }\n\n    function onScroll(){\n      const y = window.scrollY || document.documentElement.scrollTop;\n      if(flying) return;\n      if(y > 60 && state === 'top'){\n        if(!hasSeenFlight){\n          flying = true;\n          state = 'flying';\n          doFlight();\n        } else {\n          doFade('out');\n        }\n      } else if(y <= 60 && state === 'scrolled'){\n        doFade('in');\n      }\n    }\n\n    window.addEventListener('scroll', onScroll, {passive:true});\n    onScroll();\n  })();\n\n\n\n\n  // Topbar scroll state — adds .scrolled class when scrolled past hero\n  (function(){\n    const tb = document.querySelector('.topbar');\n    if(!tb) return;\n    function update(){\n      const y = window.scrollY || document.documentElement.scrollTop;\n      if(y > 40) tb.classList.add('scrolled');\n      else tb.classList.remove('scrolled');\n    }\n    window.addEventListener('scroll', update, {passive:true});\n    update();\n  })();"}></script>
+<script is:inline set:html={"const io = new IntersectionObserver((entries) => {\n    entries.forEach(e => {\n      if(e.isIntersecting){ e.target.classList.add('in'); io.unobserve(e.target); }\n    });\n  }, {threshold: 0.12, rootMargin: '0px 0px -80px 0px'});\n  document.querySelectorAll('.reveal').forEach(el => io.observe(el));\n\n  let calYear = 2026, calMonth = 4;\n\n  // burger menu\n  (function(){\n    const burger = document.getElementById('burger');\n    const overlay = document.getElementById('menuOverlay');\n    if (!burger || !overlay) return;\n    function open(){\n      overlay.hidden = false;\n      requestAnimationFrame(()=> overlay.classList.add('open'));\n      burger.classList.add('open');\n      document.body.style.overflow = 'hidden';\n    }\n    function close(){\n      overlay.classList.remove('open');\n      burger.classList.remove('open');\n      document.body.style.overflow = '';\n      setTimeout(()=> overlay.hidden = true, 320);\n    }\n    burger.addEventListener('click', () => {\n      if (overlay.classList.contains('open')) close(); else open();\n    });\n    overlay.addEventListener('click', e => {\n      if (e.target === overlay) close();\n    });\n    overlay.querySelectorAll('.menu-item, .menu-tg, .menu-close').forEach(a => {\n      a.addEventListener('click', close);\n    });\n    document.addEventListener('keydown', e => {\n      if (e.key === 'Escape' && overlay.classList.contains('open')) close();\n    });\n  })();\n\n  // HOME DOT — flies on first scroll, fades after (per session)\n  (function(){\n    if(window.innerWidth < 880) return;\n    const centerLogo = document.querySelector('.topbar .ctr');\n    const centerDotEl = centerLogo && centerLogo.querySelector('.d');\n    const leftDot = document.querySelector('.home-dot');\n    const flyingDot = document.getElementById('flyingDot');\n    if(!centerLogo || !centerDotEl || !leftDot || !flyingDot) return;\n\n    const KEY = 'bre_dot_flight_seen';\n    let hasSeenFlight = false;\n    try { hasSeenFlight = sessionStorage.getItem(KEY) === 'yes'; } catch(e){}\n\n    let state = 'top';\n    let flying = false;\n\n    function doFlight(){\n      const centerRect = centerDotEl.getBoundingClientRect();\n      const startX = centerRect.left + centerRect.width/2;\n      const startY = centerRect.top + centerRect.height/2;\n      leftDot.classList.add('expanded');\n      setTimeout(()=>{\n        const leftRect = leftDot.getBoundingClientRect();\n        const endX = leftRect.left + leftRect.width/2;\n        const endY = leftRect.top + leftRect.height/2;\n        flyingDot.style.transition = 'none';\n        flyingDot.style.transform = 'translate('+(startX-7)+'px, '+(startY-7)+'px) scale(0.71)';\n        flyingDot.style.opacity = '1';\n        centerDotEl.classList.add('hidden');\n        flyingDot.getBoundingClientRect();\n        flyingDot.style.transition = 'transform .85s cubic-bezier(.5,0,.2,1)';\n        flyingDot.style.transform = 'translate('+(endX-7)+'px, '+(endY-7)+'px) scale(1)';\n        setTimeout(()=>{\n          leftDot.classList.add('visible','pulsing');\n          flyingDot.style.transition = 'none';\n          flyingDot.style.opacity = '0';\n          flying = false;\n          state = 'scrolled';\n          try { sessionStorage.setItem(KEY, 'yes'); } catch(e){}\n          hasSeenFlight = true;\n        }, 860);\n      }, 360);\n    }\n\n    function doFade(direction){\n      if(direction === 'out'){\n        centerDotEl.classList.add('hidden');\n        leftDot.classList.add('expanded');\n        setTimeout(()=> leftDot.classList.add('visible','pulsing'), 180);\n        state = 'scrolled';\n      } else {\n        leftDot.classList.remove('visible','pulsing');\n        setTimeout(()=>{\n          leftDot.classList.remove('expanded');\n          centerDotEl.classList.remove('hidden');\n        }, 200);\n        state = 'top';\n      }\n    }\n\n    function onScroll(){\n      const y = window.scrollY || document.documentElement.scrollTop;\n      if(flying) return;\n      if(y > 60 && state === 'top'){\n        if(!hasSeenFlight){\n          flying = true;\n          state = 'flying';\n          doFlight();\n        } else {\n          doFade('out');\n        }\n      } else if(y <= 60 && state === 'scrolled'){\n        doFade('in');\n      }\n    }\n\n    window.addEventListener('scroll', onScroll, {passive:true});\n    onScroll();\n  })();\n\n\n\n\n  // Topbar scroll state — adds .scrolled class when scrolled past hero\n  (function(){\n    const tb = document.querySelector('.topbar');\n    if(!tb) return;\n    function update(){\n      const y = window.scrollY || document.documentElement.scrollTop;\n      if(y > 40) tb.classList.add('scrolled');\n      else tb.classList.remove('scrolled');\n    }\n    window.addEventListener('scroll', update, {passive:true});\n    update();\n  })();"}></script>
 <script is:inline>
   /* Keep scroll position when switching language (EN <-> RU are separate pages). */
   (function(){
@@ -134,6 +159,180 @@ const ruHref = path === '/' ? '/ru/' : '/ru' + path;
     }
     document.querySelectorAll('select').forEach(enhance);
   })();
+</script>
+<script is:inline>
+  /* Favorites — saved per device (localStorage), no account. Hearts persist across pages/reloads. */
+  (function(){
+    var KEY='rr_favs';
+    function load(){ try{ return new Set(JSON.parse(localStorage.getItem(KEY)||'[]')); }catch(e){ return new Set(); } }
+    function save(s){ try{ localStorage.setItem(KEY, JSON.stringify(Array.from(s))); }catch(e){} }
+    function slugOf(b){ var c=b.closest('[data-slug]'); if(c&&c.getAttribute('data-slug'))return c.getAttribute('data-slug'); var a=b.closest('a[href*="/stays/"]'); if(a){ var m=a.getAttribute('href').match(/\/stays\/([^\/?#]+)/); if(m)return m[1]; } return null; }
+    var favs=load();
+    document.querySelectorAll('.fav').forEach(function(b){
+      var slug=slugOf(b); if(!slug) return;
+      if(favs.has(slug)){ b.textContent='♥'; b.classList.add('on'); }
+      b.addEventListener('click', function(e){
+        e.preventDefault(); e.stopPropagation();
+        var s=load();
+        if(s.has(slug)){ s.delete(slug); b.textContent='♡'; b.classList.remove('on'); }
+        else { s.add(slug); b.textContent='♥'; b.classList.add('on'); }
+        save(s);
+        document.dispatchEvent(new CustomEvent('rr:favschange',{detail:Array.from(s)}));
+      });
+    });
+  })();
+</script>
+<script is:inline>
+  /* Native share — Web Share API, fallback copy-link. Shares the PUBLIC url only (strips query/hash). */
+  (function(){
+    function toast(m){var t=document.createElement('div');t.textContent=m;t.style.cssText='position:fixed;left:50%;bottom:24px;transform:translateX(-50%);background:#0A0908;color:#FAF7F0;font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.05em;padding:10px 16px;border-radius:999px;z-index:9999;opacity:0;transition:opacity .2s ease';document.body.appendChild(t);requestAnimationFrame(function(){t.style.opacity='1';});setTimeout(function(){t.style.opacity='0';setTimeout(function(){t.remove();},250);},1800);}
+    document.querySelectorAll('.share-btn').forEach(function(b){
+      b.addEventListener('click',function(e){
+        e.preventDefault();e.stopPropagation();
+        var url=location.origin+location.pathname;
+        var d=document.querySelector('meta[name="description"]');
+        var data={title:document.title,text:d?d.content:'',url:url};
+        if(navigator.share){navigator.share(data).catch(function(){});}
+        else if(navigator.clipboard){navigator.clipboard.writeText(url).then(function(){toast('link copied');});}
+        else{toast(url);}
+      });
+    });
+  })();
+</script>
+<script is:inline>
+// Branded Instagram-Story image generator (client-side canvas, 1080x1920).
+// This is the function that will live in the site shell. Developed here in a harness.
+window.__rrBuildStory = async function (d) {
+  const W = 1080, H = 1920;
+  await Promise.all([
+    document.fonts.load('800 96px "Bricolage Grotesque"'),
+    document.fonts.load('400 36px "Bricolage Grotesque"'),
+    document.fonts.load('700 26px "JetBrains Mono"'),
+    document.fonts.load('500 26px "JetBrains Mono"'),
+  ]);
+  await document.fonts.ready;
+
+  function noEmoji(s) { return String(s == null ? '' : s).replace(/[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE00}-\u{FE0F}]/gu, '').replace(/\s+/g, ' ').trim(); }
+  d = { photoImg: d.photoImg, accent: d.accent || '#FF5E1A', kicker: noEmoji(d.kicker), tag: noEmoji(d.tag), name: noEmoji(d.name), line: noEmoji(d.line), cta: noEmoji(d.cta), url: d.url };
+
+  const cv = document.createElement('canvas');
+  cv.width = W; cv.height = H;
+  const x = cv.getContext('2d');
+
+  function cover(img, dx, dy, dw, dh) {
+    const ir = img.width / img.height, br = dw / dh;
+    let sw, sh, sx, sy;
+    if (ir > br) { sh = img.height; sw = sh * br; sx = (img.width - sw) / 2; sy = 0; }
+    else { sw = img.width; sh = sw / br; sx = 0; sy = (img.height - sh) / 2; }
+    x.drawImage(img, sx, sy, sw, sh, dx, dy, dw, dh);
+  }
+  function mark(cx, cy, r) {
+    x.fillStyle = '#FF5E1A'; x.beginPath(); x.arc(cx, cy, r, 0, 7); x.fill();
+    x.fillStyle = '#FAF7F0'; x.beginPath(); x.arc(cx + r * 0.28, cy + r * 0.28, r * 0.30, 0, 7); x.fill();
+  }
+  function roundRect(rx, ry, rw, rh, rad) {
+    rad = Math.min(rad, rw / 2, rh / 2);
+    x.beginPath();
+    x.moveTo(rx + rad, ry);
+    x.arcTo(rx + rw, ry, rx + rw, ry + rh, rad);
+    x.arcTo(rx + rw, ry + rh, rx, ry + rh, rad);
+    x.arcTo(rx, ry + rh, rx, ry, rad);
+    x.arcTo(rx, ry, rx + rw, ry, rad);
+    x.closePath();
+  }
+  function wrap(text, maxW) {
+    const words = String(text).split(/\s+/), lines = []; let cur = '';
+    for (const w of words) {
+      const t = cur ? cur + ' ' + w : w;
+      if (x.measureText(t).width > maxW && cur) { lines.push(cur); cur = w; }
+      else cur = t;
+    }
+    if (cur) lines.push(cur);
+    return lines;
+  }
+
+  // background fallback + photo
+  x.fillStyle = d.accent; x.fillRect(0, 0, W, H);
+  if (d.photoImg) cover(d.photoImg, 0, 0, W, H);
+
+  // top + bottom scrims for legibility
+  let gt = x.createLinearGradient(0, 0, 0, 300);
+  gt.addColorStop(0, 'rgba(10,9,8,0.6)'); gt.addColorStop(1, 'rgba(10,9,8,0)');
+  x.fillStyle = gt; x.fillRect(0, 0, W, 300);
+  let gb = x.createLinearGradient(0, H * 0.34, 0, H);
+  gb.addColorStop(0, 'rgba(10,9,8,0)'); gb.addColorStop(0.45, 'rgba(10,9,8,0.5)'); gb.addColorStop(1, 'rgba(10,9,8,0.97)');
+  x.fillStyle = gb; x.fillRect(0, H * 0.34, W, H * 0.66);
+
+  const pad = 80;
+
+  // header: mark + wordmark (left), kicker (right)
+  const MY = 110;
+  mark(pad + 26, MY, 26);
+  x.textBaseline = 'alphabetic';
+  x.font = '800 54px "Bricolage Grotesque"';
+  const wmX = pad + 26 + 26 + 22;
+  x.fillStyle = '#FAF7F0'; x.fillText('rega', wmX, MY + 18);
+  const w1 = x.measureText('rega').width;
+  x.fillStyle = 'rgba(250,247,240,0.5)'; x.fillText('rega', wmX + w1, MY + 18);
+  x.font = '600 23px "JetBrains Mono"'; x.fillStyle = 'rgba(250,247,240,0.82)';
+  x.textAlign = 'right'; x.fillText(String(d.kicker).toUpperCase(), W - pad, MY + 10); x.textAlign = 'left';
+
+  // bottom block, anchored to bottom, drawn bottom-up
+  let y = H - 96;
+  // footer row
+  x.font = '700 24px "JetBrains Mono"';
+  x.fillStyle = d.accent; x.textAlign = 'right';
+  x.fillText((String(d.cta) + ' ↗').toUpperCase(), W - pad, y); x.textAlign = 'left';
+  x.fillStyle = 'rgba(250,247,240,0.72)'; x.font = '500 24px "JetBrains Mono"';
+  const host = String(d.url).replace(/^https?:\/\//, '').split('/')[0];
+  x.fillText(host, pad, y);
+  // divider
+  y -= 42;
+  x.strokeStyle = 'rgba(255,255,255,0.22)'; x.lineWidth = 1.5;
+  x.beginPath(); x.moveTo(pad, y); x.lineTo(W - pad, y); x.stroke();
+  // editorial line (max 3 lines)
+  y -= 36;
+  x.font = '400 35px "Bricolage Grotesque"'; x.fillStyle = 'rgba(250,247,240,0.9)';
+  const ll = wrap(d.line, W - 2 * pad).slice(0, 3);
+  for (let i = ll.length - 1; i >= 0; i--) { x.fillText(ll[i], pad, y); y -= 48; }
+  // name (big, white), max 2 lines
+  y -= 14;
+  x.font = '800 100px "Bricolage Grotesque"'; x.fillStyle = '#FFFFFF';
+  const nl = wrap(String(d.name) + '.', W - 2 * pad).slice(0, 2);
+  for (let i = nl.length - 1; i >= 0; i--) { x.fillText(nl[i], pad, y); y -= 100; }
+  // tag pill
+  y -= 22;
+  x.font = '700 24px "JetBrains Mono"';
+  const tagT = String(d.tag).toUpperCase();
+  const tw = x.measureText(tagT).width, tpx = 22, tph = 46;
+  x.fillStyle = d.accent; roundRect(pad, y - tph + 10, tw + tpx * 2, tph, 999); x.fill();
+  x.fillStyle = '#FAF7F0'; x.fillText(tagT, pad + tpx, y - 10);
+
+  return cv.toDataURL('image/png');
+};
+
+
+(function(){
+  function loadImg(src){return new Promise(function(res,rej){var im=new Image();im.crossOrigin='anonymous';im.onload=function(){res(im);};im.onerror=rej;im.src=src;});}
+  function dataOf(btn){return {photo:btn.dataset.photo,kicker:btn.dataset.kicker,tag:btn.dataset.tag,name:btn.dataset.name,line:btn.dataset.line,cta:btn.dataset.cta,accent:btn.dataset.accent||'#FF5E1A',url:location.origin+location.pathname};}
+  async function prebuild(btn){
+    if(!window.__rrBuildStory || !btn.dataset.photo) return;
+    try{ var d=dataOf(btn); d.photoImg=await loadImg(d.photo); var url=await window.__rrBuildStory(d);
+      var blob=await (await fetch(url)).blob(); btn._storyUrl=url; btn._storyFile=new File([blob],'rega-rega-story.png',{type:'image/png'});
+    }catch(e){}
+  }
+  function act(btn){
+    if(btn._storyFile && navigator.canShare && navigator.canShare({files:[btn._storyFile]})){ navigator.share({files:[btn._storyFile]}).catch(function(){}); }
+    else if(btn._storyUrl){ var a=document.createElement('a'); a.href=btn._storyUrl; a.download='rega-rega-story.png'; a.click(); }
+  }
+  document.querySelectorAll('.story-btn').forEach(function(btn){
+    if('requestIdleCallback' in window) requestIdleCallback(function(){prebuild(btn);}); else setTimeout(function(){prebuild(btn);}, 600);
+    btn.addEventListener('click',function(e){ e.preventDefault(); e.stopPropagation();
+      if(btn._storyUrl){ act(btn); } else { prebuild(btn).then(function(){ act(btn); }); }
+    });
+  });
+})();
+
 </script>
 </body>
 </html>

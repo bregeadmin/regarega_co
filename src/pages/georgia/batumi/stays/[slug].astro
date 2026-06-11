@@ -3,6 +3,7 @@ import Site from '../../../../layouts/Site.astro';
 import '../../../../styles/apt.css';
 import { supabase, applyNames, type Apartment } from '../../../../lib/supabase';
 import { template, pageScript } from '../../../../lib/aptDetail';
+import { stripEmoji } from '../../../../lib/text';
 import { GMAPS_KEY } from '../../../../lib/maps';
 
 export async function getStaticPaths() {
@@ -57,7 +58,7 @@ const meta =
 
 const about =
   `<h2>checked, stocked, <em>ready</em>.</h2>` +
-  (apt.summary ? apt.summary.split(/\n\n+/).map((p) => `<p>${p.replace(/\n/g, ' ').trim()}</p>`).join('') : '') +
+  (apt.summary ? stripEmoji(apt.summary).split(/\n\n+/).map((p) => `<p>${p.replace(/\n/g, ' ').trim()}</p>`).join('') : '') +
   `<p>local operations by <b>bre</b> — real check-in, real support, someone local one message away. the photos are the flat.</p>`;
 
 const ROOM_SKIP = new Set(['Additional photos']);
@@ -111,11 +112,14 @@ content = content
   .replace(/<div class="guide-picks">[\s\S]*?<\/div>\s*<\/div>\s*<!-- RULES -->/, '<div class="guide-picks">' + guidePicksHtml + '</div>\n    </div>\n\n    <!-- RULES -->')
   .replace(/<div class="loc-near pending">[\s\S]*?<\/div>\s*<\/div>/, locNearHtml);
 
+const _aline = (t => t.length > 100 ? t.slice(0, 100).replace(/\s+\S*$/, '') + '…' : t)(stripEmoji(apt.summary || '').replace(/\s+/g, ' ').trim());
+const _storyBtn = photos[0] ? '<button class="apt-share story-btn" type="button" data-photo="' + escG(photos[0]) + '" data-name="' + escG(apt.title.toLowerCase()) + '" data-tag="apartment" data-line="' + escG(_aline) + '" data-kicker="batumi · stays" data-cta="book direct" data-accent="#FF5E1A">↗ story</button>' : '';
+content = content.replace('%%STORY%%', _storyBtn);
 const photosJson = JSON.stringify(photos.map((p) => ({ src: p, alt: apt.title })));
 const script = pageScript.replaceAll('%%TITLE%%', apt.title).replace('%%PHOTOS%%', photosJson);
 const aptMapInit = "window.__initAptMap=function(){RegaMap.single('aptMap',APT_GEO,{routeLabel:'↗ get directions'});};";
 ---
-<Site title={apt.title + ' — rega rega batumi'} description={apt.summary || 'a checked flat in batumi.'}>
+<Site title={apt.title + ' — rega rega batumi'} description={stripEmoji(apt.summary) || 'a checked flat in batumi.'} ogTitle={String(apt.title).toLowerCase() + ' — rega rega batumi'} ogDescription="" image={(apt.photos && apt.photos[0]) ? '/og/stay-' + apt.slug + '.png' : undefined} accent='#3A4868' accentDeep='#2C3850'>
 <Fragment set:html={content} />
 <script is:inline set:html={script}></script>
 <script is:inline src="/rega-map.js"></script>

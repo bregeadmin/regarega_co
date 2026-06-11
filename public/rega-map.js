@@ -43,7 +43,16 @@
       anchor: new google.maps.Point(d / 2, d / 2)
     };
   }
-  function dot(on, fill, stroke) { return on ? icon(26, 10, fill, stroke) : icon(18, 7, fill, stroke); }
+  function dot(on, fill, stroke, outline) { var d = on ? 26 : 18, r = on ? 10 : 7; if (outline) return icon(d, r, '#FAF7F0', fill); return icon(d, r, fill, stroke); }
+
+  // certified flat = the LOGO itself (orange holey dot)
+  function logoIcon(on) {
+    var d = on ? 34 : 26, c = d / 2, R = c - 2, hr = R * 0.24, h = c + R * 0.30;
+    var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="' + d + '" height="' + d + '" viewBox="0 0 ' + d + ' ' + d + '">' +
+      '<circle cx="' + c + '" cy="' + c + '" r="' + R + '" fill="#ff5e1a" stroke="#ffffff" stroke-width="2.5"/>' +
+      '<circle cx="' + h + '" cy="' + h + '" r="' + hr + '" fill="#ffffff"/></svg>';
+    return { url: 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg), scaledSize: new google.maps.Size(d, d), anchor: new google.maps.Point(c, c) };
+  }
 
   // airbnb-style price pill marker (used when a pin carries a label, e.g. "GEL 240")
   function priceIcon(text, active) {
@@ -62,8 +71,9 @@
   }
   // choose a price pill if the pin has a label, else a coloured dot
   function pick(a, on) {
+    if (a.flat) return logoIcon(on);
     var lbl = a.label || a.pill;
-    return lbl ? priceIcon(lbl, on) : dot(on, a.color || '#ff5e1a', a.ring || '#ffffff');
+    return lbl ? priceIcon(lbl, on) : dot(on, a.color || '#ff5e1a', a.ring || '#ffffff', a.outline);
   }
 
   // "you are here" marker — blue, with a soft halo so it reads as the viewer
@@ -133,11 +143,20 @@
     if (!elc || elc.dataset.init) return; elc.dataset.init = '1';
     var map = new google.maps.Map(elc, {
       center: opts.center || { lat: 41.64, lng: 41.62 }, zoom: opts.zoom || 13, disableDefaultUI: true,
-      zoomControl: false, fullscreenControl: opts.fullscreen !== false, gestureHandling: 'greedy', clickableIcons: false, styles: STYLE
+      zoomControl: false, fullscreenControl: opts.fullscreen !== false,
+      // 'cooperative' for maps embedded mid-page (page scroll must not zoom the map);
+      // 'greedy' stays the default for dedicated map views like /stays
+      gestureHandling: opts.gesture || 'greedy', clickableIcons: false, styles: STYLE
     });
     addZoom(map);
-    var useCluster = !!(opts.cluster && window.markerClusterer && window.markerClusterer.MarkerClusterer);
-    var info = new google.maps.InfoWindow();
+    // clustering: wanted when opts.cluster + library present. The guide intro asks to
+    // DEFER it (opts.deferCluster) so every place is an individual pin the bloom can land
+    // on pixel-perfect; clustering is switched on afterwards via the returned enableCluster().
+    var wantCluster = !!(opts.cluster && window.markerClusterer && window.markerClusterer.MarkerClusterer);
+    var useCluster = wantCluster && !opts.deferCluster;
+    var info = new google.maps.InfoWindow({ maxWidth: 280 });
+    var openSlug = null, openOff = null;
+    map.addListener('click', function () { if (openSlug) { info.close(); if (openOff) openOff(); openSlug = null; openOff = null; } });
     var canHover = window.matchMedia('(hover:hover) and (pointer:fine)').matches;
     var closeT = null;
     function shut() { clearTimeout(closeT); closeT = setTimeout(function () { info.close(); }, 160); }
@@ -153,6 +172,9 @@
       var fill = a.color || '#ff5e1a', stroke = a.ring || '#ffffff';
       var pos = { lat: a.lat, lng: a.lng };
       var m = new google.maps.Marker({ position: pos, map: useCluster ? null : map, icon: pick(a, false), title: a.title, zIndex: 1 });
+      // §7A: during the guide intro the place pins are hidden (opacity 0) and revealed one by
+      // one as the bloom lands on them; the certified flats (a.flat) stay visible as the anchor.
+      if (opts.holdPlaces && !a.flat) m.setOpacity(0);
       byslug[a.slug] = { m: m, a: a };
       markers.push({ m: m, item: a, fill: fill, stroke: stroke, pos: pos, on: true });
       var html = '<a class="map-mini" href="' + a.href + '"><div class="mm-ph"><img src="' + optImg(a.photo, 640) + '" alt=""></div><div class="mm-info"><h5>' + a.title + '</h5><div class="mm-sub">' + a.sub + '</div><div class="mm-cta">' + a.cta + ' →</div></div></a>';
@@ -163,7 +185,11 @@
         m.addListener('mouseout', function () { off(); shut(); });
         m.addListener('click', function () { window.location.href = a.href; });
       } else {
-        m.addListener('click', function () { on(); info.setContent(html); info.open(map, m); });
+        m.addListener('click', function () {
+          if (openOff) openOff();
+          on(); info.setContent(html); info.open(map, m);
+          openSlug = a.slug; openOff = off;
+        });
       }
     });
 
@@ -171,9 +197,10 @@
     // and break apart as you zoom in (Airbnb behaviour). Falls back to plain pins
     // if the clusterer library is not present.
     var clusterer = null;
-    if (useCluster) {
-      clusterer = new markerClusterer.MarkerClusterer({
-        map: map, markers: markers.map(function (x) { return x.m; }),
+    function buildCluster() {
+      if (clusterer) return;
+      var copts = {
+        map: map, markers: markers.filter(function (m) { return m.on; }).map(function (x) { return x.m; }),
         renderer: {
           render: function (c) {
             var count = c.count, position = c.position;
@@ -187,7 +214,22 @@
             });
           }
         }
-      });
+      };
+      // clusterMaxZoom: only group into count-bubbles when zoomed OUT to that level or further;
+      // at closer zooms every place stays an individual dot (the brand is a dot-map, not bubbles)
+      if (opts.clusterMaxZoom != null && markerClusterer.SuperClusterAlgorithm) {
+        copts.algorithm = new markerClusterer.SuperClusterAlgorithm({ maxZoom: opts.clusterMaxZoom });
+      }
+      clusterer = new markerClusterer.MarkerClusterer(copts);
+    }
+    if (useCluster) buildCluster();
+    // turn clustering on after a deferred intro: drop the individual pins off the map and
+    // let the clusterer regroup the visible ones (the natural Airbnb settle).
+    function enableCluster() {
+      if (!wantCluster || useCluster) return;
+      useCluster = true;
+      markers.forEach(function (mk) { mk.m.setMap(null); });
+      buildCluster();
     }
     function applyVisibility() {
       if (clusterer) { clusterer.clearMarkers(); clusterer.addMarkers(markers.filter(function (m) { return m.on; }).map(function (m) { return m.m; })); }
@@ -201,7 +243,18 @@
       if (n === 1 && !extra) { map.setCenter(markers.filter(function (m) { return m.on; })[0].pos); map.setZoom(15); }
       else if (n > 0) map.fitBounds(b, 64);
     }
-    refit();
+    // opts.frameFlats: open framed on the certified flats ("near your stay" story) instead of
+    // fitting every pin — far-flung places would zoom the city out into an unreadable blob.
+    // Filter buttons still refit to everything visible.
+    if (opts.frameFlats) {
+      var fl = markers.filter(function (mk) { return mk.item && mk.item.flat; });
+      if (fl.length) {
+        var fx = 0, fy = 0;
+        fl.forEach(function (mk) { fx += mk.pos.lat; fy += mk.pos.lng; });
+        map.setCenter({ lat: fx / fl.length, lng: fy / fl.length });
+        map.setZoom(opts.frameZoom || 15);
+      } else refit();
+    } else refit();
 
     document.querySelectorAll(cardSel + '[data-slug]').forEach(function (c) {
       var ref = byslug[c.dataset.slug]; if (!ref) return;
@@ -236,7 +289,7 @@
       }, function (err) { if (cb) cb(null, err && err.message); }, { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 });
     }
 
-    return { map: map, markers: markers, locate: locate, setFilter: setFilter, clearFilter: clearFilter, refit: refit };
+    return { map: map, markers: markers, locate: locate, setFilter: setFilter, clearFilter: clearFilter, refit: refit, enableCluster: enableCluster };
   }
 
   /* single-pin apartment map. geo = {lat,lng,title}.

@@ -4,7 +4,7 @@ import '../../../../styles/guide.css';
 import { supabase } from '../../../../lib/supabase';
 import { GUIDE_CATS } from '../../../../lib/guideCats';
 
-const CAT = Object.fromEntries(Object.entries(GUIDE_CATS).map(([k, v]) => [k, { color: v.color, label: v.label.en }]));
+const CAT = Object.fromEntries(Object.entries(GUIDE_CATS).map(([k, v]) => [k, { color: v.color, tint: v.tint, dark: v.dark, label: v.label.en }]));
 
 export async function getStaticPaths() {
   const { data: gp } = await supabase.from('guide_places').select('*').eq('status', 'published');
@@ -29,7 +29,7 @@ export async function getStaticPaths() {
 }
 
 const { p, nearby, related } = Astro.props;
-const cat = CAT[p.category] || { color: '#ff5e1a', label: p.category };
+const cat = CAT[p.category] || { color: '#ff5e1a', tint: '#FBE7DC', dark: '#C63D0F', label: p.category };
 const name = p.title || p.name;
 const photos = (p.photos && p.photos.length) ? p.photos : (p.image ? [p.image] : []);
 const esc = (s) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -78,6 +78,11 @@ if (mapsUrl) actBits.push('<a class="act" href="' + esc(mapsUrl) + '" target="_b
 if (p.website) {
   const isIg = /instagram\.com/i.test(p.website);
   actBits.push('<a class="act" href="' + esc(p.website) + '" target="_blank" rel="noopener">↗ ' + (isIg ? 'instagram' : 'website') + '</a>');
+}
+actBits.push('<button class="act share-btn" type="button">↗ share</button>');
+if (photos[0]) {
+  const _sline = (t => t.length > 100 ? t.slice(0, 100).replace(/\s+\S*$/, '') + '…' : t)(String(p.take_title || p.summary || '').replace(/\*+/g, '').replace(/\s+/g, ' ').trim());
+  actBits.push('<button class="act story-btn" type="button" data-photo="' + esc(photos[0]) + '" data-name="' + esc(String(name).toLowerCase()) + '" data-tag="' + esc(cat.label) + '" data-line="' + esc(_sline) + '" data-kicker="batumi · the guide" data-cta="open in the guide" data-accent="' + esc(cat.color) + '">↗ story</button>');
 }
 if (nearby.length) actBits.push('<a class="act primary" href="#nearby">stay nearby →</a>');
 const openNowSpan = hours.length ? '<span class="open-now closed" id="openNow" hidden></span>' : '';
@@ -153,7 +158,7 @@ const summaryP = p.take_title ? '<p class="summary">' + mdInline(p.take_title) +
 
 const content =
   '<div class="meta-top"><div class="crumbs">' +
-    '<a href="/georgia/batumi">rega rega</a><span class="sep">/</span>' +
+    '' +
     '<a href="/georgia/batumi/guide">guide</a><span class="sep">/</span>' +
     '<a href="/georgia/batumi/guide/' + p.category + '">' + esc(cat.label) + '</a><span class="sep">/</span>' +
     '<span class="cur"><span class="dot"></span>' + esc(name) + '</span>' +
@@ -168,8 +173,8 @@ const content =
   '</div><aside class="aside">' + hoursPanel + infoPanel + asideExtra + '</aside></div></section>' +
   gallerySection + nearbySection + relatedSection;
 ---
-<Site title={`${name} — ${cat.label} — rega rega batumi`} description={p.summary || (p.name + ' in batumi.')}>
-<style is:inline set:html={`:root{--cat-color:${cat.color}}`}></style>
+<Site title={`${name} — ${cat.label} — rega rega batumi`} description={p.summary || (p.name + ' in batumi.')} ogTitle={String(name).toLowerCase() + ' — rega rega batumi'} ogDescription="" image={((p.photos && p.photos[0]) || p.image) ? '/og/place-' + p.slug + '.png' : undefined}>
+<style is:inline set:html={`:root{--cat-color:${cat.color};--cat-tint:${cat.tint};--cat-dark:${cat.dark}}`}></style>
 <Fragment set:html={content} />
 <script type="application/json" id="gh-data" set:html={JSON.stringify(hours)}></script>
 <script is:inline>

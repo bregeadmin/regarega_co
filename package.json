@@ -5,10 +5,11 @@
   "private": true,
   "scripts": {
     "dev": "astro dev",
-    "build": "astro build && node scripts/optimize-images.mjs",
+    "build": "astro build && node scripts/optimize-images.mjs && node scripts/gen-og.mjs",
     "preview": "astro preview"
   },
   "dependencies": {
+    "@napi-rs/canvas": "^1.0.0",
     "@supabase/supabase-js": "^2.107.0",
     "astro": "^4.16.0"
   }

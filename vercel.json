@@ -1,5 +1,5 @@
 {
-  "buildCommand": "astro build && node scripts/optimize-images.mjs",
+  "buildCommand": "astro build && node scripts/optimize-images.mjs && node scripts/gen-og.mjs",
   "redirects": [
     { "source": "/", "destination": "/georgia/batumi", "permanent": false },
     { "source": "/guide/:path*", "destination": "/georgia/batumi/guide/:path*", "permanent": false },

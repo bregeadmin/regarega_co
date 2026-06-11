@@ -1,7 +1,21 @@
 # Rega Rega (сайт) — HANDOFF для нового чата
 
 > Сайт-платформа Rega Rega (Astro SSG). Точка входа для нового чата: прочитай этот файл.
-> Проект: `~/Downloads/rega-batumi/`. Деплой: `npx vercel --prod --yes` (Vercel проект `rega-batumi`, team `bregeadmins-projects`). Live: https://rega-batumi.vercel.app
+> Проект: `~/Downloads/rega-batumi/`. **Live: https://regarega.co** (apex; `/`→307 на `/georgia/batumi`). Vercel проект `rega-batumi`, team `bregeadmins-projects`. Деплой: `npx vercel --prod --yes` (билдит на Vercel через `buildCommand` из vercel.json = `astro build && node scripts/optimize-images.mjs`). Локально для превью/проверки: `npm run build` (НЕ просто `astro build`).
+
+## ⏭️ АКТИВНАЯ ЗАДАЧА (продолжить в новом чате): заменить фото-заглушки на реальный Батуми
+Артём дал свои фото Батуми (в `~/Downloads/`, формат telegram `photo_2026-06-09 16.10.*.jpeg`, 960×1280). **Решённый маппинг:**
+- **Главный герой** (главная города `georgia/batumi/index.astro` + шапка гида `georgia/batumi/guide.astro`, EN+RU) ← **`~/Downloads/photo_2026-06-09 16.10.15.jpeg`** (золотой час, 3 человека идут, тёплая дымка).
+- **«Утро в старом Батуми»** (карточка-история в гид-хабе + страница лонгрида `guide/morning-in-old-batumi.astro`, EN+RU) ← **`~/Downloads/photo_2026-06-09 16.10.04.jpeg`** (бульвар, пальмы, колесо обозрения).
+- ⚠️ Файлы telegram-сжаты (960×1280) — для героя ок, но на больших экранах мягковато; можно попросить у Артёма оригиналы с телефона для резкости.
+
+**Что именно заменить:** сток-заглушка «камни» = Unsplash `1604542031658-5799ca5d7936`. Встречается в: `georgia/batumi/index.astro` (герой, w=2400), `georgia/batumi/guide.astro` (шапка w=2000 + карточка-история «утро» w=1200), `georgia/batumi/guide/morning-in-old-batumi.astro` (×2), `styles/shell.css` (еле заметный фон opacity .18), + все RU-зеркала (`ru/georgia/batumi/...`).
+**Как ставить:** скопировать 2 фото в `public/img/` (напр. `hero-batumi.jpg`, `old-batumi.jpg`), ссылаться как `/img/...`. ⚠️ Локальные `public/` картинки НЕ оптимизируются авто-скриптом (`scripts/optimize-images.mjs` переписывает только удалённые хосты из allowlist) → либо пред-сжать через `sips` перед укладкой, либо залить в Supabase Storage (нужен ключ) для Vercel-оптимизации. Сейчас проще — `sips` пред-сжать + класть в `public/img/`.
+**Бэкап-кандидаты:** 5 фото старого Батуми с Pexels (свободная лицензия) лежат в `~/Desktop/batumi-photos/` — если Артём передумает.
+**Ещё заглушки (НЕ сделано):** гид-хаб «stories» — 3 карточки на Unsplash ведут в `#` (фейк-лонгриды → Sanity); `invest.astro` Unsplash; picsum-фолбэки (почти не видны).
+
+## ✅ СДЕЛАНО ранее в этой сессии (всё на проде)
+- **Полировка:** общий модуль таксономии категорий `src/lib/guideCats.ts` (цвет+метка EN/RU в одном месте); 307-редиректы старое→новое (`/guide`,`/stays`,`/ru/*`,маркетинг → `/georgia/batumi/*`).
 
 ## ✅ СДЕЛАНО: RU-версия гида (гибрид «вариант A», на проде 2026-06-08)
 Выбран гибрид: **UI по-русски, названия/тексты мест остаются английскими** (в `guide_places` нет RU-полей). Перевод контента (вариант B) — отложен (см. следующую задачу).
