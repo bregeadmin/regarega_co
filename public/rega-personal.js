@@ -180,30 +180,40 @@
     });
   }
 
-  // ── аноним (без токена): «места рядом со мной» по GPS ──
+  // ── аноним (без токена): плавающая кнопка «места рядом со мной» (клон .map-fab — поверх, не полосой) ──
   function setupNearMe() {
-    var el = document.getElementById('rr-personal');
-    if (!el || !PLACES.length || !navigator.geolocation) return;
-    var pin = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>';
-    el.innerHTML = '<div class="rrp-nearwrap"><button type="button" class="rrp-nearbtn">' + pin + '<span>' + T.nearMe + '</span></button></div>';
-    el.hidden = false;
-    var btn = el.querySelector('.rrp-nearbtn');
-    btn.onclick = function () {
-      btn.disabled = true; btn.classList.add('loading');
-      btn.querySelector('span').textContent = T.locating;
+    if (!PLACES.length || !navigator.geolocation || document.getElementById('rr-fab')) return;
+    var pin = '<span class="rrf-ico"><svg viewBox="0 0 24 24" fill="none" stroke="#FF5E1A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></span>';
+    var fab = document.createElement('button');
+    fab.type = 'button'; fab.id = 'rr-fab'; fab.className = 'rr-fab';
+    fab.innerHTML = pin + '<span class="rrf-txt">' + T.nearMe + '</span>';
+    document.body.appendChild(fab);
+    fab.onclick = function () {
+      fab.classList.add('loading'); fab.querySelector('.rrf-txt').textContent = T.locating;
       navigator.geolocation.getCurrentPosition(function (pos) {
         renderNearMe({ lat: pos.coords.latitude, lng: pos.coords.longitude });
       }, function () {
-        btn.disabled = false; btn.classList.remove('loading'); btn.classList.add('err');
-        btn.querySelector('span').textContent = T.locErr;
+        fab.classList.remove('loading'); fab.classList.add('err');
+        fab.querySelector('.rrf-txt').textContent = T.locErr;
+        setTimeout(function () { fab.classList.remove('err'); fab.querySelector('.rrf-txt').textContent = T.nearMe; }, 2600);
       }, { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 });
     };
   }
   function renderNearMe(origin) {
-    var el = document.getElementById('rr-personal');
-    if (!el) return;
-    el.innerHTML = nearestStrip(origin);
-    el.hidden = false;
+    var fab = document.getElementById('rr-fab'); if (fab) fab.remove();
+    if (document.getElementById('rr-sheet')) return;
+    var near = PLACES.slice().sort(function (a, b) { return havKm(origin, a) - havKm(origin, b); }).slice(0, 8);
+    var sheet = document.createElement('div');
+    sheet.id = 'rr-sheet'; sheet.className = 'rr-sheet';
+    sheet.innerHTML = '<div class="rrs-head"><span class="rrp-h">' + T.near + '</span>' +
+      '<button type="button" class="rrs-x" aria-label="close">×</button></div>' +
+      '<div class="rrp-row">' + near.map(function (p) { return placeCard(p, origin); }).join('') + '</div>';
+    document.body.appendChild(sheet);
+    requestAnimationFrame(function () { sheet.classList.add('on'); });
+    sheet.querySelector('.rrs-x').onclick = function () {
+      sheet.classList.remove('on');
+      setTimeout(function () { sheet.remove(); setupNearMe(); }, 320);
+    };
   }
 
   window.RR.render = render;

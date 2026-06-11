@@ -181,19 +181,40 @@
 .rri-share { color: var(--acc); vertical-align: -3px; }
 @media (max-width: 380px) { .rri-txt { font-size: 13px; } .rri-steps li { font-size: 12px; } }
 
-/* ── «места рядом со мной» по GPS (аноним, без токена) ── */
-.rrp-nearwrap { display: flex; margin: 0 0 4px; }
-.rrp-nearbtn {
-  display: inline-flex; align-items: center; gap: 9px; cursor: pointer; border: none;
-  background: var(--ink); color: var(--bg);
-  border-radius: 999px; padding: 12px 18px;
-  font-family: "JetBrains Mono", monospace; font-size: 11px; font-weight: 700;
-  letter-spacing: .12em; text-transform: uppercase; white-space: nowrap;
-  box-shadow: 0 6px 20px rgba(10, 9, 8, 0.16);
-  transition: transform .2s ease, opacity .2s ease;
+/* ── «места рядом со мной» по GPS (аноним) — плавающая кнопка, клон .map-fab (слева внизу) ── */
+.rr-fab {
+  position: fixed; left: 20px; bottom: 20px; z-index: 60;
+  display: inline-flex; align-items: center; gap: 9px;
+  height: 52px; padding: 0 18px 0 7px;
+  border: 2px solid var(--ink); border-radius: 999px; background: var(--ink); cursor: pointer;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, .3);
+  transition: transform .2s ease, box-shadow .2s ease, opacity .2s ease;
 }
-.rrp-nearbtn svg { color: var(--acc); flex: 0 0 auto; }
-.rrp-nearbtn:hover { transform: translateY(-1px); }
-.rrp-nearbtn.loading { opacity: .6; pointer-events: none; }
-.rrp-nearbtn.err { background: var(--bg); color: #d9402a; border: 1px solid #d9402a; box-shadow: none; }
-.rrp-nearbtn.err svg { color: #d9402a; }
+.rr-fab:hover { transform: translateY(-2px); box-shadow: 0 12px 30px rgba(0, 0, 0, .36); }
+.rr-fab.loading { opacity: .65; pointer-events: none; }
+.rrf-ico {
+  width: 38px; height: 38px; border-radius: 50%; flex: none;
+  display: inline-flex; align-items: center; justify-content: center;
+  background: rgba(255, 255, 255, .1); border: 1.5px solid rgba(255, 255, 255, .45);
+}
+.rrf-ico svg { width: 19px; height: 19px; display: block; }
+.rrf-txt {
+  font-family: "JetBrains Mono", monospace; font-size: 12px;
+  letter-spacing: .18em; text-transform: uppercase; font-weight: 700; color: var(--bg);
+}
+.rr-fab.err .rrf-txt { color: #ffb4a3; }
+@media (max-width: 380px) { .rrf-txt { font-size: 11px; letter-spacing: .12em; } }
+
+/* нижняя шторка с ближайшими местами (поверх) */
+.rr-sheet {
+  position: fixed; left: 0; right: 0; bottom: 0; z-index: 70;
+  background: var(--bg); border-top: 1px solid var(--line);
+  border-radius: 18px 18px 0 0; padding: 16px 16px 18px;
+  box-shadow: 0 -12px 38px rgba(10, 9, 8, .16);
+  transform: translateY(110%); transition: transform .34s cubic-bezier(.2, .7, .2, 1);
+}
+.rr-sheet.on { transform: translateY(0); }
+.rr-sheet .rrp-row { margin-bottom: 0; }
+.rrs-head { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+.rrs-head .rrp-h { margin: 0; }
+.rrs-x { background: transparent; border: none; color: var(--soft); font-size: 22px; line-height: 1; cursor: pointer; padding: 0 2px; }
