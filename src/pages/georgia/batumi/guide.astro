@@ -165,9 +165,10 @@ const content =
 <script is:inline define:vars={{ MAP_DATA: mapData, GMAPS_KEY }}>
 (function () {
   window.__initGuideMap = function () {
-    // cooperative: page scroll never zooms the map (cmd+scroll does);
+    // мобилка: greedy (карта маленькая → сразу тапается/двигается одним пальцем); десктоп: cooperative (скролл страницы не зумит карту, cmd+scroll зумит)
     // frameFlats: open framed on the flats at zoom 15, dots stay individual until zoomed out
-    var api = RegaMap.stays("guideMap", MAP_DATA, { cardSel: ".__no-list", cluster: true, gesture: "cooperative", frameFlats: true, clusterMaxZoom: 14 });
+    var mob = window.matchMedia('(max-width: 768px)').matches;
+    var api = RegaMap.stays("guideMap", MAP_DATA, { cardSel: ".__no-list", cluster: true, gesture: mob ? "greedy" : "cooperative", frameFlats: true, clusterMaxZoom: 14 });
     if (!api) return;
     var bar = document.querySelector(".map-controls");
     if (bar) {
