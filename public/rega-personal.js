@@ -178,3 +178,45 @@
   window.RR.render = render;
   window.RR.refresh = refresh;
 })();
+
+/* ── установка на телефон (онбординг PWA) — для всех, не зависит от токена ── */
+(function () {
+  var LANG = window.RR_LANG || 'en';
+  var T = {
+    en: { txt: 'add the guide to your phone', btn: 'install', ios: 'tap Share, then “Add to Home Screen”' },
+    ru: { txt: 'добавьте гид на телефон', btn: 'установить', ios: 'нажмите «Поделиться», затем «На экран Домой»' }
+  }[LANG];
+
+  function standalone() {
+    return window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+  }
+  function isIOS() { return /iphone|ipad|ipod/i.test(navigator.userAgent); }
+  function dismissed() { try { return localStorage.getItem('rr_install_dismissed') === '1'; } catch (e) { return false; } }
+  function dismiss() { try { localStorage.setItem('rr_install_dismissed', '1'); } catch (e) {} var b = document.getElementById('rr-install'); if (b) b.remove(); }
+
+  if (standalone() || dismissed()) return;
+
+  var deferred = null;
+  window.addEventListener('beforeinstallprompt', function (e) { e.preventDefault(); deferred = e; show('android'); });
+  if (isIOS()) setTimeout(function () { show('ios'); }, 2500);  // iOS не шлёт beforeinstallprompt
+
+  function show(mode) {
+    if (standalone() || dismissed() || document.getElementById('rr-install')) return;
+    var mark = '<svg class="rri-mark" viewBox="0 0 100 100" aria-hidden="true"><path fill-rule="evenodd" fill="#FF5E1A" d="M 50,50 m -50,0 a 50,50 0 1,1 100,0 a 50,50 0 1,1 -100,0 z M 62,62 m -16.5,0 a 16.5,16.5 0 1,1 33,0 a 16.5,16.5 0 1,1 -33,0 z"/></svg>';
+    var bar = document.createElement('div');
+    bar.id = 'rr-install';
+    if (mode === 'android') {
+      bar.innerHTML = mark + '<span class="rri-txt">' + T.txt + '</span>' +
+        '<button type="button" class="rri-btn" id="rri-go">' + T.btn + '</button>' +
+        '<button type="button" class="rri-x" id="rri-x" aria-label="close">×</button>';
+    } else {
+      bar.innerHTML = mark + '<span class="rri-txt">' + T.ios + '</span>' +
+        '<button type="button" class="rri-x" id="rri-x" aria-label="close">×</button>';
+    }
+    document.body.appendChild(bar);
+    requestAnimationFrame(function () { bar.classList.add('on'); });
+    var go = bar.querySelector('#rri-go');
+    if (go) go.onclick = function () { if (deferred) { deferred.prompt(); deferred = null; } bar.remove(); };
+    var x = bar.querySelector('#rri-x'); if (x) x.onclick = dismiss;
+  }
+})();
