@@ -15,11 +15,11 @@
     en: { hi: 'hi', youAt: "you're staying at", near: 'near you', min: 'min walk',
           back: 'welcome back', soon: 'your trip is coming up', bookAgain: 'book another stay',
           offers: 'for you nearby', refresh: 'refresh', openGuide: 'see place',
-          nearMe: 'places near me', locating: 'finding you…', locErr: 'turn on location' },
+          nearMe: 'near me', locating: 'finding…', locErr: 'no location' },
     ru: { hi: 'привет', youAt: 'вы остановились в', near: 'рядом с вами', min: 'мин пешком',
           back: 'с возвращением', soon: 'скоро ваша поездка', bookAgain: 'забронировать снова',
           offers: 'для вас рядом', refresh: 'обновить', openGuide: 'смотреть место',
-          nearMe: 'места рядом со мной', locating: 'ищем вас…', locErr: 'включите геолокацию' }
+          nearMe: 'рядом', locating: 'ищем…', locErr: 'нет геолокации' }
   }[LANG];
 
   function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
