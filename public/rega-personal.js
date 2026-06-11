@@ -183,8 +183,12 @@
 (function () {
   var LANG = window.RR_LANG || 'en';
   var T = {
-    en: { txt: 'add the guide to your phone', btn: 'install', ios: 'tap Share, then “Add to Home Screen”' },
-    ru: { txt: 'добавьте гид на телефон', btn: 'установить', ios: 'нажмите «Поделиться», затем «На экран Домой»' }
+    en: { txt: 'add the guide to your phone', btn: 'install',
+          iosTitle: 'add the guide to your home screen',
+          s1: 'tap Share at the bottom', s2: 'scroll down the list', s3: 'choose “Add to Home Screen”' },
+    ru: { txt: 'добавьте гид на телефон', btn: 'установить',
+          iosTitle: 'поставьте гид на экран «домой»',
+          s1: 'нажмите «Поделиться» внизу', s2: 'пролистайте список вниз', s3: 'выберите «На экран Домой»' }
   }[LANG];
 
   function standalone() {
@@ -203,20 +207,29 @@
   function show(mode) {
     if (standalone() || dismissed() || document.getElementById('rr-install')) return;
     var mark = '<svg class="rri-mark" viewBox="0 0 100 100" aria-hidden="true"><path fill-rule="evenodd" fill="#FF5E1A" d="M 50,50 m -50,0 a 50,50 0 1,1 100,0 a 50,50 0 1,1 -100,0 z M 62,62 m -16.5,0 a 16.5,16.5 0 1,1 33,0 a 16.5,16.5 0 1,1 -33,0 z"/></svg>';
+    var x = '<button type="button" class="rri-x" id="rri-x" aria-label="close">×</button>';
     var bar = document.createElement('div');
     bar.id = 'rr-install';
     if (mode === 'android') {
+      bar.className = 'android';
+      var dl = '<svg viewBox="0 0 24 24" width="13" height="13" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 4v11M7 11l5 5 5-5"/></svg>';
       bar.innerHTML = mark + '<span class="rri-txt">' + T.txt + '</span>' +
-        '<button type="button" class="rri-btn" id="rri-go">' + T.btn + '</button>' +
-        '<button type="button" class="rri-x" id="rri-x" aria-label="close">×</button>';
+        '<button type="button" class="rri-btn" id="rri-go">' + T.btn + dl + '</button>' + x;
     } else {
-      bar.innerHTML = mark + '<span class="rri-txt">' + T.ios + '</span>' +
-        '<button type="button" class="rri-x" id="rri-x" aria-label="close">×</button>';
+      bar.className = 'ios';
+      var share = '<svg class="rri-share" viewBox="0 0 24 24" width="14" height="14" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v11"/><path d="M8 7l4-4 4 4"/><path d="M6 12v6a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2v-6"/></svg>';
+      bar.innerHTML =
+        '<div class="rri-head">' + mark + '<span class="rri-title">' + T.iosTitle + '</span>' + x + '</div>' +
+        '<ol class="rri-steps">' +
+          '<li><span class="rri-n">1</span><span>' + T.s1 + ' ' + share + '</span></li>' +
+          '<li><span class="rri-n">2</span><span>' + T.s2 + '</span></li>' +
+          '<li><span class="rri-n">3</span><span>' + T.s3 + '</span></li>' +
+        '</ol>';
     }
     document.body.appendChild(bar);
     requestAnimationFrame(function () { bar.classList.add('on'); });
     var go = bar.querySelector('#rri-go');
     if (go) go.onclick = function () { if (deferred) { deferred.prompt(); deferred = null; } bar.remove(); };
-    var x = bar.querySelector('#rri-x'); if (x) x.onclick = dismiss;
+    var xb = bar.querySelector('#rri-x'); if (xb) xb.onclick = dismiss;
   }
 })();
