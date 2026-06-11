@@ -1,0 +1,16 @@
+{
+  "name": "Rega Rega — Batumi guide",
+  "short_name": "Rega Rega",
+  "description": "The Batumi we actually recommend — places, food and routes, by Rega Rega.",
+  "start_url": "/georgia/batumi/guide",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait",
+  "background_color": "#0A0908",
+  "theme_color": "#0A0908",
+  "icons": [
+    { "src": "/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}

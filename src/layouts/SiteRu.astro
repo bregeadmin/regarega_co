@@ -50,6 +50,10 @@ const ogImage = new URL(image, Astro.site).href;
   <link rel="icon" type="image/png" sizes="16x16" href="/favicon-16.png" />
   <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
   <meta name="theme-color" content="#0a0908" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Rega Rega" />
+  <script is:inline>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){});});}</script>
 </head>
 <body style={`--page:${accent};--page-deep:${accentDeep}`}>
 <span id="flyingDot"></span>
