@@ -94,10 +94,12 @@
   });
 
   // ── рендер персональной шапки ──
+  function opt(u, w) { return u ? ('/_vercel/image?url=' + encodeURIComponent(u) + '&w=' + (w || 320) + '&q=72') : ''; }
   function placeCard(p, origin) {
     var d = havKm(origin, p);
+    var img = opt(p.photo, 320);
     return '<a class="rrp-place" href="' + esc(p.href) + '">' +
-      (p.photo ? '<span class="rrp-ph" style="background-image:url(' + esc(p.photo) + ')"></span>' : '<span class="rrp-ph"></span>') +
+      (img ? '<span class="rrp-ph" style="background-image:url(' + esc(img) + ')"></span>' : '<span class="rrp-ph"></span>') +
       '<span class="rrp-meta"><b>' + esc(p.title) + '</b>' +
       '<span class="rrp-dist">' + walkMin(d) + ' ' + T.min + '</span></span></a>';
   }
@@ -181,12 +183,13 @@
   }
 
   // ── аноним (без токена): плавающая кнопка «места рядом со мной» (клон .map-fab — поверх, не полосой) ──
+  function nearUsed() { try { return sessionStorage.getItem('rr_nearme_used') === '1'; } catch (e) { return false; } }
   function setupNearMe() {
-    if (!PLACES.length || !navigator.geolocation || document.getElementById('rr-fab')) return;
-    var pin = '<span class="rrf-ico"><svg viewBox="0 0 24 24" fill="none" stroke="#FF5E1A" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg></span>';
+    if (nearUsed() || !PLACES.length || !navigator.geolocation || document.getElementById('rr-fab')) return;
+    var logo = '<svg class="rrf-ico" viewBox="0 0 100 100" aria-hidden="true"><path fill-rule="evenodd" fill="#FF5E1A" d="M 50,50 m -50,0 a 50,50 0 1,1 100,0 a 50,50 0 1,1 -100,0 z M 62,62 m -16.5,0 a 16.5,16.5 0 1,1 33,0 a 16.5,16.5 0 1,1 -33,0 z"/></svg>';
     var fab = document.createElement('button');
     fab.type = 'button'; fab.id = 'rr-fab'; fab.className = 'rr-fab';
-    fab.innerHTML = pin + '<span class="rrf-txt">' + T.nearMe + '</span>';
+    fab.innerHTML = logo + '<span class="rrf-txt">' + T.nearMe + '</span>';
     document.body.appendChild(fab);
     fab.onclick = function () {
       fab.classList.add('loading'); fab.querySelector('.rrf-txt').textContent = T.locating;
@@ -201,6 +204,7 @@
   }
   function renderNearMe(origin) {
     var fab = document.getElementById('rr-fab'); if (fab) fab.remove();
+    try { sessionStorage.setItem('rr_nearme_used', '1'); } catch (e) {}   // показали места → больше не зовём кнопку в этой сессии
     if (document.getElementById('rr-sheet')) return;
     var near = PLACES.slice().sort(function (a, b) { return havKm(origin, a) - havKm(origin, b); }).slice(0, 8);
     var sheet = document.createElement('div');

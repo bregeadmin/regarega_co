@@ -66,12 +66,12 @@
 .rrp-row::-webkit-scrollbar { display: none; }
 .rrp-place {
   scroll-snap-align: start;
-  flex: 0 0 auto; width: 132px;
+  flex: 0 0 auto; width: 116px;
   text-decoration: none; color: var(--ink);
 }
 .rrp-ph {
-  display: block; width: 132px; height: 88px; border-radius: 12px;
-  background: var(--bg2) center/cover no-repeat; margin-bottom: 7px;
+  display: block; width: 116px; height: 146px; border-radius: 13px;
+  background: var(--bg2) center/cover no-repeat; margin-bottom: 8px;
 }
 .rrp-meta { display: block; }
 .rrp-meta b {
@@ -183,27 +183,35 @@
 
 /* ── «места рядом со мной» по GPS (аноним) — плавающая кнопка, клон .map-fab (слева внизу) ── */
 .rr-fab {
-  position: fixed; left: 20px; bottom: 20px; z-index: 60;
-  display: inline-flex; align-items: center; gap: 9px;
-  height: 52px; padding: 0 18px 0 7px;
-  border: 2px solid var(--ink); border-radius: 999px; background: var(--ink); cursor: pointer;
-  box-shadow: 0 8px 24px rgba(0, 0, 0, .3);
+  position: fixed; left: 16px; bottom: 16px; z-index: 60;
+  display: inline-flex; align-items: center; gap: 8px;
+  height: 44px; padding: 0 16px;
+  border: 1px solid rgba(10, 9, 8, .1); border-radius: 999px;
+  background: rgba(250, 247, 240, .9); cursor: pointer;
+  box-shadow: 0 6px 22px rgba(10, 9, 8, .16);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
   transition: transform .2s ease, box-shadow .2s ease, opacity .2s ease;
 }
-.rr-fab:hover { transform: translateY(-2px); box-shadow: 0 12px 30px rgba(0, 0, 0, .36); }
-.rr-fab.loading { opacity: .65; pointer-events: none; }
-.rrf-ico {
-  width: 38px; height: 38px; border-radius: 50%; flex: none;
-  display: inline-flex; align-items: center; justify-content: center;
-  background: rgba(255, 255, 255, .1); border: 1.5px solid rgba(255, 255, 255, .45);
-}
-.rrf-ico svg { width: 19px; height: 19px; display: block; }
+.rr-fab:hover { transform: translateY(-1px); box-shadow: 0 10px 28px rgba(10, 9, 8, .2); }
+.rr-fab.loading { opacity: .6; pointer-events: none; }
+.rrf-ico { width: 22px; height: 22px; flex: none; display: block; }
 .rrf-txt {
-  font-family: "JetBrains Mono", monospace; font-size: 12px;
-  letter-spacing: .18em; text-transform: uppercase; font-weight: 700; color: var(--bg);
+  font-family: "JetBrains Mono", monospace; font-size: 11px;
+  letter-spacing: .16em; text-transform: uppercase; font-weight: 600; color: var(--ink);
 }
-.rr-fab.err .rrf-txt { color: #ffb4a3; }
-@media (max-width: 380px) { .rrf-txt { font-size: 11px; letter-spacing: .12em; } }
+.rr-fab.err .rrf-txt { color: #d9402a; }
+@media (max-width: 380px) { .rrf-txt { font-size: 10px; letter-spacing: .12em; } }
+
+/* облегчаем существующую кнопку карты (.map-fab) тем же фрост-стилем; override через body для приоритета над инлайн-стилем гида */
+body .map-fab {
+  height: 44px; padding: 0 16px 0 6px; gap: 8px;
+  background: rgba(250, 247, 240, .9); border: 1px solid rgba(10, 9, 8, .1);
+  box-shadow: 0 6px 22px rgba(10, 9, 8, .16);
+  -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px);
+}
+body .map-fab:hover { box-shadow: 0 10px 28px rgba(10, 9, 8, .2); transform: translateY(-1px); }
+body .map-fab .mf-ico { width: 32px; height: 32px; border: 1px solid rgba(10, 9, 8, .12); }
+body .map-fab .mf-txt { color: var(--ink); font-size: 11px; letter-spacing: .16em; font-weight: 600; }
 
 /* нижняя шторка с ближайшими местами (поверх) */
 .rr-sheet {
