@@ -1,0 +1,123 @@
+/* rega-personal.css — персональный слой гида (шапка по токену брони).
+   Палитра/типографика — из tokens.css. Без эмодзи, цвет=статус. */
+/* первым элементом страницы: верхний отступ клирит фиксированный .topbar, по бокам — гаттер как у .masthead (24px) */
+#rr-personal { padding: 84px 24px 4px; background: var(--bg); }
+#rr-personal[hidden] { display: none; }
+@media (max-width: 560px) { #rr-personal { padding-top: 72px; } }
+
+.rrp-hero {
+  position: relative;
+  background: var(--ink);
+  color: var(--bg);
+  border-radius: 18px;
+  padding: 20px 22px;
+  margin: 0 0 14px;
+}
+.rrp-greet {
+  font-family: "Bricolage Grotesque", sans-serif;
+  font-weight: 800;
+  font-size: clamp(22px, 5vw, 30px);
+  line-height: 1.05;
+  letter-spacing: -0.01em;
+  text-transform: lowercase;
+}
+.rrp-sub {
+  margin-top: 6px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 12px;
+  letter-spacing: 0.03em;
+  color: var(--stone);
+  text-transform: lowercase;
+}
+.rrp-sub b { color: var(--bg); font-weight: 600; }
+
+.rrp-refresh {
+  position: absolute; top: 16px; right: 16px;
+  width: 34px; height: 34px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 1px solid rgba(250,247,240,0.25);
+  background: transparent; color: var(--bg);
+  border-radius: 999px; cursor: pointer;
+  transition: background .15s ease, transform .4s ease;
+}
+.rrp-refresh:hover { background: rgba(250,247,240,0.12); }
+.rrp-refresh:active svg { transform: rotate(180deg); }
+
+.rrp-book {
+  display: inline-block; margin-top: 14px;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 13px; letter-spacing: 0.03em; text-transform: lowercase;
+  background: var(--acc); color: var(--ink);
+  padding: 10px 16px; border-radius: 999px;
+  text-decoration: none; font-weight: 600;
+}
+
+/* ── «рядом с вами» ── */
+.rrp-h {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 11px; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--soft); margin: 0 2px 10px;
+}
+.rrp-row {
+  display: flex; gap: 10px; overflow-x: auto;
+  scroll-snap-type: x mandatory; -webkit-overflow-scrolling: touch;
+  padding-bottom: 4px; margin: 0 0 16px;
+}
+.rrp-row::-webkit-scrollbar { display: none; }
+.rrp-place {
+  scroll-snap-align: start;
+  flex: 0 0 auto; width: 132px;
+  text-decoration: none; color: var(--ink);
+}
+.rrp-ph {
+  display: block; width: 132px; height: 88px; border-radius: 12px;
+  background: var(--bg2) center/cover no-repeat; margin-bottom: 7px;
+}
+.rrp-meta { display: block; }
+.rrp-meta b {
+  display: block; font-family: "Bricolage Grotesque", sans-serif;
+  font-weight: 700; font-size: 14px; line-height: 1.15;
+  text-transform: lowercase;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.rrp-dist {
+  font-family: "JetBrains Mono", monospace; font-size: 11px;
+  color: var(--acc); letter-spacing: 0.02em;
+}
+
+/* ── офферы ── */
+.rrp-offers { margin: 0 0 18px; }
+.rrp-offer {
+  position: relative;
+  background: var(--bg); border: 1px solid var(--line);
+  border-radius: 14px; padding: 16px 18px; margin-bottom: 10px;
+}
+.rrp-offer-top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
+.rrp-offer-top b {
+  font-family: "Bricolage Grotesque", sans-serif; font-weight: 800;
+  font-size: 17px; text-transform: lowercase;
+}
+.rrp-cnt {
+  font-family: "JetBrains Mono", monospace; font-size: 12px;
+  color: var(--soft); flex: 0 0 auto;
+}
+.rrp-offer-terms {
+  margin-top: 4px; font-size: 13px; color: var(--soft); line-height: 1.35;
+}
+.rrp-offer-place {
+  display: inline-block; margin-top: 8px;
+  font-family: "JetBrains Mono", monospace; font-size: 11px;
+  letter-spacing: 0.04em; color: var(--acc); text-decoration: none;
+  text-transform: lowercase;
+}
+.rrp-claim {
+  position: absolute; right: 14px; bottom: 14px;
+  width: 40px; height: 40px;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: none; border-radius: 999px; cursor: pointer;
+  background: var(--acc); color: var(--ink);
+  transition: transform .15s ease, background .15s ease;
+}
+.rrp-claim:hover { transform: scale(1.06); }
+.rrp-claim.done { background: var(--green); color: var(--bg); cursor: default; }
+.rrp-claim[disabled] { opacity: 0.9; }

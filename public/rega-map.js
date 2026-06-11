@@ -149,11 +149,7 @@
       gestureHandling: opts.gesture || 'greedy', clickableIcons: false, styles: STYLE
     });
     addZoom(map);
-    // clustering: wanted when opts.cluster + library present. The guide intro asks to
-    // DEFER it (opts.deferCluster) so every place is an individual pin the bloom can land
-    // on pixel-perfect; clustering is switched on afterwards via the returned enableCluster().
-    var wantCluster = !!(opts.cluster && window.markerClusterer && window.markerClusterer.MarkerClusterer);
-    var useCluster = wantCluster && !opts.deferCluster;
+    var useCluster = !!(opts.cluster && window.markerClusterer && window.markerClusterer.MarkerClusterer);
     var info = new google.maps.InfoWindow({ maxWidth: 280 });
     var openSlug = null, openOff = null;
     map.addListener('click', function () { if (openSlug) { info.close(); if (openOff) openOff(); openSlug = null; openOff = null; } });
@@ -172,9 +168,6 @@
       var fill = a.color || '#ff5e1a', stroke = a.ring || '#ffffff';
       var pos = { lat: a.lat, lng: a.lng };
       var m = new google.maps.Marker({ position: pos, map: useCluster ? null : map, icon: pick(a, false), title: a.title, zIndex: 1 });
-      // §7A: during the guide intro the place pins are hidden (opacity 0) and revealed one by
-      // one as the bloom lands on them; the certified flats (a.flat) stay visible as the anchor.
-      if (opts.holdPlaces && !a.flat) m.setOpacity(0);
       byslug[a.slug] = { m: m, a: a };
       markers.push({ m: m, item: a, fill: fill, stroke: stroke, pos: pos, on: true });
       var html = '<a class="map-mini" href="' + a.href + '"><div class="mm-ph"><img src="' + optImg(a.photo, 640) + '" alt=""></div><div class="mm-info"><h5>' + a.title + '</h5><div class="mm-sub">' + a.sub + '</div><div class="mm-cta">' + a.cta + ' →</div></div></a>';
@@ -223,14 +216,6 @@
       clusterer = new markerClusterer.MarkerClusterer(copts);
     }
     if (useCluster) buildCluster();
-    // turn clustering on after a deferred intro: drop the individual pins off the map and
-    // let the clusterer regroup the visible ones (the natural Airbnb settle).
-    function enableCluster() {
-      if (!wantCluster || useCluster) return;
-      useCluster = true;
-      markers.forEach(function (mk) { mk.m.setMap(null); });
-      buildCluster();
-    }
     function applyVisibility() {
       if (clusterer) { clusterer.clearMarkers(); clusterer.addMarkers(markers.filter(function (m) { return m.on; }).map(function (m) { return m.m; })); }
       else { markers.forEach(function (mk) { mk.m.setMap(mk.on ? map : null); }); }
@@ -289,7 +274,7 @@
       }, function (err) { if (cb) cb(null, err && err.message); }, { enableHighAccuracy: true, timeout: 8000, maximumAge: 60000 });
     }
 
-    return { map: map, markers: markers, locate: locate, setFilter: setFilter, clearFilter: clearFilter, refit: refit, enableCluster: enableCluster };
+    return { map: map, markers: markers, locate: locate, setFilter: setFilter, clearFilter: clearFilter, refit: refit };
   }
 
   /* single-pin apartment map. geo = {lat,lng,title}.

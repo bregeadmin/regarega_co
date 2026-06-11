@@ -1,6 +1,5 @@
 ---
 import Site from '../../../layouts/Site.astro';
-import GuideIntro from '../../../components/GuideIntro.astro';
 import '../../../styles/guide-hub.css';
 import { supabase } from '../../../lib/supabase';
 import { GMAPS_KEY } from '../../../lib/maps';
@@ -10,6 +9,12 @@ const { data: gp } = await supabase
   .from('guide_places').select('slug,title,name,category,lat,lng,photos,price,show_on_map,hours')
   .eq('status', 'published');
 const places = gp || [];
+// места с координатами для персонального слоя (ближайшие к квартире гостя — считаются на клиенте)
+const personalPlaces = (places as any[])
+  .filter((p) => p.lat != null && p.lng != null)
+  .map((p) => ({ slug: p.slug, title: p.title || p.name, lat: p.lat, lng: p.lng,
+    category: p.category, photo: (p.photos && p.photos[0]) || '',
+    href: '/georgia/batumi/guide/' + p.slug }));
 const counts: Record<string, number> = {};
 places.forEach((p) => { counts[p.category] = (counts[p.category] || 0) + 1; });
 const { data: apts } = await supabase.from('apartments_public').select('slug,title,lat,lng,photos,price_from');
@@ -139,7 +144,8 @@ const content =
   '<a class="map-fab" href="#map" aria-label="open the map"><span class="mf-ico"><svg viewBox="0 0 48 48"><defs><clipPath id="mfc"><circle cx="24" cy="24" r="24"/></clipPath></defs><g clip-path="url(#mfc)"><rect width="48" height="48" fill="#f4f0e7"/><path d="M0 37 Q14 33 26 35 T48 29 L48 48 L0 48 Z" fill="#bfdaee" opacity="0.6"/><path d="M0 37 Q14 33 26 35 T48 29" stroke="#7bafd2" stroke-width="1.2" fill="none" opacity="0.7"/><line x1="0" y1="17" x2="48" y2="17" stroke="#00000010" stroke-width="2"/><line x1="17" y1="0" x2="17" y2="48" stroke="#00000010" stroke-width="2"/><line x1="34" y1="0" x2="34" y2="48" stroke="#00000010" stroke-width="2"/><circle cx="20" cy="19" r="3.4" fill="#ff5e1a" stroke="#fff" stroke-width="1.5"/><circle cx="33" cy="26" r="2.6" fill="#00b5b0" stroke="#fff" stroke-width="1.3"/></g></svg></span><span class="mf-txt">map</span></a>';
 ---
 <Site title={"the batumi guide — rega rega"}>
-<GuideIntro />
+<link rel="stylesheet" href="/rega-personal.css" />
+<div id="rr-personal" hidden></div>
 <Fragment set:html={content} />
 <style is:inline set:html={"#guideMap{position:absolute;inset:0;width:100%;height:100%}\n.masthead-cover.rotator{position:relative}\n.masthead-cover.rotator .slides{position:absolute;inset:0;overflow:hidden;z-index:1}\n.masthead-cover .cover-slide{position:absolute;inset:0;display:flex;flex-direction:column;justify-content:flex-end;color:#fff;transform:translateY(100%);opacity:0;transition:transform .6s cubic-bezier(.2,.7,.2,1),opacity .5s ease;pointer-events:none;overflow:hidden}\n.masthead-cover .cover-slide.active{transform:translateY(0);opacity:1;pointer-events:auto}\n.masthead-cover .cover-slide.leaving{transform:translateY(-100%);opacity:0}\n.masthead-cover .cs-bg{position:absolute;inset:0;width:100%;height:100%;object-fit:cover;z-index:0;filter:grayscale(1) brightness(1.55) contrast(.9)}\n.masthead-cover .cs-tint{position:absolute;inset:0;z-index:1;background:#ff5e1a;mix-blend-mode:multiply}\n.masthead-cover .cs-shade{position:absolute;inset:0;z-index:1;background:linear-gradient(180deg,rgba(120,38,8,.28) 0%,rgba(120,38,8,0) 34%,rgba(90,28,6,.42) 100%)}\n.masthead-cover .cover-slide .body{position:relative;z-index:2;flex:1;width:100%;box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between;padding:64px 28px 26px}\n.masthead-cover .cover-slide h3{font-family:'Bricolage Grotesque',sans-serif;font-weight:800;font-size:clamp(28px,2.9vw,42px);line-height:1.03;letter-spacing:-.035em;text-transform:lowercase;color:#fff;margin:0}\n.masthead-cover .cover-slide h3 em{font-style:italic;color:#fff}\n.masthead-cover .cover-slide .read{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.24em;text-transform:uppercase;font-weight:700;color:#fff;opacity:.92}\n.masthead-cover .kicker-top{position:absolute;top:26px;left:28px;z-index:3;display:flex;align-items:center;gap:11px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;font-weight:600;color:#fff}\n.masthead-cover .kicker-top::before{content:'';width:22px;height:1px;background:#fff;display:inline-block}\n.masthead-cover .rot-dots{position:absolute;bottom:14px;right:18px;z-index:5;display:flex;gap:6px}\n.masthead-cover .rot-dot{width:7px;height:7px;border-radius:50%;background:rgba(255,255,255,.4);border:0;cursor:pointer;padding:0;transition:background .2s ease}\n.masthead-cover .rot-dot.active{background:#fff}\n.mapblock .mapblock-head .mh-left{max-width:560px}\n.mapblock .eyebrow{display:inline-flex;align-items:center;gap:10px;font-family:'JetBrains Mono',monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;font-weight:600;color:var(--accent-deep);background:var(--accent-soft);padding:5px 11px;border-radius:999px;width:fit-content;margin-bottom:14px}\n.mapblock .mh-sub{margin-top:12px;font-size:15px;line-height:1.5;color:var(--ink-soft);max-width:470px}\n.mapblock .mh-sub b{color:var(--ink);font-weight:600}\n.map-controls{display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin:24px 0 16px}\n.map-controls .seg{display:inline-flex;background:var(--paper);border:1px solid var(--line);border-radius:999px;padding:3px}\n.map-controls .mc{font-family:'JetBrains Mono',monospace;font-size:11px;letter-spacing:.14em;text-transform:uppercase;font-weight:600;color:var(--ink-soft);padding:9px 16px;border-radius:999px;cursor:pointer;display:inline-flex;align-items:center;gap:7px;border:0;background:transparent;transition:all .18s ease}\n.map-controls .seg .mc.active{background:var(--ink);color:#fff}\n.map-controls .mc.near{border:1px solid var(--line);background:var(--paper);color:var(--ink)}\n.map-controls .mc.near:hover{border-color:var(--accent);color:var(--accent)}\n.map-controls .mc.near.loading{opacity:.55;pointer-events:none}\n.map-controls .mc.near.err{border-color:#d9402a;color:#d9402a}\n.map-fab{position:fixed;right:20px;bottom:20px;z-index:60;display:inline-flex;align-items:center;gap:9px;height:52px;padding:0 18px 0 7px;border-radius:999px;background:var(--ink);border:2px solid var(--ink);box-shadow:0 8px 24px rgba(0,0,0,.3);transition:transform .2s ease,box-shadow .2s ease}\n.map-fab:hover{transform:translateY(-2px);box-shadow:0 12px 30px rgba(0,0,0,.36)}\n.map-fab .mf-ico{width:38px;height:38px;border-radius:50%;overflow:hidden;flex:none;border:1.5px solid rgba(255,255,255,.5)}\n.map-fab .mf-ico svg{width:100%;height:100%;display:block}\n.map-fab .mf-txt{font-family:'JetBrains Mono',monospace;font-size:12px;letter-spacing:.18em;text-transform:uppercase;font-weight:700;color:#fff}"}></style>
 <script is:inline>
@@ -158,13 +164,10 @@ const content =
 <script is:inline src="/rega-map.js"></script>
 <script is:inline define:vars={{ MAP_DATA: mapData, GMAPS_KEY }}>
 (function () {
-  var GI = window.__guideIntro || { armed: false };
-
   window.__initGuideMap = function () {
-    // while the intro is pending the map ignores gestures entirely ('none') — otherwise the
-    // page-scroll that triggers the intro makes Google flash its "use cmd+scroll" scrim right
-    // over the animation; the intro (or the static fallback) switches it to 'cooperative'.
-    var api = RegaMap.stays("guideMap", MAP_DATA, { cardSel: ".__no-list", cluster: true, deferCluster: GI.armed, holdPlaces: GI.armed, gesture: GI.armed ? "none" : "cooperative", frameFlats: true, clusterMaxZoom: 14 });
+    // cooperative: page scroll never zooms the map (cmd+scroll does);
+    // frameFlats: open framed on the flats at zoom 15, dots stay individual until zoomed out
+    var api = RegaMap.stays("guideMap", MAP_DATA, { cardSel: ".__no-list", cluster: true, gesture: "cooperative", frameFlats: true, clusterMaxZoom: 14 });
     if (!api) return;
     var bar = document.querySelector(".map-controls");
     if (bar) {
@@ -179,47 +182,6 @@ const content =
         api.locate(function (u) { b.classList.remove("loading"); if (!u) { b.classList.add("err"); setTimeout(function () { b.classList.remove("err"); }, 2200); } });
       });
     }
-
-    // §5/§7-A intro: fire only when the map is idle AND ≥60% of it is in view. Otherwise the
-    // map renders normally (clustering on, places visible). A backstop reveals held pins if the
-    // user never reaches the 60% mark, so the map is never left showing only the flats.
-    if (!(GI.armed && window.__runGuideIntro)) return;
-    var mapEl = document.getElementById("guideMap");
-    var fired = false, backstop = 0;
-    function visEnough() {
-      if (!mapEl) return true;
-      var r = mapEl.getBoundingClientRect(), h = window.innerHeight || document.documentElement.clientHeight;
-      if (r.height <= 0) return false;
-      var shown = Math.min(r.bottom, h) - Math.max(r.top, 0);
-      return (shown / Math.min(r.height, h)) >= 0.6 || r.top < h * 0.15; // in view, or scrolled to/past
-    }
-    function run() {
-      if (fired) return; fired = true; clearTimeout(backstop);
-      var go = function () { window.__runGuideIntro(api); };
-      if (window.requestIdleCallback) requestIdleCallback(go, { timeout: 400 }); else setTimeout(go, 60);
-    }
-    function revealStatic() {
-      // fallback only — the intro never played, so do NOT mark the session as seen
-      if (fired) return; fired = true;
-      api.markers.forEach(function (m) { if (m.item && !m.item.flat) { try { m.m.setOpacity(1); } catch (e) {} } });
-      try { api.enableCluster(); } catch (e) {}
-      try { api.map.setOptions({ gestureHandling: "cooperative" }); } catch (e) {}
-      document.documentElement.classList.remove("guide-intro-armed");
-    }
-    google.maps.event.addListenerOnce(api.map, "idle", function () {
-      if (visEnough()) { run(); return; }
-      function onScroll() { if (visEnough()) { run(); window.removeEventListener("scroll", onScroll); } }
-      window.addEventListener("scroll", onScroll, { passive: true });
-      // never leave pins hidden: if the user lingers at the map's edge (partially visible)
-      // without ever crossing 60%, reveal statically — counted from when the map first
-      // appears on screen, NOT from map init (it loads 600px ahead of the viewport).
-      if (mapEl && "IntersectionObserver" in window) {
-        var bio = new IntersectionObserver(function (es) {
-          es.forEach(function (e) { if (e.isIntersecting && !backstop) { backstop = setTimeout(revealStatic, 5000); bio.disconnect(); } });
-        }, { threshold: 0.05 });
-        bio.observe(mapEl);
-      } else backstop = setTimeout(revealStatic, 8000);
-    });
   };
 
   // §8 — load the Google Maps SDK lazily, only as the map section nears the viewport.
@@ -241,4 +203,7 @@ const content =
   }
 })();
 </script>
+<script is:inline define:vars={{ personalPlaces, rrLang: 'en' }}>window.RR_PLACES = personalPlaces; window.RR_LANG = rrLang;</script>
+<script is:inline src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script is:inline src="/rega-personal.js"></script>
 </Site>
