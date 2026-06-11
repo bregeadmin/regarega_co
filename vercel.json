@@ -8,7 +8,10 @@
     { "source": "/ru/stays/:path*", "destination": "/ru/georgia/batumi/stays/:path*", "permanent": false },
     { "source": "/(own|invest|about|contact|agents|privacy|terms)", "destination": "/georgia/batumi/$1", "permanent": false },
     { "source": "/ru/(own|invest|about|contact|agents|privacy|terms)", "destination": "/ru/georgia/batumi/$1", "permanent": false },
-    { "source": "/ru", "destination": "/ru/georgia/batumi", "permanent": false }
+    { "source": "/ru", "destination": "/ru/georgia/batumi", "permanent": false },
+    { "source": "/ru/", "destination": "/ru/georgia/batumi", "permanent": false },
+    { "source": "/lobby", "destination": "/georgia/batumi", "permanent": false },
+    { "source": "/lobby/", "destination": "/georgia/batumi", "permanent": false }
   ],
   "images": {
     "sizes": [320, 480, 640, 750, 828, 1080, 1200, 1920],
