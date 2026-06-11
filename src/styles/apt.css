@@ -8,7 +8,7 @@
 .gallery-grid .ph img{width:100%;height:100%;object-fit:cover;transition:transform .5s ease}
 .gallery-grid .ph:hover img{transform:scale(1.04)}
 .gallery-grid .ph.main{grid-row:1/3;grid-column:1/2}
-.gallery-all{position:absolute;bottom:20px;right:20px;padding:10px 16px;background:rgba(10,9,8,0.85);color:#fff;font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;font-weight:700;border-radius:999px;cursor:pointer;border:0;backdrop-filter:blur(4px);transition:background .2s ease}
+.gallery-all{position:absolute;bottom:20px;right:20px;padding:10px 16px;background:rgba(10,9,8,0.85);color:#FAF7F0;font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;font-weight:700;border-radius:999px;cursor:pointer;border:0;backdrop-filter:blur(4px);transition:background .2s ease}
 .gallery-all:hover{background:var(--ink)}
 .apt-head{padding:32px 28px 0;max-width:1400px;margin:0 auto;display:grid;grid-template-columns:1fr auto;gap:32px;align-items:end}
 .apt-head h1{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:clamp(40px,5.5vw,72px);line-height:1;letter-spacing:-.035em;text-transform:lowercase}
@@ -19,7 +19,7 @@
 .apt-head .badges{display:flex;gap:8px;flex-wrap:wrap}
 .badge{display:inline-flex;align-items:center;gap:6px;padding:5px 11px;border:1px solid var(--line-strong);border-radius:999px;font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.22em;text-transform:uppercase;font-weight:700;color:var(--ink-soft)}
 .badge .dot{width:6px;height:6px;border-radius:50%;background:var(--page)}
-.badge.hot{background:var(--page);color:#fff;border-color:var(--page)}
+.badge.hot{background:var(--page);color:#FAF7F0;border-color:var(--page)}
 /* greyed placeholders — data not in DB yet; revisit when the guide is filled */
 .badge.pending{background:var(--bg-2);color:var(--ink-soft);border:1px dashed var(--line-strong);text-transform:none;letter-spacing:.02em;font-weight:600}
 .loc-near.pending{opacity:.6}
@@ -47,7 +47,7 @@
 .loc-map{background:var(--bg-2);border-radius:14px;aspect-ratio:1/1;overflow:hidden;position:relative;border:1px solid var(--line)}
 .loc-map svg{width:100%;height:100%;display:block}
 .map-route{position:absolute;left:12px;bottom:12px;z-index:5;display:inline-flex;align-items:center;gap:6px;padding:9px 14px;background:#fff;color:var(--ink);border:1px solid var(--line-strong);border-radius:999px;font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;font-weight:700;text-decoration:none;box-shadow:0 3px 10px rgba(0,0,0,.14);transition:all .2s ease}
-.map-route:hover{background:var(--page);color:#fff;border-color:var(--page)}
+.map-route:hover{background:var(--page);color:#FAF7F0;border-color:var(--page)}
 .loc-info p{font-size:15px;line-height:1.6}
 .loc-near{display:flex;flex-direction:column;gap:8px;margin-top:14px}
 .loc-near .ln{display:flex;justify-content:space-between;align-items:baseline;padding:8px 0;border-bottom:1px dashed var(--line)}
@@ -76,14 +76,14 @@
 .apt-book .price{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:32px;letter-spacing:-.025em;line-height:1.1;color:var(--ink);margin-bottom:4px}
 .apt-book .price em{font-style:normal;color:var(--page)}
 .apt-book .price .per{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-soft);font-weight:600}
-.apt-book .save{display:inline-block;margin-top:10px;padding:5px 10px;background:var(--page);color:#fff;border-radius:999px;font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.22em;text-transform:uppercase;font-weight:700}
+.apt-book .save{display:inline-block;margin-top:10px;padding:5px 10px;background:var(--page);color:#FAF7F0;border-radius:999px;font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.22em;text-transform:uppercase;font-weight:700}
 .apt-book form{display:flex;flex-direction:column;gap:10px;margin-top:20px}
 .apt-book .row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 .apt-book .field{display:flex;flex-direction:column;gap:4px;padding:9px 12px;border:1px solid var(--line-strong);border-radius:10px;background:#fff;transition:border-color .2s ease}
 .apt-book .field:focus-within{border-color:var(--page)}
 .apt-book .field label{font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-soft);font-weight:600}
 .apt-book .field input,.apt-book .field select{font-family:"Bricolage Grotesque",sans-serif;font-weight:600;font-size:14px;border:0;background:transparent;outline:0;color:var(--ink);padding:0;cursor:pointer}
-.apt-book .btn-primary{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:14px 22px;background:var(--ink);color:#fff;border:0;border-radius:999px;font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.22em;text-transform:uppercase;font-weight:700;cursor:pointer;transition:background .2s ease;margin-top:6px}
+.apt-book .btn-primary{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:14px 22px;background:var(--ink);color:#FAF7F0;border:0;border-radius:999px;font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.22em;text-transform:uppercase;font-weight:700;cursor:pointer;transition:background .2s ease;margin-top:6px}
 .apt-book .btn-primary:hover{background:var(--page)}
 /* how-it-works: 3 quiet steps under the booking button */
 .apt-book .book-steps{list-style:none;margin:18px 0 0;padding:0;display:flex;flex-direction:column;gap:10px}
@@ -128,7 +128,7 @@
 .cta-help p{font-size:15px;line-height:1.6;color:var(--ink-soft);margin-bottom:24px}
 .cta-help .btns{display:inline-flex;gap:10px;flex-wrap:wrap;justify-content:center}
 .cta-help .btn{display:inline-flex;align-items:center;gap:8px;padding:14px 22px;border-radius:999px;font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.22em;text-transform:uppercase;font-weight:700;transition:all .2s ease}
-.cta-help .btn.primary{background:var(--ink);color:#fff}
+.cta-help .btn.primary{background:var(--ink);color:#FAF7F0}
 .cta-help .btn.primary:hover{background:var(--page)}
 .cta-help .btn.alt{background:transparent;color:var(--ink);border:1px solid var(--line-strong)}
 .cta-help .btn.alt:hover{border-color:var(--ink);background:var(--paper)}
@@ -163,7 +163,7 @@
 .cal-pop{position:fixed;z-index:200;background:var(--paper);border:1px solid var(--line);border-radius:16px;box-shadow:0 24px 60px rgba(10,9,8,0.18);padding:24px;width:680px;max-width:calc(100vw - 28px);font-family:"Bricolage Grotesque",sans-serif}
 .cal-head{display:grid;grid-template-columns:auto 1fr auto;gap:14px;align-items:center;margin-bottom:18px}
 .cal-nav{width:36px;height:36px;border:1px solid var(--line-strong);border-radius:50%;background:transparent;cursor:pointer;font-size:16px;font-weight:600;color:var(--ink);transition:all .2s ease;display:flex;align-items:center;justify-content:center}
-.cal-nav:hover{border-color:var(--ink);background:var(--ink);color:#fff}
+.cal-nav:hover{border-color:var(--ink);background:var(--ink);color:#FAF7F0}
 .cal-months{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:32px}
 .cal-month{min-width:0}
 .cal-month .cal-title{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.22em;text-transform:uppercase;font-weight:700;text-align:center;margin-bottom:14px;color:var(--ink)}
@@ -173,21 +173,21 @@
 .cal-day{width:100%;max-width:42px;aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:var(--ink);cursor:pointer;border-radius:50%;background:transparent;border:0;font-family:"Bricolage Grotesque",sans-serif;padding:0;position:relative;box-sizing:border-box;line-height:1;margin:0 auto}
 .cal-day.empty{cursor:default}
 .cal-day.past{color:var(--ink-soft);opacity:.35;cursor:default;text-decoration:line-through}
-.cal-day.av{background:#D6F5DC}
-.cal-day.peak{background:#FFF0B8}
-.cal-day.booked{background:#FFCFC2;text-decoration:line-through;cursor:default;color:var(--ink-soft)}
-.cal-day:not(.past):not(.booked):not(.empty):hover{background:var(--ink);color:#fff}
+.cal-day.av{background:var(--green-tint)}
+.cal-day.peak{background:var(--accent-soft)}
+.cal-day.booked{background:var(--bg-2);text-decoration:line-through;cursor:default;color:var(--ink-soft)}
+.cal-day:not(.past):not(.booked):not(.empty):hover{background:var(--ink);color:#FAF7F0}
 .cal-day.inside{background:#EEEAE0 !important;color:var(--ink) !important}
-.cal-day.start{background:var(--ink) !important;color:#fff !important}
-.cal-day.end{background:var(--ink) !important;color:#fff !important}
+.cal-day.start{background:var(--ink) !important;color:#FAF7F0 !important}
+.cal-day.end{background:var(--ink) !important;color:#FAF7F0 !important}
 .cal-legend{display:flex;align-items:center;gap:18px;flex-wrap:wrap;padding-top:18px;border-top:1px solid var(--line);font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-soft);font-weight:600}
 .cal-leg{display:inline-flex;align-items:center;gap:8px}
 .cal-leg .ll{width:14px;height:14px;border-radius:50%}
-.cal-leg .ll.green{background:#D6F5DC}
-.cal-leg .ll.yellow{background:#FFF0B8}
-.cal-leg .ll.coral{background:#FFCFC2}
+.cal-leg .ll.green{background:var(--green-tint)}
+.cal-leg .ll.yellow{background:var(--accent-soft)}
+.cal-leg .ll.coral{background:var(--bg-2);border:1px solid var(--line-strong)}
 .cal-leg-night{margin-left:auto;color:var(--ink);font-weight:700}
-.cal-apply{padding:9px 18px;background:var(--ink);color:#fff;border:0;border-radius:999px;font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;font-weight:700;cursor:pointer;transition:background .2s ease;flex-shrink:0;margin-left:14px}
+.cal-apply{padding:9px 18px;background:var(--ink);color:#FAF7F0;border:0;border-radius:999px;font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;font-weight:700;cursor:pointer;transition:background .2s ease;flex-shrink:0;margin-left:14px}
 .cal-apply:hover{background:var(--accent)}
 .guest-pop{position:fixed;z-index:200;background:var(--paper);border:1px solid var(--line);border-radius:16px;box-shadow:0 24px 60px rgba(10,9,8,0.18);padding:22px;width:360px;max-width:calc(100vw - 28px);display:flex;flex-direction:column;gap:0;font-family:"Bricolage Grotesque",sans-serif}
 .gp-head{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-soft);font-weight:600;display:flex;align-items:center;gap:10px;padding-bottom:14px;margin-bottom:4px;border-bottom:1px solid var(--line)}
@@ -198,21 +198,21 @@
 .gp-info .gp-sub{font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-soft);margin-top:4px;font-weight:600}
 .gp-ctrl{display:flex;align-items:center;gap:14px}
 .gp-btn{width:32px;height:32px;border-radius:50%;border:1px solid var(--line-strong);background:transparent;cursor:pointer;font-size:18px;font-weight:400;color:var(--ink);transition:all .2s ease;display:flex;align-items:center;justify-content:center;padding:0;font-family:"Bricolage Grotesque",sans-serif;line-height:1}
-.gp-btn:hover{background:var(--accent);border-color:var(--accent);color:#fff}
+.gp-btn:hover{background:var(--accent);border-color:var(--accent);color:#FAF7F0}
 .gp-btn:disabled{opacity:.25;cursor:default}
 .gp-btn:disabled:hover{background:transparent;border-color:var(--line-strong);color:var(--ink)}
 .gp-num{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:17px;min-width:20px;text-align:center;color:var(--ink)}
 .gp-foot{display:flex;justify-content:space-between;align-items:center;padding-top:16px;margin-top:4px;border-top:1px solid var(--line);gap:14px}
 .gp-note{font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-soft);font-weight:600;flex:1}
-.gp-apply{padding:11px 22px;background:var(--ink);color:#fff;border:0;border-radius:999px;font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;font-weight:700;cursor:pointer;transition:background .2s ease;flex-shrink:0}
+.gp-apply{padding:11px 22px;background:var(--ink);color:#FAF7F0;border:0;border-radius:999px;font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;font-weight:700;cursor:pointer;transition:background .2s ease;flex-shrink:0}
 .gp-apply:hover{background:var(--accent)}
 .lightbox[hidden],.lightbox-single[hidden],.cal-pop[hidden],.guest-pop[hidden]{display:none !important}
 .lightbox{position:fixed;inset:0;z-index:300;background:rgba(10,9,8,0.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);animation:lbFadeIn .25s ease;display:flex;flex-direction:column}
 .lightbox .lb-head{flex:none;display:flex;justify-content:space-between;align-items:center;padding:18px 28px;background:rgba(10,9,8,0.4);backdrop-filter:blur(20px)}
-.lightbox .lb-title{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:#fff;font-weight:600;display:flex;align-items:center;gap:10px}
+.lightbox .lb-title{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:#FAF7F0;font-weight:600;display:flex;align-items:center;gap:10px}
 .lightbox .lb-title::before{content:'';width:6px;height:6px;border-radius:50%;background:var(--accent);display:inline-block}
-.lightbox .lb-close{width:36px;height:36px;border-radius:50%;background:transparent;color:#fff;border:1px solid #ffffff44;font-size:16px;font-weight:400;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;transition:all .2s ease;font-family:system-ui,sans-serif;padding:0;padding-bottom:2px}
-.lightbox .lb-close:hover{background:var(--accent);border-color:var(--accent);color:#fff;transform:rotate(90deg)}
+.lightbox .lb-close{width:36px;height:36px;border-radius:50%;background:transparent;color:#FAF7F0;border:1px solid #ffffff44;font-size:16px;font-weight:400;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;transition:all .2s ease;font-family:system-ui,sans-serif;padding:0;padding-bottom:2px}
+.lightbox .lb-close:hover{background:var(--accent);border-color:var(--accent);color:#FAF7F0;transform:rotate(90deg)}
 .lightbox .lb-body{flex:1;min-height:0;overflow-y:auto;padding:20px 28px 28px;max-width:1400px;margin:0 auto;width:100%}
 .lightbox .lb-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(220px,1fr));gap:10px}
 .lightbox .lb-cell{aspect-ratio:1;overflow:hidden;background:#1a1815;border-radius:8px;cursor:pointer}
@@ -220,14 +220,14 @@
 .lightbox .lb-cell:hover img{transform:scale(1.04)}
 .lightbox-single{position:fixed;inset:0;z-index:310;background:rgba(10,9,8,0.96);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);display:flex;flex-direction:column;animation:lbFadeIn .2s ease}
 .lightbox-single .lb-head{flex:none;display:grid;grid-template-columns:auto 1fr auto;align-items:center;padding:18px 28px;gap:14px}
-.lightbox-single .lb-back{width:36px;height:36px;border-radius:50%;background:transparent;color:#fff;border:1px solid #ffffff44;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;transition:all .2s ease;font-family:system-ui,sans-serif}
+.lightbox-single .lb-back{width:36px;height:36px;border-radius:50%;background:transparent;color:#FAF7F0;border:1px solid #ffffff44;font-size:18px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;transition:all .2s ease;font-family:system-ui,sans-serif}
 .lightbox-single .lb-back:hover{background:var(--accent);border-color:var(--accent)}
-.lightbox-single .lb-close{width:36px;height:36px;border-radius:50%;background:transparent;color:#fff;border:1px solid #ffffff44;font-size:16px;font-weight:400;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;transition:all .2s ease;font-family:system-ui,sans-serif;padding:0;padding-bottom:2px}
-.lightbox-single .lb-close:hover{background:var(--accent);border-color:var(--accent);color:#fff;transform:rotate(90deg)}
-.lightbox-single .lb-counter{text-align:center;color:#fff;font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.22em;font-weight:600;text-transform:uppercase}
+.lightbox-single .lb-close{width:36px;height:36px;border-radius:50%;background:transparent;color:#FAF7F0;border:1px solid #ffffff44;font-size:16px;font-weight:400;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;transition:all .2s ease;font-family:system-ui,sans-serif;padding:0;padding-bottom:2px}
+.lightbox-single .lb-close:hover{background:var(--accent);border-color:var(--accent);color:#FAF7F0;transform:rotate(90deg)}
+.lightbox-single .lb-counter{text-align:center;color:#FAF7F0;font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.22em;font-weight:600;text-transform:uppercase}
 .lightbox-single .lb-single-body{flex:1;min-height:0;display:flex;align-items:center;justify-content:center;padding:0 80px 24px;position:relative}
-.lightbox-single img{max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;border-radius:8px;display:block;cursor:pointer}
-.lightbox-single .lb-prev,.lightbox-single .lb-next{position:absolute;top:50%;transform:translateY(-50%);width:48px;height:48px;border-radius:50%;background:transparent;color:#fff;border:1px solid #ffffff44;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;transition:all .2s ease;font-family:system-ui,sans-serif}
+.lightbox-single img{max-width:100%;max-height:100%;width:auto;height:auto;object-fit:contain;border-radius:8px;display:block;cursor:pointer;transition:opacity .16s var(--ease-rega)}
+.lightbox-single .lb-prev,.lightbox-single .lb-next{position:absolute;top:50%;transform:translateY(-50%);width:48px;height:48px;border-radius:50%;background:transparent;color:#FAF7F0;border:1px solid #ffffff44;font-size:20px;cursor:pointer;display:flex;align-items:center;justify-content:center;line-height:1;transition:all .2s ease;font-family:system-ui,sans-serif}
 .lightbox-single .lb-prev{left:14px}
 .lightbox-single .lb-next{right:14px}
 .lightbox-single .lb-prev:hover,.lightbox-single .lb-next:hover{background:var(--accent);border-color:var(--accent)}
@@ -242,4 +242,4 @@
 .guest-pop{width:calc(100vw - 28px)}
 }
 .apt-share{margin-top:16px;display:inline-flex;align-items:center;gap:7px;padding:9px 16px;border:1px solid var(--line-strong);border-radius:999px;background:var(--paper);font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;font-weight:700;color:var(--ink);cursor:pointer;transition:all .2s ease}
-.apt-share:hover{background:var(--ink);color:#fff;border-color:var(--ink)}
+.apt-share:hover{background:var(--ink);color:#FAF7F0;border-color:var(--ink)}
