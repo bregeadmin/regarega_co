@@ -14,10 +14,12 @@
   var T = {
     en: { hi: 'hi', youAt: "you're staying at", near: 'near you', min: 'min walk',
           back: 'welcome back', soon: 'your trip is coming up', bookAgain: 'book another stay',
-          offers: 'for you nearby', refresh: 'refresh', openGuide: 'see place' },
+          offers: 'for you nearby', refresh: 'refresh', openGuide: 'see place',
+          nearMe: 'places near me', locating: 'finding you…', locErr: 'turn on location' },
     ru: { hi: 'привет', youAt: 'вы остановились в', near: 'рядом с вами', min: 'мин пешком',
           back: 'с возвращением', soon: 'скоро ваша поездка', bookAgain: 'забронировать снова',
-          offers: 'для вас рядом', refresh: 'обновить', openGuide: 'смотреть место' }
+          offers: 'для вас рядом', refresh: 'обновить', openGuide: 'смотреть место',
+          nearMe: 'места рядом со мной', locating: 'ищем вас…', locErr: 'включите геолокацию' }
   }[LANG];
 
   function esc(s) { return String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
@@ -55,7 +57,7 @@
 
   // экспорт для отладки/расширений
   window.RR = { token: TOKEN, sb: sb, lang: LANG, t: T };
-  if (!TOKEN) return;                       // аноним — ничего не рисуем (избранное работает локально как раньше)
+  if (!TOKEN) { setupNearMe(); return; }     // аноним → кнопка «места рядом со мной» по GPS; избранное локально
 
   // ── localStorage избранного (тот же ключ/событие, что в Site.astro) ──
   function lsFavs() { try { return JSON.parse(localStorage.getItem('rr_favs') || '[]'); } catch (e) { return []; } }
@@ -92,18 +94,21 @@
   });
 
   // ── рендер персональной шапки ──
-  function placeCard(p) {
-    var d = havKm(window.RR.data.apt, p);
+  function placeCard(p, origin) {
+    var d = havKm(origin, p);
     return '<a class="rrp-place" href="' + esc(p.href) + '">' +
       (p.photo ? '<span class="rrp-ph" style="background-image:url(' + esc(p.photo) + ')"></span>' : '<span class="rrp-ph"></span>') +
       '<span class="rrp-meta"><b>' + esc(p.title) + '</b>' +
       '<span class="rrp-dist">' + walkMin(d) + ' ' + T.min + '</span></span></a>';
   }
+  function nearestStrip(origin) {
+    var near = PLACES.slice().sort(function (a, b) { return havKm(origin, a) - havKm(origin, b); }).slice(0, 6);
+    return '<div class="rrp-near"><div class="rrp-h">' + T.near + '</div>' +
+      '<div class="rrp-row">' + near.map(function (p) { return placeCard(p, origin); }).join('') + '</div></div>';
+  }
   function nearestHtml(d) {
     if (d.apt.lat == null || d.apt.lng == null || !PLACES.length) return '';
-    var near = PLACES.slice().sort(function (a, b) { return havKm(d.apt, a) - havKm(d.apt, b); }).slice(0, 6);
-    return '<div class="rrp-near"><div class="rrp-h">' + T.near + '</div>' +
-      '<div class="rrp-row">' + near.map(placeCard).join('') + '</div></div>';
+    return nearestStrip(d.apt);
   }
   function controlsHtml() {
     // только «обновить» — кнопку «Поделиться» делает Site.astro (site-wide). Не дублируем.
@@ -173,6 +178,32 @@
         else { btn.disabled = false; }
       } else { btn.disabled = false; }
     });
+  }
+
+  // ── аноним (без токена): «места рядом со мной» по GPS ──
+  function setupNearMe() {
+    var el = document.getElementById('rr-personal');
+    if (!el || !PLACES.length || !navigator.geolocation) return;
+    var pin = '<svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 21s-7-6.2-7-11a7 7 0 0 1 14 0c0 4.8-7 11-7 11z"/><circle cx="12" cy="10" r="2.5"/></svg>';
+    el.innerHTML = '<div class="rrp-nearwrap"><button type="button" class="rrp-nearbtn">' + pin + '<span>' + T.nearMe + '</span></button></div>';
+    el.hidden = false;
+    var btn = el.querySelector('.rrp-nearbtn');
+    btn.onclick = function () {
+      btn.disabled = true; btn.classList.add('loading');
+      btn.querySelector('span').textContent = T.locating;
+      navigator.geolocation.getCurrentPosition(function (pos) {
+        renderNearMe({ lat: pos.coords.latitude, lng: pos.coords.longitude });
+      }, function () {
+        btn.disabled = false; btn.classList.remove('loading'); btn.classList.add('err');
+        btn.querySelector('span').textContent = T.locErr;
+      }, { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 });
+    };
+  }
+  function renderNearMe(origin) {
+    var el = document.getElementById('rr-personal');
+    if (!el) return;
+    el.innerHTML = nearestStrip(origin);
+    el.hidden = false;
   }
 
   window.RR.render = render;

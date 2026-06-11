@@ -180,3 +180,20 @@
 }
 .rri-share { color: var(--acc); vertical-align: -3px; }
 @media (max-width: 380px) { .rri-txt { font-size: 13px; } .rri-steps li { font-size: 12px; } }
+
+/* ── «места рядом со мной» по GPS (аноним, без токена) ── */
+.rrp-nearwrap { display: flex; margin: 0 0 4px; }
+.rrp-nearbtn {
+  display: inline-flex; align-items: center; gap: 9px; cursor: pointer; border: none;
+  background: var(--ink); color: var(--bg);
+  border-radius: 999px; padding: 12px 18px;
+  font-family: "JetBrains Mono", monospace; font-size: 11px; font-weight: 700;
+  letter-spacing: .12em; text-transform: uppercase; white-space: nowrap;
+  box-shadow: 0 6px 20px rgba(10, 9, 8, 0.16);
+  transition: transform .2s ease, opacity .2s ease;
+}
+.rrp-nearbtn svg { color: var(--acc); flex: 0 0 auto; }
+.rrp-nearbtn:hover { transform: translateY(-1px); }
+.rrp-nearbtn.loading { opacity: .6; pointer-events: none; }
+.rrp-nearbtn.err { background: var(--bg); color: #d9402a; border: 1px solid #d9402a; box-shadow: none; }
+.rrp-nearbtn.err svg { color: #d9402a; }
