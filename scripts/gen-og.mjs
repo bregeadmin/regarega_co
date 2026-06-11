@@ -149,6 +149,32 @@ async function card(d) {
     // RU
     writeFileSync(join(OUT, 'stay-' + a.slug + '-ru.png'), await card({ img, name: String(a.title_ru || a.title || '').toLowerCase(), tag: 'квартира', accent: '#FF5E1A', kicker: 'батуми · квартиры', cta: 'забронировать', ru: true, line: clip(a.summary_ru || a.summary, 130) })); n++;
   }
+  // --- news (editorial link-preview cards) ---
+  const news = JSON.parse(readFileSync(join(__dir, '..', 'src', 'data', 'news.json'), 'utf8'));
+  for (const nw of (news || [])) {
+    const photo = nw.image || (nw.photos && nw.photos[0]); if (!photo) continue;
+    const img = await fetchImg(photo);
+    const name = String(nw.title || '').toLowerCase();
+    const line = clip(nw.descr || nw.body, 130);
+    writeFileSync(join(OUT, 'news-' + nw.slug + '.png'), await card({ img, name, tag: 'news', accent: '#FF5E1A', kicker: 'batumi · the guide', cta: 'read', line })); n++;
+    writeFileSync(join(OUT, 'news-' + nw.slug + '-ru.png'), await card({ img, name, tag: 'новости', accent: '#FF5E1A', kicker: 'батуми · гид', cta: 'читать', ru: true, line })); n++;
+  }
+
+  // --- longreads (editorial stories — hardcoded pages, no DB row) ---
+  const longreads = [
+    {
+      slug: 'day-in-old-batumi', photo: 'https://regarega.co/img/old-batumi.jpg',
+      name: 'a day in old batumi', name_ru: 'день в старом батуми',
+      line: 'our slow walking guide — two squares, peeling façades, and the long way down to the sea.',
+      line_ru: 'неспешный пеший гид — две площади, облупленные фасады и дорога к морю.',
+    },
+  ];
+  for (const lr of longreads) {
+    const img = await fetchImg(lr.photo);
+    writeFileSync(join(OUT, 'longread-' + lr.slug + '.png'), await card({ img, name: lr.name, tag: 'story', accent: '#FF5E1A', kicker: 'batumi · the guide', cta: 'read the story', line: lr.line })); n++;
+    writeFileSync(join(OUT, 'longread-' + lr.slug + '-ru.png'), await card({ img, name: lr.name_ru, tag: 'история', accent: '#FF5E1A', kicker: 'батуми · гид', cta: 'читать', ru: true, line: lr.line_ru })); n++;
+  }
+
   // default fallback cards (EN + RU)
   writeFileSync(join(OUT, 'default.png'), await card({ photo: 'https://regarega.co/img/hero-batumi.jpg', name: 'rega rega batumi', tag: 'city guide', accent: '#FF5E1A', kicker: 'batumi', cta: 'open', line: 'checked flats and a city guide — batumi edition.' }));
   writeFileSync(join(OUT, 'default-ru.png'), await card({ photo: 'https://regarega.co/img/hero-batumi.jpg', name: 'rega rega батуми', tag: 'гид по городу', accent: '#FF5E1A', kicker: 'батуми', cta: 'открыть', ru: true, line: 'проверенные квартиры и гид по батуми.' }));
