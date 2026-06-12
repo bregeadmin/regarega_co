@@ -82,7 +82,7 @@ const initJs = "window.__initGMap=function(){"
 <script is:inline>
 (function () {
   var ticking = false;
-  function update() { ticking = false; var y = window.scrollY || document.documentElement.scrollTop || 0; document.body.classList.toggle('stays-scrolled', y > 120); }
+  function update() { ticking = false; var y = window.scrollY || document.documentElement.scrollTop || 0; var cl = document.body.classList; if (cl.contains('stays-scrolled')) { if (y < 70) cl.remove('stays-scrolled'); } else { if (y > 120) cl.add('stays-scrolled'); } }
   window.addEventListener('scroll', function () { if (!ticking) { requestAnimationFrame(update); ticking = true; } }, { passive: true });
   update();
   // mobile: tapping the collapsed search pill scrolls back up to reveal the full search
