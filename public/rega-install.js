@@ -50,7 +50,8 @@
 
   function show(mode) {
     if (standalone() || dismissed() || document.getElementById('rr-install')) return;
-    var mark = '<svg class="rri-mark" viewBox="0 0 100 100" aria-hidden="true"><path fill-rule="evenodd" fill="#FF5E1A" d="M 50,50 m -50,0 a 50,50 0 1,1 100,0 a 50,50 0 1,1 -100,0 z M 62,62 m -16.5,0 a 16.5,16.5 0 1,1 33,0 a 16.5,16.5 0 1,1 -33,0 z"/></svg>';
+    // знак = точная копия .brand-sign из шапки (Site.astro), не фавиконный вырез
+    var mark = '<svg class="rri-mark" viewBox="0 0 100 100" aria-hidden="true"><path fill-rule="evenodd" fill="#FF5E1A" d="M 50,50 m -50,0 a 50,50 0 1,1 100,0 a 50,50 0 1,1 -100,0 z M 64,64 m -12,0 a 12,12 0 1,1 24,0 a 12,12 0 1,1 -24,0 z"/></svg>';
     var x = '<button type="button" class="rri-x" id="rri-x" aria-label="close">×</button>';
     var bar = document.createElement('div');
     bar.id = 'rr-install';
