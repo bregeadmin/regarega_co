@@ -49,6 +49,9 @@ button:active,.btn:active,.act:active,.cta:active,.story-btn:active,.share-btn:a
 .skip-link:focus{top:12px}
 /* tap targets: heart on cards keeps its 32px look but gets a 44px hit area */
 .fav::after{content:'';position:absolute;inset:-6px}
+/* heart: a little spring when you save/unsave (deliberate action → delight ok) */
+@keyframes favPop{0%{transform:scale(.8)}55%{transform:scale(1.15)}100%{transform:scale(1)}}
+.fav.pop{animation:favPop .34s var(--ease-rega)}
 /* tap targets: secondary menu links reach 44px */
 .menu-overlay .menu-sub{display:flex;align-items:center;min-height:44px}
 .menu-overlay .menu-tg{display:inline-flex;align-items:center;min-height:44px}

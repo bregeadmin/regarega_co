@@ -184,6 +184,7 @@ const ogImage = new URL(image, Astro.site).href;
         if(s.has(slug)){ s.delete(slug); b.textContent='♡'; b.classList.remove('on'); }
         else { s.add(slug); b.textContent='♥'; b.classList.add('on'); }
         save(s);
+        b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop');
         document.dispatchEvent(new CustomEvent('rr:favschange',{detail:Array.from(s)}));
       });
     });
