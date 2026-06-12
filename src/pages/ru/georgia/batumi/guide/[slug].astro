@@ -113,7 +113,7 @@ const nearbySection = nearbyCards
 const relatedCards = related.map((r) => {
   const ph = (r.photos && r.photos[0]) || r.image || '';
   const rl = (CAT[r.category] || cat).label;
-  return '<a class="pl" href="/ru/georgia/batumi/guide/' + r.slug + '"><div class="ph"><img src="' + esc(ph) + '" alt="" loading="lazy"></div><span class="kicker"><span class="sw"></span>' + esc(rl) + '</span><h5>' + esc(r.title || r.name) + '</h5><p class="summary">' + esc(String(r.summary || '').slice(0, 90)) + '</p></a>';
+  return '<a class="pl" href="/ru/georgia/batumi/guide/' + r.slug + '"><div class="ph"><img src="' + esc(ph) + '" alt="" loading="lazy"></div><span class="kicker"><span class="sw"></span>' + esc(rl) + '</span><h5>' + esc(r.title || r.name) + '</h5><p class="summary">' + esc(String(r.take_title || r.summary || '').replace(/\*+/g,'').slice(0, 90)) + '</p></a>';
 }).join('');
 const relatedSection = relatedCards
   ? '<section class="related"><div class="container"><div class="top"><h3>ещё <em>места</em> рядом.</h3><div class="right">— из «' + esc(cat.label) + '»</div></div><div class="grid">' + relatedCards + '</div></div></section>'
