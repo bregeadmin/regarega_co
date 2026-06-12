@@ -3,7 +3,6 @@
   --ink:#0A0908;--soft:#6B6862;--faint:#9b9a94;--line:#ECE8DF;
   --acc:#FF5E1A;
   --slate:#3A4868;--blue:#3D5AFE;--green:#1F8A5B;
-  --teal:#00b5b0;--purple:#7f77dd;--yellow:#ffd60a;--lime:#C6F432;
 }
 *{box-sizing:border-box;margin:0;padding:0;-webkit-font-smoothing:antialiased}
 html,body{overflow-x:clip}
