@@ -42,6 +42,10 @@ section{position:relative;z-index:2}
 .cats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
 .cat-tile{position:relative;display:flex;flex-direction:column;justify-content:space-between;padding:24px;min-height:240px;border-radius:14px;overflow:hidden;transition:transform .3s cubic-bezier(.2,.7,.2,1),border-color .25s ease;border:1px solid transparent}
 .cat-tile:hover{transform:translateY(-4px)}
+/* "soon" tiles: muted, non-interactive (rendered as <div>, no arrow) */
+.cat-tile.is-soon{opacity:.5;cursor:default}
+.cat-tile.is-soon:hover{transform:none}
+.cat-tile.is-soon .go{display:none}
 .cat-tile > *{position:relative;z-index:2}
 .cat-tile .top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
 .cat-tile .num{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:44px;line-height:.9;letter-spacing:-.03em}

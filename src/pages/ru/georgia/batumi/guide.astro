@@ -55,7 +55,7 @@ const CATS = [
   { cls: 'stay primary featured', href: '/ru/georgia/batumi/stays', n: aptCount || '', h: 'жить и оставаться', sub: 'квартиры · отели · долгосрочно', desc: 'наши квартиры, отели куда отправляем гостей, районы где сами живём.', featured: true },
   { cls: 'eat primary', href: '/ru/georgia/batumi/guide/eat-drink', n: counts['eat-drink'] || 0, ico: ICO.eat, h: 'есть и пить', sub: 'кафе · рестораны · бары', desc: 'любимые кафе, бранчи, рестораны, коктейльные бары и пекарни.' },
   { cls: 'wellness primary', href: '/ru/georgia/batumi/guide/wellness', n: counts['wellness'] || 0, ico: ICO.wellness, h: 'велнес', sub: 'спа · бани · йога · массаж', desc: 'медленная жизнь как надо: серные бани, массаж, спа-дни.' },
-  { cls: 'nightlife primary', href: '#', n: '—', ico: ICO.nightlife, h: 'ночная жизнь', sub: 'винные бары · клубы · ночные места', desc: 'где выпить поздно, потанцевать как следует или найти винный бар с винилом.', soon: true },
+  { cls: 'nightlife secondary', href: '#', n: '—', ico: ICO.nightlife, h: 'ночная жизнь', sub: 'винные бары · клубы · ночные места', desc: 'где выпить поздно, потанцевать как следует или найти винный бар с винилом.', soon: true },
   { cls: 'experiences primary', href: '#', n: '—', ico: ICO.experiences, h: 'впечатления', sub: 'туры · мастер-классы · поездки на день', desc: 'винные дегустации, кулинарные классы, лодочные прогулки, поездки, на которые вернулись бы.', soon: true },
   { cls: 'move secondary', href: '/ru/georgia/batumi/guide/move-around', n: counts['move-around'] || 0, ico: ICO.move, h: 'передвижение', sub: 'такси · самокат · машина', desc: 'как местные реально передвигаются. приложения, аренда, проверенное нами.' },
   { cls: 'work secondary', href: '/ru/georgia/batumi/guide/work', n: counts['work'] || 0, ico: ICO.work, h: 'работа и удалёнка', sub: 'коворкинги · кафе с вайфаем', desc: 'кафе с надёжным интернетом, коворкинги и тихие углы для работы.' },
@@ -65,9 +65,12 @@ const tile = (c: any) => {
   const top = '<div class="top"><span class="num">' + c.n + '</span>' +
     (c.featured ? '<span class="badge"><span class="pulse"></span>начни тут</span>'
       : (c.soon ? '<span class="badge" style="opacity:.6">скоро</span>' : '<span class="ico">' + c.ico + '</span>')) + '</div>';
-  const foot = c.featured ? '<span class="cta">забронировать' + goArrow + '</span>' : '<span class="go">' + goArrow + '</span>';
-  return '<a class="cat-tile ' + c.cls + '" href="' + c.href + '" data-cat="' + esc(c.h) + '">' + top +
-    '<h3>' + c.h + '</h3><div class="sub">' + c.sub + '</div><p class="desc">' + c.desc + '</p>' + foot + '</a>';
+  const foot = c.featured ? '<span class="cta">забронировать' + goArrow + '</span>' : (c.soon ? '' : '<span class="go">' + goArrow + '</span>');
+  const _cls = 'cat-tile ' + c.cls + (c.soon ? ' is-soon' : '');
+  const _inner = top + '<h3>' + c.h + '</h3><div class="sub">' + c.sub + '</div><p class="desc">' + c.desc + '</p>' + foot;
+  return c.soon
+    ? '<div class="' + _cls + '" data-cat="' + esc(c.h) + '">' + _inner + '</div>'
+    : '<a class="' + _cls + '" href="' + c.href + '" data-cat="' + esc(c.h) + '">' + _inner + '</a>';
 };
 const catsHtml = CATS.map(tile).join('');
 

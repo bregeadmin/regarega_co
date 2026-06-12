@@ -54,7 +54,7 @@ const CATS = [
   { cls: 'stay primary featured', href: '/georgia/batumi/stays', n: aptCount || '', h: 'stay &amp; live', sub: 'flats · hotels · long-term', desc: 'our flats, hotels we send guests to, neighbourhoods we live in.', featured: true },
   { cls: 'eat primary', href: '/georgia/batumi/guide/eat-drink', n: counts['eat-drink'] || 0, ico: ICO.eat, h: 'eat &amp; drink', sub: 'cafés · restaurants · bars', desc: 'our favourite cafés, brunch spots, restaurants, cocktail bars and bakeries.' },
   { cls: 'wellness primary', href: '/georgia/batumi/guide/wellness', n: counts['wellness'] || 0, ico: ICO.wellness, h: 'wellness', sub: 'spa · baths · yoga · massage', desc: 'slow living done right: sulphur baths, massage rooms, spa days.' },
-  { cls: 'nightlife primary', href: '#', n: '—', ico: ICO.nightlife, h: 'nightlife', sub: 'wine bars · clubs · late spots', desc: 'where to drink late, dance properly, or find a wine bar with vinyl.', soon: true },
+  { cls: 'nightlife secondary', href: '#', n: '—', ico: ICO.nightlife, h: 'nightlife', sub: 'wine bars · clubs · late spots', desc: 'where to drink late, dance properly, or find a wine bar with vinyl.', soon: true },
   { cls: 'experiences secondary', href: '#', n: '—', ico: ICO.experiences, h: 'experiences', sub: 'tours · classes · day trips', desc: 'wine tastings, cooking classes, boat trips, day trips we\'d go on again.', soon: true },
   { cls: 'move secondary', href: '/georgia/batumi/guide/move-around', n: counts['move-around'] || 0, ico: ICO.move, h: 'move around', sub: 'taxi · scooter · car', desc: 'how locals actually get around. apps, rentals, the ones we use.' },
   { cls: 'work secondary', href: '/georgia/batumi/guide/work', n: counts['work'] || 0, ico: ICO.work, h: 'work &amp; remote', sub: 'co-workings · cafes with wifi', desc: 'cafés with reliable wifi, co-workings, and quiet corners for deep work.' },
@@ -64,9 +64,12 @@ const tile = (c: any) => {
   const top = '<div class="top"><span class="num">' + c.n + '</span>' +
     (c.featured ? '<span class="badge"><span class="pulse"></span>start here</span>'
       : (c.soon ? '<span class="badge" style="opacity:.6">soon</span>' : '<span class="ico">' + c.ico + '</span>')) + '</div>';
-  const foot = c.featured ? '<span class="cta">book a stay' + goArrow + '</span>' : '<span class="go">' + goArrow + '</span>';
-  return '<a class="cat-tile ' + c.cls + '" href="' + c.href + '" data-cat="' + esc(c.h) + '">' + top +
-    '<h3>' + c.h + '</h3><div class="sub">' + c.sub + '</div><p class="desc">' + c.desc + '</p>' + foot + '</a>';
+  const foot = c.featured ? '<span class="cta">book a stay' + goArrow + '</span>' : (c.soon ? '' : '<span class="go">' + goArrow + '</span>');
+  const _cls = 'cat-tile ' + c.cls + (c.soon ? ' is-soon' : '');
+  const _inner = top + '<h3>' + c.h + '</h3><div class="sub">' + c.sub + '</div><p class="desc">' + c.desc + '</p>' + foot;
+  return c.soon
+    ? '<div class="' + _cls + '" data-cat="' + esc(c.h) + '">' + _inner + '</div>'
+    : '<a class="' + _cls + '" href="' + c.href + '" data-cat="' + esc(c.h) + '">' + _inner + '</a>';
 };
 const catsHtml = CATS.map(tile).join('');
 

@@ -56,6 +56,7 @@ const ogImage = new URL(image, Astro.site).href;
   <script is:inline>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){});});}</script>
 </head>
 <body style={`--page:${accent};--page-deep:${accentDeep}`}>
+<a class="skip-link" href="#main">к содержимому</a>
 <span id="flyingDot"></span>
 <a class="brand-sign" href="/ru/georgia/batumi" aria-label="rega rega — на главную"><svg viewBox="0 0 100 100" aria-hidden="true"><path fill-rule="evenodd" fill="#FF5E1A" d="M 50,50 m -50,0 a 50,50 0 1,1 100,0 a 50,50 0 1,1 -100,0 z M 64,64 m -12,0 a 12,12 0 1,1 24,0 a 12,12 0 1,1 -24,0 z"/></svg></a>
 
@@ -93,6 +94,7 @@ const ogImage = new URL(image, Astro.site).href;
   </div>
 </div>
 
+<span id="main" tabindex="-1"></span>
 <slot />
 
 <footer>
