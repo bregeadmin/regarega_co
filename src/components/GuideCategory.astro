@@ -84,6 +84,13 @@ const photo = (p: any) => (p.photos && p.photos[0]) || p.image || `https://picsu
 
 const featured = places[0];
 const rest = featured ? places.slice(1) : places;
+// card blurb: prefer the clean editorial line, never the raw Google/Airbnb dump.
+// EN: take_title (clean one-liner) → body → summary(last). RU: body_ru → take_title → summary_ru(last).
+const blurb = (p: any, n: number) => {
+  const tt = String(p.take_title || '').trim();
+  const pick = isRu ? (p.body || tt || p.summary) : (tt || p.body || p.summary);
+  return clip(String(pick || '').replace(/\*+/g, ''), n);
+};
 
 // subcategory filter chips from tags
 const tagCount: Record<string, number> = {};
@@ -105,7 +112,7 @@ const featuredHtml = featured ? (
   '<div class="body"><div class="meta"><span class="pill"><span class="swatch"></span>' + esc(cat.label) + '</span>' +
   (featured.rating ? '<span>★ ' + featured.rating + '</span>' : '') + '</div>' +
   '<h2>' + esc(featured.title || featured.name) + '.</h2>' +
-  '<p class="summary">' + esc(clip(featured.summary || featured.body, 180)) + '</p>' +
+  '<p class="summary">' + esc(blurb(featured, 180)) + '</p>' +
   '<div class="info-row">' +
   (featured.address ? '<span>' + esc(clip(featured.address, 36)) + '</span><span class="dot"></span>' : '') +
   (featured.price ? '<span><b>' + esc(featured.price) + '</b></span>' : '') + '</div>' +
@@ -118,7 +125,7 @@ const cardHtml = (p: any, i: number) =>
   '<div class="ph"><img src="' + esc(photo(p)) + '" alt="" loading="lazy"><span class="pill"><span class="sw"></span>' + esc(cat.label) + '</span></div>' +
   '<div class="info"><div class="top-row"><h4>' + esc(p.title || p.name) + '</h4>' +
   (p.price ? '<span class="price"><b>' + esc(p.price) + '</b></span>' : '') + '</div>' +
-  '<p class="summary">' + esc(clip(p.summary || p.body, 96)) + '</p></div></a>';
+  '<p class="summary">' + esc(blurb(p, 96)) + '</p></div></a>';
 
 // featured place also appears as a card — hidden in list view, shown in the map split so the left list is complete
 const featCardHtml = featured ? cardHtml(featured, -1).replace('class="place"', 'class="place feat-card"') : '';
