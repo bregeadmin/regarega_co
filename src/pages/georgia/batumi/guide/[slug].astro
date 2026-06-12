@@ -104,7 +104,7 @@ const fmtDay = (rest) => {
   const parts = rest.split(/[–—-]/).map((s) => s.trim());
   if (parts.length < 2) return rest;
   const a = to24(parts[0]), b = to24(parts[1]);
-  return (a && b) ? a + ' — ' + b : rest;
+  return (a && b) ? a + '–' + b : rest;
 };
 const DAYS3 = ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'];
 const DAYFULL = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
@@ -114,7 +114,7 @@ const dayVals = DAYFULL.map((d) => hmap[d] || '');
 const groups = [];
 dayVals.forEach((v, idx) => { const last = groups[groups.length - 1]; if (last && last.v === v) last.end = idx; else groups.push({ v, start: idx, end: idx }); });
 const hoursRows = groups.filter((g) => g.v).map((g) => {
-  const label = g.start === g.end ? DAYS3[g.start] : DAYS3[g.start] + ' — ' + DAYS3[g.end];
+  const label = g.start === g.end ? DAYS3[g.start] : DAYS3[g.start] + '–' + DAYS3[g.end];
   const dd = []; for (let k = g.start; k <= g.end; k++) dd.push(k);
   return '<li data-days="' + dd.join(',') + '"><span class="day">' + label + '</span><b>' + esc(g.v) + '</b></li>';
 }).join('');
@@ -192,7 +192,7 @@ const content =
   var dow=now.getDay(), t=now.getHours()*60+now.getMinutes();
   function chk(d,tt){ var rs=ranges(map[days[d]]); for(var i=0;i<rs.length;i++){ if(tt>=rs[i].o && tt<rs[i].c) return rs[i]; } return null; }
   var op=chk(dow,t) || chk((dow+6)%7, t+1440);
-  if(op){ var c=op.c%1440, h=Math.floor(c/60), mm=c%60, ap=h>=12?'PM':'AM', h12=(h%12)||12; el.className='open-now'; el.innerHTML='<span class="pulse"></span>open now · until '+h12+':'+(mm<10?'0':'')+mm+' '+ap; }
+  if(op){ var c=op.c%1440, h=Math.floor(c/60), mm=c%60, ap=h>=12?'PM':'AM', h12=(h%12)||12; el.className='open-now'; el.innerHTML='<span class="pulse"></span>open now · until '+(h<10?'0':'')+h+':'+(mm<10?'0':'')+mm; }
   else { el.className='open-now closed'; el.textContent='closed now'; }
   el.hidden=false;
   var tm=(dow+6)%7;
