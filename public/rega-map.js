@@ -236,8 +236,17 @@
       if (fl.length > 1) {
         // fitBounds (not centroid + fixed zoom): every flat stays inside the frame
         // whatever the container shape — on narrow phones the old way clipped pins.
-        var fb = new google.maps.LatLngBounds();
-        fl.forEach(function (mk) { fb.extend(mk.pos); });
+        // Frame the dense CORE only: a lone far-out flat (e.g. Gonio) must not zoom
+        // the whole city out into a blob; it stays reachable by zooming out.
+        var lats = fl.map(function (mk) { return mk.pos.lat; }).sort(function (a, b) { return a - b; });
+        var lngs = fl.map(function (mk) { return mk.pos.lng; }).sort(function (a, b) { return a - b; });
+        var cLat = lats[Math.floor(lats.length / 2)], cLng = lngs[Math.floor(lngs.length / 2)];
+        var ds = fl.map(function (mk) { var dy = mk.pos.lat - cLat, dx = mk.pos.lng - cLng; return Math.sqrt(dy * dy + dx * dx); });
+        var med = ds.slice().sort(function (a, b) { return a - b; })[Math.floor(ds.length / 2)];
+        var lim = Math.max(med * 2.5, 0.03); // ≥ ~3 km always counts as core
+        var fb = new google.maps.LatLngBounds(), kept = 0;
+        fl.forEach(function (mk, i) { if (ds[i] <= lim) { fb.extend(mk.pos); kept++; } });
+        if (kept < 2) fl.forEach(function (mk) { fb.extend(mk.pos); });
         map.fitBounds(fb, 56);
         google.maps.event.addListenerOnce(map, 'idle', function () {
           var fz = opts.frameZoom || 15;
