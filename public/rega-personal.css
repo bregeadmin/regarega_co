@@ -179,6 +179,22 @@
   font-size: 11px; font-weight: 700;
 }
 .rri-share { color: var(--acc); vertical-align: -3px; }
+
+/* desktop — QR «возьмите гид с собой» (комп → телефон) */
+#rr-install.desktop {
+  left: auto; right: 20px; bottom: 20px; margin: 0;
+  flex-direction: row; align-items: stretch; gap: 15px;
+  max-width: 360px; padding: 15px 16px;
+}
+.rri-qr { flex: 0 0 auto; width: 92px; height: 92px; }
+.rri-qr svg { display: block; width: 100%; height: 100%; }
+.rri-qrcol { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 7px; }
+.rri-qrtxt {
+  margin: 0; font-family: "JetBrains Mono", monospace;
+  font-size: 11.5px; line-height: 1.45;
+  color: var(--soft); text-transform: lowercase;
+}
+
 @media (max-width: 380px) { .rri-txt { font-size: 13px; } .rri-steps li { font-size: 12px; } }
 
 /* ── «места рядом со мной» по GPS (аноним) — плавающая кнопка, клон .map-fab (слева внизу) ── */
