@@ -176,13 +176,13 @@ const ogImage = new URL(image, Astro.site).href;
     function slugOf(b){ var c=b.closest('[data-slug]'); if(c&&c.getAttribute('data-slug'))return c.getAttribute('data-slug'); var a=b.closest('a[href*="/stays/"]'); if(a){ var m=a.getAttribute('href').match(/\/stays\/([^\/?#]+)/); if(m)return m[1]; } return null; }
     var favs=load();
     document.querySelectorAll('.fav').forEach(function(b){
-      var slug=slugOf(b); if(!slug) return;
-      if(favs.has(slug)){ b.textContent='♥'; b.classList.add('on'); }
+      var slug=slugOf(b); if(!slug) return; b.setAttribute('aria-pressed', favs.has(slug)?'true':'false');
+      if(favs.has(slug)){ b.textContent='♥'; b.classList.add('on'); b.setAttribute('aria-pressed','true'); }
       b.addEventListener('click', function(e){
         e.preventDefault(); e.stopPropagation();
         var s=load();
-        if(s.has(slug)){ s.delete(slug); b.textContent='♡'; b.classList.remove('on'); }
-        else { s.add(slug); b.textContent='♥'; b.classList.add('on'); }
+        if(s.has(slug)){ s.delete(slug); b.textContent='♡'; b.classList.remove('on'); b.setAttribute('aria-pressed','false'); }
+        else { s.add(slug); b.textContent='♥'; b.classList.add('on'); b.setAttribute('aria-pressed','true'); }
         save(s);
         b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop');
         document.dispatchEvent(new CustomEvent('rr:favschange',{detail:Array.from(s)}));
