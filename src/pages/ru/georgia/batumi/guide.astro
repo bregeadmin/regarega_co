@@ -174,7 +174,6 @@ const content =
     // frameFlats: open framed on the flats at zoom 15, dots stay individual until zoomed out
     var mob = window.matchMedia('(max-width: 768px)').matches;
     var api = RegaMap.stays("guideMap", MAP_DATA, { cardSel: ".__no-list", cluster: true, gesture: mob ? "greedy" : "cooperative", frameFlats: true, clusterMaxZoom: 14 });
-    if (!api) return;
     (function(){
       var mapEl = document.querySelector(".mapblock .map");
       var expBtn = document.querySelector(".mapblock .map-expand");
@@ -183,12 +182,13 @@ const content =
           mapEl.classList.toggle("expanded", on);
           document.documentElement.classList.toggle("map-locked", on);
           document.body.classList.toggle("map-locked", on);
-          if (window.google && api.map) setTimeout(function(){ google.maps.event.trigger(api.map, "resize"); if (api.refit) api.refit(); }, 90);
+          if (api && window.google && api.map) setTimeout(function(){ google.maps.event.trigger(api.map, "resize"); if (api.refit) api.refit(); }, 90);
         }
         expBtn.addEventListener("click", function(){ setExp(!mapEl.classList.contains("expanded")); });
         document.addEventListener("keydown", function(e){ if (e.key === "Escape" && mapEl.classList.contains("expanded")) setExp(false); });
       }
     })();
+    if (!api) return;
     var bar = document.querySelector(".map-controls");
     if (bar) {
       var bAll = bar.querySelector('[data-act="all"]');
