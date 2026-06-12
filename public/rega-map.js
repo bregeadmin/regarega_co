@@ -190,10 +190,13 @@
     // and break apart as you zoom in (Airbnb behaviour). Falls back to plain pins
     // if the clusterer library is not present.
     var clusterer = null;
+    // flats (the orange logo dots) are the anchor of the map story — they NEVER
+    // collapse into count-bubbles; only guide places cluster.
+    var noClust = function (m) { return m.item && m.item.flat; };
     function buildCluster() {
-      if (clusterer) return;
+      if (clusterer) { try { clusterer.clearMarkers(); clusterer.setMap(null); } catch (e) {} clusterer = null; }
       var copts = {
-        map: map, markers: markers.filter(function (m) { return m.on; }).map(function (x) { return x.m; }),
+        map: map, markers: markers.filter(function (m) { return m.on && !noClust(m); }).map(function (x) { return x.m; }),
         renderer: {
           render: function (c) {
             var count = c.count, position = c.position;
@@ -215,11 +218,15 @@
       }
       clusterer = new markerClusterer.MarkerClusterer(copts);
     }
-    if (useCluster) buildCluster();
     function applyVisibility() {
-      if (clusterer) { clusterer.clearMarkers(); clusterer.addMarkers(markers.filter(function (m) { return m.on; }).map(function (m) { return m.m; })); }
+      if (clusterer) {
+        clusterer.clearMarkers();
+        clusterer.addMarkers(markers.filter(function (m) { return m.on && !noClust(m); }).map(function (m) { return m.m; }));
+        markers.forEach(function (mk) { if (noClust(mk)) mk.m.setMap(mk.on ? map : null); });
+      }
       else { markers.forEach(function (mk) { mk.m.setMap(mk.on ? map : null); }); }
     }
+    if (useCluster) { buildCluster(); applyVisibility(); }
 
     function refit(extra) {
       var b = new google.maps.LatLngBounds(), n = 0;
@@ -251,6 +258,14 @@
         google.maps.event.addListenerOnce(map, 'idle', function () {
           var fz = opts.frameZoom || 15;
           if ((map.getZoom() || fz) > fz) map.setZoom(fz); // tight group → don't over-zoom
+          // the OPENING view stays an individual-dot scatter (brand decision):
+          // count-bubbles only appear once the user zooms OUT beyond it
+          var z = Math.min(map.getZoom() || fz, fz);
+          if (useCluster && opts.clusterMaxZoom != null && opts.clusterMaxZoom >= z) {
+            opts.clusterMaxZoom = z - 1;
+            buildCluster();
+            applyVisibility();
+          }
         });
       } else if (fl.length === 1) {
         map.setCenter(fl[0].pos);
