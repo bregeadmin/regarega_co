@@ -295,6 +295,10 @@
         if (nm) nm.textContent = c.n;
         if (sb) sb.textContent = c.s;
         if (img) img.src = c.p;
+        if (card.classList.contains('mt-card-place') && c.c) {
+          var anchor = teaser.querySelector('.mt-anchor-place');
+          if (anchor) anchor.style.setProperty('--c', c.c); // pin matches the picked place's world colour
+        }
       });
       if (!document.documentElement.classList.contains('intro-armed')) {
         setTimeout(function () { teaser.classList.add('mt-cards-in'); }, 420);

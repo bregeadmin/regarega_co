@@ -2,7 +2,7 @@
 // Inline stylized SVG of Batumi + category-coloured pins, absolutely positioned.
 // Pins are the targets the intro animation flies into; coordinates live here only.
 
-type Pin = { x: number; y: number; kind: 'solid' | 'outline' | 'logo'; c?: string };
+type Pin = { x: number; y: number; kind: 'solid' | 'outline' | 'logo'; c?: string; anchor?: string };
 
 // Brandbook pin system (locked, June 2026 — see src/lib/guideCats.ts + rega-map.js):
 // orange is RESERVED for certified flats (the logo dot). Guide places use the WORLD
@@ -12,7 +12,7 @@ const SLATE = '#3A4868', GREEN = '#1F8A5B';
 // occupying roughly y 12–29% and y 45–61%. Every other pin stays clear of those
 // zones, of the label (top-left) and of the CTA (bottom-right) — cards never overlap.
 const PINS: Pin[] = [
-  { x: 52, y: 30, kind: 'solid',   c: SLATE }, // eat & drink — place-card anchor
+  { x: 52, y: 30, kind: 'solid',   c: SLATE, anchor: 'place' }, // place-card anchor (recoloured to the picked place's world)
   { x: 44, y: 46, kind: 'solid',   c: SLATE }, // eat & drink
   { x: 63, y: 75, kind: 'solid',   c: GREEN }, // wellness
   { x: 83, y: 37, kind: 'outline', c: GREEN }, // work (green outline)
@@ -73,7 +73,7 @@ export function mapTeaserHTML(o: {
   const pins = PINS.map((p) =>
     p.kind === 'logo'
       ? `<div class="mt-pin rega-pin logo" style="left:${p.x}%;top:${p.y}%">${LOGO_SVG}</div>`
-      : `<div class="mt-pin rega-pin ${p.kind}" style="left:${p.x}%;top:${p.y}%;--c:${p.c}"><span></span></div>`,
+      : `<div class="mt-pin rega-pin ${p.kind}${p.anchor ? ' mt-anchor-' + p.anchor : ''}" style="left:${p.x}%;top:${p.y}%;--c:${p.c}"><span></span></div>`,
   ).join('');
   // container is a <div>: the full-area link and the card links are siblings
   // (links must not nest); pins are decorative and click through to the link.
