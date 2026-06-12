@@ -233,10 +233,18 @@
     // Filter buttons still refit to everything visible.
     if (opts.frameFlats) {
       var fl = markers.filter(function (mk) { return mk.item && mk.item.flat; });
-      if (fl.length) {
-        var fx = 0, fy = 0;
-        fl.forEach(function (mk) { fx += mk.pos.lat; fy += mk.pos.lng; });
-        map.setCenter({ lat: fx / fl.length, lng: fy / fl.length });
+      if (fl.length > 1) {
+        // fitBounds (not centroid + fixed zoom): every flat stays inside the frame
+        // whatever the container shape — on narrow phones the old way clipped pins.
+        var fb = new google.maps.LatLngBounds();
+        fl.forEach(function (mk) { fb.extend(mk.pos); });
+        map.fitBounds(fb, 56);
+        google.maps.event.addListenerOnce(map, 'idle', function () {
+          var fz = opts.frameZoom || 15;
+          if ((map.getZoom() || fz) > fz) map.setZoom(fz); // tight group → don't over-zoom
+        });
+      } else if (fl.length === 1) {
+        map.setCenter(fl[0].pos);
         map.setZoom(opts.frameZoom || 15);
       } else refit();
     } else refit();

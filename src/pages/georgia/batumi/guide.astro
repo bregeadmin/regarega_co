@@ -180,6 +180,27 @@ const content =
   document.addEventListener('keydown', function(e){ if (e.key === 'Escape' && mapEl.classList.contains('expanded')) setExp(false); });
 })();
 </script>
+<script is:inline>
+(function(){
+  // #map deep link: the native anchor jump fires before the images above the map
+  // finish loading, so the page ends up short of the map (Safari never corrects).
+  // Re-snap to the map block as the layout settles; stop as soon as the user acts.
+  if (location.hash !== '#map') return;
+  var mb = document.querySelector('.mapblock'); if (!mb) return;
+  var stop = false;
+  ['wheel','touchstart','keydown','pointerdown'].forEach(function(ev){
+    window.addEventListener(ev, function(){ stop = true; }, { capture: true, passive: true, once: true });
+  });
+  function snap(){
+    if (stop) return;
+    var sm = parseFloat(getComputedStyle(mb).scrollMarginTop) || 0;
+    var off = mb.getBoundingClientRect().top - sm;
+    if (Math.abs(off) > 6) window.scrollBy(0, off);
+  }
+  window.addEventListener('load', snap);
+  [300, 800, 1500, 2500].forEach(function(t){ setTimeout(snap, t); });
+})();
+</script>
 <script is:inline define:vars={{ MAP_DATA: mapData, GMAPS_KEY }}>
 (function () {
   window.__initGuideMap = function () {

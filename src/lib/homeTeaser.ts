@@ -8,14 +8,17 @@ type Pin = { x: number; y: number; kind: 'solid' | 'outline' | 'logo'; c?: strin
 // orange is RESERVED for certified flats (the logo dot). Guide places use the WORLD
 // colours — slate #3A4868 + green #1F8A5B — as solid OR outline. No category rainbow.
 const SLATE = '#3A4868', GREEN = '#1F8A5B';
+// Layout contract: the mini-cards pop up ABOVE the pins at (52,30) and (72,62),
+// occupying roughly y 12–29% and y 45–61%. Every other pin stays clear of those
+// zones, of the label (top-left) and of the CTA (bottom-right) — cards never overlap.
 const PINS: Pin[] = [
-  { x: 54, y: 33, kind: 'solid',   c: SLATE }, // eat & drink
-  { x: 71, y: 49, kind: 'solid',   c: SLATE }, // eat & drink
-  { x: 61, y: 70, kind: 'solid',   c: GREEN }, // wellness
-  { x: 81, y: 37, kind: 'outline', c: GREEN }, // work (green outline)
-  { x: 47, y: 55, kind: 'outline', c: SLATE }, // move around (slate outline)
-  { x: 74, y: 63, kind: 'logo' },              // certified flat = the logo
-  { x: 58, y: 45, kind: 'logo' },              // certified flat = the logo
+  { x: 52, y: 30, kind: 'solid',   c: SLATE }, // eat & drink — place-card anchor
+  { x: 44, y: 46, kind: 'solid',   c: SLATE }, // eat & drink
+  { x: 63, y: 75, kind: 'solid',   c: GREEN }, // wellness
+  { x: 83, y: 37, kind: 'outline', c: GREEN }, // work (green outline)
+  { x: 47, y: 58, kind: 'outline', c: SLATE }, // move around (slate outline)
+  { x: 72, y: 62, kind: 'logo' },              // certified flat — flat-card anchor
+  { x: 50, y: 70, kind: 'logo' },              // certified flat = the logo
 ];
 
 // certified flat = the Rega mark itself (master dieline: hole r = 33% radius, offset +24%)
@@ -42,18 +45,48 @@ const MAP_SVG = `<svg viewBox="0 0 320 240" preserveAspectRatio="xMidYMid slice"
   <rect x="196" y="150" width="56" height="40" rx="7" fill="var(--bg-2)" stroke="var(--line)" stroke-width="1"/>
 </svg>`;
 
-export function mapTeaserHTML(o: { href: string; label: string; cta: string; aria: string }): string {
+// One mini-card candidate: real flat / guide place the card can show.
+export type TeaserCand = { n: string; s: string; p: string; h: string; c: string };
+
+const esc = (s: string) =>
+  String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&#39;');
+
+// Mini-card markup: SSR renders candidate 0 (image deferred via data-src so only
+// the client-picked candidate's photo ever loads); the picker script in HomeIntro
+// swaps in a random candidate per visit and reveals the cards after the intro.
+function cardHTML(cls: string, cands: TeaserCand[]): string {
+  if (!cands.length) return '';
+  const c0 = cands[0];
+  const data = esc(JSON.stringify(cands));
+  return (
+    `<a class="mt-card ${cls}" href="${esc(c0.h)}" data-cands="${data}" style="--cc:${esc(c0.c)}">` +
+    `<span class="ph"><img alt="" loading="lazy" decoding="async" data-src="${esc(c0.p)}"/></span>` +
+    `<span class="tx"><span class="nm">${esc(c0.n)}</span><span class="sb">${esc(c0.s)}</span></span>` +
+    `<span class="mt-tail"></span></a>`
+  );
+}
+
+export function mapTeaserHTML(o: {
+  href: string; label: string; cta: string; aria: string;
+  flatCands?: TeaserCand[]; placeCands?: TeaserCand[];
+}): string {
   const pins = PINS.map((p) =>
     p.kind === 'logo'
       ? `<div class="mt-pin rega-pin logo" style="left:${p.x}%;top:${p.y}%">${LOGO_SVG}</div>`
       : `<div class="mt-pin rega-pin ${p.kind}" style="left:${p.x}%;top:${p.y}%;--c:${p.c}"><span></span></div>`,
   ).join('');
+  // container is a <div>: the full-area link and the card links are siblings
+  // (links must not nest); pins are decorative and click through to the link.
   return (
-    `<a class="hero-card map-teaser" href="${o.href}" aria-label="${o.aria}">` +
+    `<div class="hero-card map-teaser">` +
+    `<a class="mt-link" href="${o.href}" aria-label="${o.aria}">` +
     `<div class="mt-canvas">${MAP_SVG}</div>` +
-    pins +
     `<span class="mt-label">${o.label}</span>` +
     `<span class="mt-cta">${o.cta} <span class="mt-arr">&rarr;</span></span>` +
-    `</a>`
+    `</a>` +
+    pins +
+    cardHTML('mt-card-place', o.placeCands || []) +
+    cardHTML('mt-card-flat', o.flatCands || []) +
+    `</div>`
   );
 }

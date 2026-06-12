@@ -40,7 +40,18 @@ const heroEdition = edSlides.length
   : '';
 
 // §3 — large top-right slot is now the static map teaser (replaces the weak bolt-taxi pick).
-const mapTeaser = mapTeaserHTML({ href: '/georgia/batumi/guide#map', label: 'the map · batumi', cta: 'open map', aria: 'open the batumi map guide' });
+// Mini-card candidates: real flats + eat/wellness places (with photos); the client picks one of each per visit.
+const PLACE_COLOR: Record<string, string> = { 'eat-drink': '#3A4868', 'wellness': '#1F8A5B' };
+const thumb = (u: string) => '/_vercel/image?url=' + encodeURIComponent(u) + '&w=320&q=72';
+const flatCands = apts.filter((a) => a.photos && a.photos[0]).slice(0, 6).map((a) => ({
+  n: String(a.title || '').toLowerCase(), s: a.price_from ? `flat · from ₾${a.price_from}` : 'flat · on request',
+  p: thumb(a.photos[0]), h: `/georgia/batumi/stays/${a.slug}`, c: '#FF5E1A',
+}));
+const placeCands = places.filter((p) => PLACE_COLOR[p.category] && gph(p)).slice(0, 6).map((p) => ({
+  n: String(p.title || p.name || '').toLowerCase(), s: CATLBL[p.category] || p.category,
+  p: thumb(gph(p)), h: `/georgia/batumi/guide/${p.slug}`, c: PLACE_COLOR[p.category],
+}));
+const mapTeaser = mapTeaserHTML({ href: '/georgia/batumi/guide#map', label: 'the map · batumi', cta: 'open map', aria: 'open the batumi map guide', flatCands, placeCands });
 
 const catCol = (key: string, h3: string) => {
   const list = byCat(key); if (!list.length) return '';

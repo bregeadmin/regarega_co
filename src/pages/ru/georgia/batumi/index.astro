@@ -13,7 +13,23 @@ const homeApts = apts.map((a) => {
   const dist = a.neighborhood ? `<span class="dist">${a.neighborhood}</span>` : '';
   return `<a class="apt reveal" href="/ru/georgia/batumi/stays/${a.slug}"><div class="ph"><img src="${photo}" alt="${a.title_ru || a.title}"/><button class="fav" type="button" aria-label="в избранное">♡</button></div><div class="info"><div class="top"><h4>${a.title_ru || a.title}</h4><div class="price">${price}</div></div><div class="sub"><span>${bedType} · ${a.max_guests ?? 2} ${pl(a.max_guests ?? 2,'гость','гостя','гостей')}</span>${dist}</div></div></a>`;
 }).join('');
-const mapTeaser = mapTeaserHTML({ href: '/ru/georgia/batumi/guide#map', label: 'карта · батуми', cta: 'открыть карту', aria: 'открыть карту-гид по батуми' });
+// кандидаты мини-карточек тизера: реальные квартиры + места гида с фото; пара выбирается на клиенте
+const { data: gpData } = await supabase.from('guide_places')
+  .select('slug,title,name,category,photos,image').eq('status', 'published');
+const gplaces = (gpData as any[]) || [];
+const gph = (p: any) => (p && ((p.photos && p.photos[0]) || p.image)) || '';
+const PLACE_COLOR: Record<string, string> = { 'eat-drink': '#3A4868', 'wellness': '#1F8A5B' };
+const CATLBL_RU: Record<string, string> = { 'eat-drink': 'есть и пить', 'wellness': 'велнес' };
+const thumb = (u: string) => '/_vercel/image?url=' + encodeURIComponent(u) + '&w=320&q=72';
+const flatCands = apts.filter((a) => a.photos && a.photos[0]).slice(0, 6).map((a) => ({
+  n: a.title_ru || a.title, s: a.price_from ? `квартира · от ₾${a.price_from}` : 'квартира · по запросу',
+  p: thumb(a.photos[0]), h: `/ru/georgia/batumi/stays/${a.slug}`, c: '#FF5E1A',
+}));
+const placeCands = gplaces.filter((p) => PLACE_COLOR[p.category] && gph(p)).slice(0, 6).map((p) => ({
+  n: p.title || p.name, s: CATLBL_RU[p.category] || p.category,
+  p: thumb(gph(p)), h: `/ru/georgia/batumi/guide/${p.slug}`, c: PLACE_COLOR[p.category],
+}));
+const mapTeaser = mapTeaserHTML({ href: '/ru/georgia/batumi/guide#map', label: 'карта · батуми', cta: 'открыть карту', aria: 'открыть карту-гид по батуми', flatCands, placeCands });
 ---
 <SiteRu title="rega rega \u2014 \u043a\u0432\u0430\u0440\u0442\u0438\u0440\u044b \u0438 \u0433\u0430\u0439\u0434 \u043f\u043e \u0431\u0430\u0442\u0443\u043c\u0438">
 <HomeIntro />
