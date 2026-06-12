@@ -56,9 +56,23 @@ const meta =
   `<span class="sep">·</span><span>fits <b>${apt.max_guests ?? 2}</b> guests</span>` +
   (apt.neighborhood ? `<span class="sep">·</span><span>${apt.neighborhood}</span>` : '');
 
+// Airbnb exports glue section labels ("The space", "Guest access"…) into the
+// text as bare lines; lift them into sub-headings instead of running them on.
+const ABNB_HEAD = /^(the space|guest access|other things to note|other details to note|the neighbou?rhood|getting around|getting there|interaction with guests|during your stay|registration number)\.?:?$/i;
+const renderAbout = (raw) => {
+  const out = []; let para = [];
+  const flush = () => { if (para.length) { out.push(`<p>${para.join(' ')}</p>`); para = []; } };
+  stripEmoji(raw).split(/\n/).map((l) => l.trim()).forEach((l) => {
+    if (!l) { flush(); return; }
+    if (ABNB_HEAD.test(l)) { flush(); out.push(`<h5 class="ab-head">${l.replace(/[:.]$/, '')}</h5>`); return; }
+    para.push(l);
+  });
+  flush();
+  return out.join('');
+};
 const about =
   `<h2>checked, stocked, <em>ready</em>.</h2>` +
-  (apt.summary ? stripEmoji(apt.summary).split(/\n\n+/).map((p) => `<p>${p.replace(/\n/g, ' ').trim()}</p>`).join('') : '') +
+  (apt.summary ? renderAbout(apt.summary) : '') +
   `<p>local operations by <b>bre</b> — real check-in, real support, someone local one message away. the photos are the flat.</p>`;
 
 const ROOM_SKIP = new Set(['Additional photos']);

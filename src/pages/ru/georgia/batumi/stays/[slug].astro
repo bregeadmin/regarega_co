@@ -61,9 +61,23 @@ const meta =
   `<span class="sep">·</span><span>вмещает <b>${apt.max_guests ?? 2}</b> ${guestsW(apt.max_guests ?? 2)}</span>` +
   (apt.neighborhood ? `<span class="sep">·</span><span>${apt.neighborhood}</span>` : '');
 
+// Airbnb section labels glued into the text → lift to sub-headings (EN labels,
+// since RU summaries fall back to the EN source where these appear).
+const ABNB_HEAD = /^(the space|guest access|other things to note|other details to note|the neighbou?rhood|getting around|getting there|interaction with guests|during your stay|registration number)\.?:?$/i;
+const renderAbout = (raw) => {
+  const out = []; let para = [];
+  const flush = () => { if (para.length) { out.push(`<p>${para.join(' ')}</p>`); para = []; } };
+  stripEmoji(raw).split(/\n/).map((l) => l.trim()).forEach((l) => {
+    if (!l) { flush(); return; }
+    if (ABNB_HEAD.test(l)) { flush(); out.push(`<h5 class="ab-head">${l.replace(/[:.]$/, '')}</h5>`); return; }
+    para.push(l);
+  });
+  flush();
+  return out.join('');
+};
 const about =
   `<h2>проверена, укомплектована, <em>готова</em>.</h2>` +
-  ((apt.summary_ru || apt.summary) ? stripEmoji(apt.summary_ru || apt.summary).split(/\n\n+/).map((p) => `<p>${p.replace(/\n/g, ' ').trim()}</p>`).join('') : '') +
+  ((apt.summary_ru || apt.summary) ? renderAbout(apt.summary_ru || apt.summary) : '') +
   `<p>локальные операции — <b>bre</b>: настоящий заезд, настоящая поддержка, местный человек на расстоянии одного сообщения. на фото — та самая квартира.</p>`;
 
 const ROOM_SKIP = new Set(['Additional photos']);

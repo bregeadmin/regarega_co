@@ -70,7 +70,7 @@ button:active,.btn:active,.act:active,.cta:active,.story-btn:active,.share-btn:a
 .topbar .city .arr{opacity:.6;font-size:8px;margin-top:1px}
 .topbar .lang:hover{border-color:#FAF7F0;background:#ffffff14;color:var(--accent)}
 .topbar .burger{display:none;width:34px;height:34px;border:1px solid #ffffff66;border-radius:50%;background:transparent;flex-direction:column;align-items:center;justify-content:center;gap:5px;padding:0;cursor:pointer;transition:border-color .2s var(--ease-rega),background .2s var(--ease-rega);flex:none}
-.topbar .burger span{display:block;width:14px;height:1.5px;background:#fff;transition:transform .25s var(--ease-rega),opacity .2s var(--ease-rega)}
+.topbar .burger span{display:block;width:14px;height:1.5px;background:#FAF7F0;transition:transform .25s var(--ease-rega),opacity .2s var(--ease-rega)}
 .topbar .burger:hover{border-color:#FAF7F0;background:#ffffff14}
 .topbar .burger.open span:nth-child(1){transform:translateY(3.5px) rotate(45deg)}
 .topbar .burger.open span:nth-child(2){transform:translateY(-3px) rotate(-45deg)}
@@ -239,7 +239,7 @@ footer{padding:24px 14px}
 .map-mini{display:block;width:236px;text-decoration:none;color:inherit;cursor:pointer}
 /* round custom zoom controls (replaces Google's default), every map */
 .rega-zoom-wrap{display:flex;flex-direction:column;gap:8px;margin:0 14px 14px 0}
-.rega-zoom{width:40px;height:40px;border-radius:50%;background:#fff;border:1px solid rgba(10,9,8,.1);box-shadow:0 3px 12px rgba(0,0,0,.16);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink);transition:transform .15s var(--ease-rega),background .15s var(--ease-rega),box-shadow .15s var(--ease-rega);padding:0}
+.rega-zoom{width:40px;height:40px;border-radius:50%;background:#FAF7F0;border:1px solid rgba(10,9,8,.1);box-shadow:0 3px 12px rgba(0,0,0,.16);display:flex;align-items:center;justify-content:center;cursor:pointer;color:var(--ink);transition:transform .15s var(--ease-rega),background .15s var(--ease-rega),box-shadow .15s var(--ease-rega);padding:0}
 .rega-zoom:hover{background:var(--bg-2);transform:translateY(-1px);box-shadow:0 5px 16px rgba(0,0,0,.2)}
 .rega-zoom:active{transform:translateY(0)}
 .rega-zoom svg{width:16px;height:16px;display:block}

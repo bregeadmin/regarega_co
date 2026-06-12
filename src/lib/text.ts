@@ -4,7 +4,11 @@
 const EMOJI_RE = /[\u{1F000}-\u{1FAFF}\u{2600}-\u{27BF}\u{2B00}-\u{2BFF}\u{FE00}-\u{FE0F}\u{1F1E6}-\u{1F1FF}]/gu;
 export function stripEmoji(s: string | null | undefined): string {
   if (!s) return '';
-  return s.replace(EMOJI_RE, '').replace(/[ \t]{2,}/g, ' ').replace(/ +([.,!?;:])/g, '$1');
+  return s.replace(EMOJI_RE, '').replace(/[ \t]{2,}/g, ' ').replace(/ +([.,!?;:])/g, '$1')
+    // normalize time ranges to a tight en-dash: "16:00 - 22:00" -> "16:00–22:00"
+    .replace(/(\d{1,2}:\d{2})\s*[–—-]\s*(\d{1,2}:\d{2})/g, '$1–$2')
+    // normalize price ranges: "10-40 ₾" -> "10–40 ₾"
+    .replace(/(\d+)\s*[–—-]\s*(\d+)(\s*(?:₾|gel|lari|\$|usd|eur|€))/gi, '$1–$2$3');
 }
 
 // teaser(): short card blurb from a full description.
