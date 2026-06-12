@@ -44,7 +44,7 @@ const heroEdition = edSlides.length
 const PLACE_COLOR: Record<string, string> = { 'eat-drink': '#3A4868', 'wellness': '#1F8A5B' };
 const thumb = (u: string) => '/_vercel/image?url=' + encodeURIComponent(u) + '&w=320&q=72';
 const flatCands = apts.filter((a) => a.photos && a.photos[0]).slice(0, 6).map((a) => ({
-  n: String(a.title || '').toLowerCase(), s: a.price_from ? `flat · from ₾${a.price_from}` : 'flat · on request',
+  n: String(a.title || '').toLowerCase(), s: a.price_from ? `flat · ₾${a.price_from}/nt` : 'on request',
   p: thumb(a.photos[0]), h: `/georgia/batumi/stays/${a.slug}`, c: '#FF5E1A',
 }));
 const placeCands = places.filter((p) => PLACE_COLOR[p.category] && gph(p)).slice(0, 6).map((p) => ({
