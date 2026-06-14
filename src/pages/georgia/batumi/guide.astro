@@ -78,7 +78,7 @@ const catsHtml = CATS.map(tile).join('');
 const fmtDate = (d: string) => { const m = (d || '').match(/(\d{4})-(\d{2})-(\d{2})/); if (!m) return 'this week'; const mo = ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'][+m[2] - 1]; return (+m[3]) + ' ' + mo; };
 const newsArr = news as any[];
 const mdEm = (raw: string) => esc(raw).replace(/\*([^*]+)\*/g, '<em>$1</em>');
-const slidesHtml = [...newsArr].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))).slice(0,2).map((nx, i) =>
+const slidesHtml = [...newsArr].sort((a,b)=>String(b.date||'').localeCompare(String(a.date||''))).filter((nx: any)=>nx.on_guide!==false).slice(0,6).map((nx, i) =>
   '<a class="cover-slide' + (i === 0 ? ' active' : '') + '" href="/georgia/batumi/guide/news/' + nx.slug + '">' +
   '<img class="cs-bg" src="' + esc(nx.image || (nx.photos && nx.photos[0]) || '') + '" alt=""><span class="cs-tint"></span><span class="cs-shade"></span>' +
   '<div class="body"><h3>' + mdEm(nx.headline || nx.title) + '</h3>' +

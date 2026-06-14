@@ -31,7 +31,7 @@ const CATLBL: Record<string, string> = { 'eat-drink': 'eat & drink', 'wellness':
 const newsArr = (news as any[]).slice().sort((a, b) => String(b.date || '').localeCompare(String(a.date || '')));
 const ed = newsArr[0];
 
-const edSlides = newsArr.slice(0, 2);
+const edSlides = newsArr.filter((n: any) => n.on_home !== false).slice(0, 6);
 const heroEdition = edSlides.length
   ? '<div class="hero-card edition" id="heroEdition">' + edSlides.map((n, i) =>
       '<a class="ed-slide' + (i === 0 ? ' active' : '') + '" href="/georgia/batumi/guide/news/' + n.slug + '"><img src="' + e2(n.image || '') + '" alt=""/>' +
