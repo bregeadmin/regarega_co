@@ -1,7 +1,6 @@
 ---
 import { supabase } from '../lib/supabase';
 import { GMAPS_KEY } from '../lib/maps';
-import guideRu from '../data/guide_ru.json';
 import { GUIDE_CATS, catColor, catOutline, catFill, catLabel, catTint, catDark } from '../lib/guideCats';
 const { category, lang = 'en' } = Astro.props as { category: string; lang?: 'en' | 'ru' };
 const isRu = lang === 'ru';
@@ -69,10 +68,9 @@ const goArrow = '<svg width="12" height="12" viewBox="0 0 12 12" fill="none"><pa
 
 const { data } = await supabase.from('guide_places').select('*').eq('status', 'published').eq('category', category);
 const places = (data || []).slice().sort((a, b) => (b.rating || 0) - (a.rating || 0));
-// in RU, overlay local Russian summary/body over the English DB content (fallback to EN)
+// in RU, use the Russian DB columns (summary_ru/body_ru) over the English content (fallback to EN)
 if (isRu) {
-  const ruMap = guideRu as Record<string, { summary_ru?: string; body_ru?: string }>;
-  places.forEach((p: any) => { const t = ruMap[p.slug]; if (t) { if (t.summary_ru) p.summary = t.summary_ru; if (t.body_ru) p.body = t.body_ru; } });
+  places.forEach((p: any) => { if (p.summary_ru) p.summary = p.summary_ru; if (p.body_ru) p.body = p.body_ru; });
 }
 const { data: allCats } = await supabase.from('guide_places').select('category').eq('status', 'published');
 const counts: Record<string, number> = {};

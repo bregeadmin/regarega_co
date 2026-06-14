@@ -3,7 +3,6 @@ import Site from '../../../layouts/Site.astro';
 import HomeIntro from '../../../components/HomeIntro.astro';
 import { mapTeaserHTML } from '../../../lib/homeTeaser';
 import { supabase, applyNames, type Apartment } from '../../../lib/supabase';
-import news from '../../../data/news.json';
 const { data } = await supabase.from('apartments_public').select('id,slug,title,bedrooms,max_guests,price_from,photos,neighborhood').limit(6);
 const apts = ((data as Apartment[]) || []).map(applyNames);
 const homeApts = apts.map((a) => {
@@ -14,10 +13,12 @@ const homeApts = apts.map((a) => {
   return `<a class="apt reveal" href="/georgia/batumi/stays/${a.slug}"><div class="ph"><img src="${photo}" alt="${a.title}"/><button class="fav" type="button" aria-label="save">♡</button></div><div class="info"><div class="top"><h4>${a.title}</h4><div class="price">${price}</div></div><div class="sub"><span>${bedType} · ${a.max_guests ?? 2} guests</span>${dist}</div></div></a>`;
 }).join('');
 
-// --- real guide data for the homepage (from DB + news.json) ---
+// --- real guide data for the homepage (from DB) ---
 const { data: gpData } = await supabase.from('guide_places')
   .select('slug,title,name,category,tags,photos,image,take_title,summary').eq('status', 'published');
 const places = (gpData as any[]) || [];
+const { data: newsData } = await supabase.from('news').select('*').eq('status', 'published').order('date', { ascending: false });
+const news = newsData || [];
 const counts: Record<string, number> = {};
 places.forEach((p) => { counts[p.category] = (counts[p.category] || 0) + 1; });
 const e2 = (s: any) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');

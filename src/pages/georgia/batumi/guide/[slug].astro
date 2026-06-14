@@ -80,10 +80,6 @@ if (p.website) {
   actBits.push('<a class="act" href="' + esc(p.website) + '" target="_blank" rel="noopener">↗ ' + (isIg ? 'instagram' : 'website') + '</a>');
 }
 actBits.push('<button class="act share-btn" type="button">↗ share</button>');
-if (photos[0]) {
-  const _sline = (t => t.length > 100 ? t.slice(0, 100).replace(/\s+\S*$/, '') + '…' : t)(String(p.take_title || p.summary || '').replace(/\*+/g, '').replace(/\s+/g, ' ').trim());
-  actBits.push('<button class="act story-btn" type="button" data-photo="' + esc(photos[0]) + '" data-name="' + esc(String(name).toLowerCase()) + '" data-tag="' + esc(cat.label) + '" data-line="' + esc(_sline) + '" data-kicker="batumi · the guide" data-cta="open in the guide" data-accent="' + esc(cat.color) + '">↗ story</button>');
-}
 if (nearby.length) actBits.push('<a class="act primary" href="#nearby">stay nearby →</a>');
 const openNowSpan = hours.length ? '<span class="open-now closed" id="openNow" hidden></span>' : '';
 const actionBar = (actBits.length || openNowSpan) ? '<div class="action-bar">' + openNowSpan + '<span class="spacer"></span>' + actBits.join('') + '</div>' : '';

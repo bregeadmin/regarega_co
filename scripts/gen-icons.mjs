@@ -1,5 +1,6 @@
-// PWA-иконки Rega Rega — ОФИЦИАЛЬНЫЙ ФАВИКОННЫЙ ВЫРЕЗ из брендбука (rega-favicon-orange.svg):
-// диск центр (50,50) r=50; дырка центр (62,62) r=16.5 (крупнее «знака», чтобы читалась в малом размере).
+// PWA-иконки Rega Rega — ОФИЦИАЛЬНЫЙ APP-ICON ВЫРЕЗ из брендбука (раздел «app icon & avatar»):
+// «Mark only — standalone, centred, with the standard cut». Диск центр (50,50) r=50;
+// дырка СТАНДАРТНЫЙ вырез центр (64,64) r=12 (НЕ фавиконный 62,62/16.5 — тот только для крошечных вкладок).
 import { createCanvas } from '@napi-rs/canvas';
 import { writeFileSync, mkdirSync } from 'node:fs';
 import { dirname, join } from 'node:path';
@@ -23,10 +24,10 @@ function drawIcon(S, pad) {
   ctx.beginPath();
   ctx.arc(ox + 50 * scale, oy + 50 * scale, 50 * scale, 0, Math.PI * 2);
   ctx.fill();
-  // дырка цветом фона — фавиконный вырез (62,62) r=16.5, смещена в правый-нижний угол
+  // дырка цветом фона — СТАНДАРТНЫЙ вырез app-icon (64,64) r=12, смещена в правый-нижний угол
   ctx.fillStyle = BG;
   ctx.beginPath();
-  ctx.arc(ox + 62 * scale, oy + 62 * scale, 16.5 * scale, 0, Math.PI * 2);
+  ctx.arc(ox + 64 * scale, oy + 64 * scale, 12 * scale, 0, Math.PI * 2);
   ctx.fill();
   return c.toBuffer('image/png');
 }

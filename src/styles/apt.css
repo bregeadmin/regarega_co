@@ -88,8 +88,8 @@
 .apt-book .field:focus-within{border-color:var(--page)}
 .apt-book .field label{font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-soft);font-weight:600}
 .apt-book .field input,.apt-book .field select{font-family:"Bricolage Grotesque",sans-serif;font-weight:600;font-size:14px;border:0;background:transparent;outline:0;color:var(--ink);padding:0;cursor:pointer}
-.apt-book .btn-primary{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:14px 22px;background:var(--ink);color:#FAF7F0;border:0;border-radius:999px;font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.22em;text-transform:uppercase;font-weight:700;cursor:pointer;transition:background .2s ease;margin-top:6px}
-.apt-book .btn-primary:hover{background:var(--page)}
+.apt-book .btn-primary{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:14px 22px;background:var(--page);color:#FAF7F0;border:0;border-radius:999px;font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.22em;text-transform:uppercase;font-weight:700;cursor:pointer;transition:background .2s ease;margin-top:6px}
+.apt-book .btn-primary:hover{background:var(--accent)}
 /* how-it-works: 3 quiet steps under the booking button */
 .apt-book .book-steps{list-style:none;margin:18px 0 0;padding:0;display:flex;flex-direction:column;gap:10px}
 .apt-book .book-steps li{display:flex;align-items:flex-start;gap:10px;font-size:13px;line-height:1.45;color:var(--ink-soft)}
@@ -106,7 +106,7 @@
   .apt-book-bar .bb-meta{display:flex;flex-direction:column;gap:1px;min-width:0}
   .apt-book-bar .bb-meta b{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:15px;color:var(--ink);line-height:1.1}
   .apt-book-bar .bb-meta span{font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.1em;text-transform:uppercase;color:var(--ink-soft);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
-  .apt-book-bar .bb-btn{flex:none;display:inline-flex;align-items:center;gap:6px;min-height:46px;padding:0 22px;background:var(--ink);color:#FAF7F0;border:0;border-radius:999px;font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;font-weight:700;cursor:pointer;transition:background .2s ease}
+  .apt-book-bar .bb-btn{flex:none;display:inline-flex;align-items:center;gap:6px;min-height:46px;padding:0 22px;background:var(--page);color:#FAF7F0;border:0;border-radius:999px;font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;font-weight:700;cursor:pointer;transition:background .2s ease}
   .apt-book-bar .bb-btn:active{transform:scale(.97)}
   body.lb-open .apt-book-bar,body.menu-open .apt-book-bar{display:none}
   .apt-body{padding-bottom:96px}
@@ -175,24 +175,29 @@
 .cal-month .cal-week{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:2px;margin-bottom:6px}
 .cal-month .cal-week-day{font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-soft);font-weight:600;text-align:center;padding:4px 0}
 .cal-month .cal-grid{display:grid;grid-template-columns:repeat(7,minmax(0,1fr));gap:2px}
-.cal-day{width:100%;max-width:42px;aspect-ratio:1;display:flex;align-items:center;justify-content:center;font-size:13px;font-weight:600;color:var(--ink);cursor:pointer;border-radius:50%;background:transparent;border:0;font-family:"Bricolage Grotesque",sans-serif;padding:0;position:relative;box-sizing:border-box;line-height:1;margin:0 auto}
+.cal-day{width:100%;min-height:46px;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;color:var(--ink);cursor:pointer;border-radius:10px;background:transparent;border:1px solid transparent;font-family:"Bricolage Grotesque",sans-serif;padding:4px 0;position:relative;box-sizing:border-box;line-height:1;margin:0}
+.cal-day .cd-n{font-size:13px;font-weight:600}
+.cal-day .cd-p{font-family:"JetBrains Mono",monospace;font-size:8.5px;letter-spacing:.01em;font-weight:600;color:var(--ink-soft);min-height:9px}
 .cal-day.empty{cursor:default}
-.cal-day.past{color:var(--ink-soft);opacity:.35;cursor:default;text-decoration:line-through}
-.cal-day.av{background:var(--green-tint)}
-.cal-day.peak{background:var(--accent-soft)}
-.cal-day.booked{background:var(--bg-2);text-decoration:line-through;cursor:default;color:var(--ink-soft)}
-.cal-day:not(.past):not(.booked):not(.empty):hover{background:var(--ink);color:#FAF7F0}
-.cal-day.inside{background:#EEEAE0 !important;color:var(--ink) !important}
-.cal-day.start{background:var(--ink) !important;color:#FAF7F0 !important}
-.cal-day.end{background:var(--ink) !important;color:#FAF7F0 !important}
-.cal-legend{display:flex;align-items:center;gap:18px;flex-wrap:wrap;padding-top:18px;border-top:1px solid var(--line);font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-soft);font-weight:600}
+.cal-day.av:hover{border-color:var(--page);background:rgba(58,72,104,0.05)}
+.cal-day.past{opacity:.4;cursor:not-allowed}
+.cal-day.past .cd-n{text-decoration:line-through;color:var(--faint)}
+.cal-day.booked{cursor:not-allowed}
+.cal-day.booked .cd-n{text-decoration:line-through;text-decoration-thickness:1.5px;text-decoration-color:var(--page);color:var(--faint)}
+.cal-day.inside{background:rgba(58,72,104,0.12);border-radius:0}
+.cal-day.inside .cd-p{color:var(--page)}
+.cal-day.start,.cal-day.end{background:var(--page);border-color:var(--page)}
+.cal-day.start .cd-n,.cal-day.end .cd-n,.cal-day.start .cd-p,.cal-day.end .cd-p{color:#FAF7F0}
+.cal-day.start{border-top-right-radius:0;border-bottom-right-radius:0}
+.cal-day.end{border-top-left-radius:0;border-bottom-left-radius:0}
+.cal-day.range-single{border-radius:10px !important}
+.cal-day.is-today::after{content:'';position:absolute;top:3px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:var(--accent)}
+.cal-legend{display:flex;align-items:center;gap:18px;flex-wrap:wrap;padding-top:18px;border-top:1px solid var(--line);font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);font-weight:600}
 .cal-leg{display:inline-flex;align-items:center;gap:8px}
-.cal-leg .ll{width:14px;height:14px;border-radius:50%}
-.cal-leg .ll.green{background:var(--green-tint)}
-.cal-leg .ll.yellow{background:var(--accent-soft)}
-.cal-leg .ll.coral{background:var(--bg-2);border:1px solid var(--line-strong)}
-.cal-leg-night{margin-left:auto;color:var(--ink);font-weight:700}
-.cal-apply{padding:9px 18px;background:var(--ink);color:#FAF7F0;border:0;border-radius:999px;font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;font-weight:700;cursor:pointer;transition:background .2s ease;flex-shrink:0;margin-left:14px}
+.cal-leg .cl-free{width:13px;height:13px;border-radius:4px;border:1px solid var(--line-strong);background:var(--paper)}
+.cal-leg .cl-booked{font-family:"Bricolage Grotesque",sans-serif;font-size:12px;font-weight:700;color:var(--faint);text-decoration:line-through;text-decoration-thickness:1.5px;text-decoration-color:var(--page);letter-spacing:0}
+.cal-leg-night{margin-left:auto;color:var(--ink);font-weight:700;letter-spacing:.08em}
+.cal-apply{padding:9px 18px;background:var(--page);color:#FAF7F0;border:0;border-radius:999px;font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;font-weight:700;cursor:pointer;transition:background .2s ease;flex-shrink:0;margin-left:14px}
 .cal-apply:hover{background:var(--accent)}
 .guest-pop{position:fixed;z-index:200;background:var(--paper);border:1px solid var(--line);border-radius:16px;box-shadow:0 24px 60px rgba(10,9,8,0.18);padding:22px;width:360px;max-width:calc(100vw - 28px);display:flex;flex-direction:column;gap:0;font-family:"Bricolage Grotesque",sans-serif}
 .gp-head{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-soft);font-weight:600;display:flex;align-items:center;gap:10px;padding-bottom:14px;margin-bottom:4px;border-bottom:1px solid var(--line)}
@@ -209,7 +214,7 @@
 .gp-num{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:17px;min-width:20px;text-align:center;color:var(--ink)}
 .gp-foot{display:flex;justify-content:space-between;align-items:center;padding-top:16px;margin-top:4px;border-top:1px solid var(--line);gap:14px}
 .gp-note{font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-soft);font-weight:600;flex:1}
-.gp-apply{padding:11px 22px;background:var(--ink);color:#FAF7F0;border:0;border-radius:999px;font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;font-weight:700;cursor:pointer;transition:background .2s ease;flex-shrink:0}
+.gp-apply{padding:11px 22px;background:var(--page);color:#FAF7F0;border:0;border-radius:999px;font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;font-weight:700;cursor:pointer;transition:background .2s ease;flex-shrink:0}
 .gp-apply:hover{background:var(--accent)}
 .lightbox[hidden],.lightbox-single[hidden],.cal-pop[hidden],.guest-pop[hidden]{display:none !important}
 .lightbox{position:fixed;inset:0;z-index:300;background:rgba(10,9,8,0.92);backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);animation:lbFadeIn .25s ease;display:flex;flex-direction:column}
@@ -248,3 +253,35 @@
 }
 .apt-share{margin-top:16px;display:inline-flex;align-items:center;gap:7px;padding:9px 16px;border:1px solid var(--line-strong);border-radius:999px;background:var(--paper);font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;font-weight:700;color:var(--ink);cursor:pointer;transition:all .2s ease}
 .apt-share:hover{background:var(--ink);color:#FAF7F0;border-color:var(--ink)}
+
+/* ---- booking-request panel ---- */
+.ab-price{display:flex;flex-direction:column;gap:8px;margin-bottom:2px}
+.ab-save{align-self:flex-start;padding:4px 9px;background:var(--accent-soft);color:var(--accent-deep);border-radius:999px;font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.16em;text-transform:uppercase;font-weight:700}
+.apt-book[data-state="empty"] .ab-form,.apt-book[data-state="empty"] .ab-sent{display:none}
+.apt-book[data-state="dates"] .ab-empty,.apt-book[data-state="dates"] .ab-sent{display:none}
+.apt-book[data-state="sent"] .ab-empty,.apt-book[data-state="sent"] .ab-form{display:none}
+.ab-pick{width:100%;margin-top:14px;padding:12px;border:1px dashed var(--line-strong);border-radius:12px;background:transparent;color:var(--ink-soft);font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;font-weight:600;cursor:pointer;transition:all .2s ease}
+.ab-pick:hover{border-color:var(--page);color:var(--page)}
+.ab-form{display:flex;flex-direction:column;gap:14px;margin-top:18px}
+.ab-summary{display:flex;flex-direction:column;gap:8px}
+.ab-line{display:flex;justify-content:space-between;align-items:baseline;font-size:14px;color:var(--ink-soft)}
+.ab-line>span:last-child{font-weight:600;color:var(--ink)}
+.ab-line.total{padding-top:10px;margin-top:2px;border-top:1px solid var(--line)}
+.ab-line.total>span:first-child{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.18em;text-transform:uppercase;color:var(--ink-soft)}
+.ab-line.total>span:last-child{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:19px;color:var(--ink)}
+.ab-to{display:flex;flex-direction:column;gap:10px;padding-top:14px;border-top:1px solid var(--line)}
+.ab-to-label{font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-soft);font-weight:600}
+.ab-name,.ab-contact{width:100%;padding:11px 13px;border:1px solid var(--line-strong);border-radius:10px;background:#FAF7F0;font-family:"Bricolage Grotesque",sans-serif;font-weight:600;font-size:14px;color:var(--ink);outline:0;transition:border-color .2s ease;box-sizing:border-box}
+.ab-name::placeholder,.ab-contact::placeholder{color:var(--faint);font-weight:500}
+.ab-name:focus,.ab-contact:focus{border-color:var(--page)}
+.ab-seg{display:grid;grid-template-columns:1fr 1fr 1fr;gap:4px;padding:4px;background:var(--bg-2);border-radius:10px}
+.ab-seg-b{padding:8px 4px;border:0;border-radius:7px;background:transparent;cursor:pointer;font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.06em;text-transform:uppercase;font-weight:700;color:var(--ink-soft);transition:all .15s ease}
+.ab-seg-b.active{background:var(--paper);color:var(--ink);box-shadow:0 1px 3px rgba(10,9,8,.1)}
+.ab-hp{position:absolute;left:-9999px;width:1px;height:1px;opacity:0}
+.ab-reassure{font-size:12px;line-height:1.45;color:var(--ink-soft);text-align:center;margin:0}
+.ab-err{display:none;font-size:12.5px;color:#C0392B;text-align:center;font-weight:600}
+.ab-sent{margin-top:18px;text-align:center;display:flex;flex-direction:column;align-items:center;gap:10px;padding:8px 0}
+.ab-sent-ic{width:44px;height:44px;border-radius:50%;background:var(--page);color:#FAF7F0;display:flex;align-items:center;justify-content:center;font-size:22px;font-weight:700}
+.ab-sent h4{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:20px;letter-spacing:-.02em;color:var(--ink);margin:0;text-transform:lowercase}
+.ab-sent p{font-size:13.5px;line-height:1.55;color:var(--ink-soft);margin:0;max-width:34ch}
+.apt-book .btn-primary{width:100%}

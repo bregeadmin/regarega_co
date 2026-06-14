@@ -2,7 +2,6 @@
 import SiteRu from '../../../../../layouts/SiteRu.astro';
 import '../../../../../styles/guide.css';
 import { supabase } from '../../../../../lib/supabase';
-import guideRu from '../../../../../data/guide_ru.json';
 import { GUIDE_CATS } from '../../../../../lib/guideCats';
 
 const CAT = Object.fromEntries(Object.entries(GUIDE_CATS).map(([k, v]) => [k, { color: v.color, tint: v.tint, dark: v.dark, label: v.label.ru }]));
@@ -30,11 +29,10 @@ export async function getStaticPaths() {
 }
 
 const { p, nearby, related } = Astro.props;
-// overlay Russian translations (local file) over the English DB content; fall back to EN
-const _ruMap = guideRu as Record<string, { summary_ru?: string; body_ru?: string }>;
-const _tr = _ruMap[p.slug];
-if (_tr) { p.summary = _tr.summary_ru || p.summary; p.body = _tr.body_ru || p.body; }
-related.forEach((r: any) => { const t = _ruMap[r.slug]; if (t && t.summary_ru) r.summary = t.summary_ru; });
+// use the Russian DB columns (summary_ru/body_ru) over the English content; fall back to EN
+p.summary = p.summary_ru || p.summary;
+p.body = p.body_ru || p.body;
+related.forEach((r: any) => { if (r.summary_ru) r.summary = r.summary_ru; });
 const cat = CAT[p.category] || { color: '#ff5e1a', tint: '#FBE7DC', dark: '#C63D0F', label: p.category };
 const name = p.title || p.name;
 const photos = (p.photos && p.photos.length) ? p.photos : (p.image ? [p.image] : []);
@@ -71,10 +69,6 @@ if (p.website) {
   actBits.push('<a class="act" href="' + esc(p.website) + '" target="_blank" rel="noopener">↗ ' + (isIg ? 'instagram' : 'сайт') + '</a>');
 }
 actBits.push('<button class="act share-btn" type="button">↗ поделиться</button>');
-if (photos[0]) {
-  const _sline = (t => t.length > 100 ? t.slice(0, 100).replace(/\s+\S*$/, '') + '…' : t)(String(p.take_title || p.summary || '').replace(/\*+/g, '').replace(/\s+/g, ' ').trim());
-  actBits.push('<button class="act story-btn" type="button" data-photo="' + esc(photos[0]) + '" data-name="' + esc(String(name).toLowerCase()) + '" data-tag="' + esc(cat.label) + '" data-line="' + esc(_sline) + '" data-kicker="батуми · гид" data-cta="открыть в гиде" data-accent="' + esc(cat.color) + '">↗ сторис</button>');
-}
 if (nearby.length) actBits.push('<a class="act primary" href="#nearby">квартиры рядом →</a>');
 const actionBar = actBits.length ? '<div class="action-bar"><span class="spacer"></span>' + actBits.join('') + '</div>' : '';
 

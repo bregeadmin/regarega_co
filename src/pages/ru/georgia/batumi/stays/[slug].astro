@@ -109,9 +109,11 @@ let content = template
   .replace('%%INSIDE%%', inside)
   .replace('%%AMENITIES%%', amenities)
   .replace('%%SIMILAR%%', similarHtml);
+// Цена при сборке — лишь запасной вариант; скрипт панели подставит живое «от $X»
+// (мин. доступная ставка ×1.1) когда загрузится. Токен %%PRICE%% не оставляем.
 content = apt.price_from
   ? content.replaceAll('%%PRICE%%', '₾' + apt.price_from)
-  : content.replace('<em>от %%PRICE%%</em> <span class="per">/ ночь</span>', '<em>по запросу</em>');
+  : content.replace('<em id="abFrom">от %%PRICE%%</em> <span class="per" id="abPer">/ ночь</span>', '<em id="abFrom">по запросу</em> <span class="per" id="abPer" hidden>/ ночь</span>');
 
 // «что рядом» — реальные ближайшие места из гида (Haversine)
 const escG = (s: any) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -132,16 +134,34 @@ content = content
   .replace(/<div class="guide-picks">[\s\S]*?<\/div>\s*<\/div>\s*<!-- RULES -->/, '<div class="guide-picks">' + guidePicksHtml + '</div>\n    </div>\n\n    <!-- RULES -->')
   .replace(/<div class="loc-near pending">[\s\S]*?<\/div>\s*<\/div>/, locNearHtml);
 
-const _aline = (t => t.length > 100 ? t.slice(0, 100).replace(/\s+\S*$/, '') + '…' : t)(stripEmoji(apt.summary_ru || apt.summary || '').replace(/\s+/g, ' ').trim());
-const _storyBtn = photos[0] ? '<button class="apt-share story-btn" type="button" data-photo="' + escG(photos[0]) + '" data-name="' + escG(String(apt.title_ru || apt.title).toLowerCase()) + '" data-tag="квартира" data-line="' + escG(_aline) + '" data-kicker="батуми · квартиры" data-cta="забронировать" data-accent="#FF5E1A">↗ сторис</button>' : '';
-content = content.replace('%%STORY%%', _storyBtn);
+content = content.replace('%%STORY%%', '');
 const photosJson = JSON.stringify(photos.map((p) => ({ src: p, alt: apt.title })));
 const script = pageScript.replaceAll('%%TITLE%%', apt.title).replace('%%PHOTOS%%', photosJson);
 const aptMapInit = "window.__initAptMap=function(){RegaMap.single('aptMap',APT_GEO,{routeLabel:'↗ проложить маршрут'});};";
+// Панель брони: id квартиры + публичный доступ к базе + русские подписи.
+const SB_URL = import.meta.env.PUBLIC_SUPABASE_URL || 'https://qkzinjawtumhjbezlyog.supabase.co';
+const SB_KEY = import.meta.env.PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_R0NeSmTwX9qt0bxlHYj1AA_JIVRqsqU';
+const aptBookCfg = JSON.stringify({
+  id: apt.id, title: apt.title_ru || apt.title, maxGuests: apt.max_guests ?? 2, url: SB_URL, key: SB_KEY,
+  lang: 'ru',
+  t: {
+    months: ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'],
+    week: ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'],
+    from: 'от', addDates: 'выбрать даты', minNights: 'минимум 2 ночи',
+    nightsForms: ['ночь','ночи','ночей'],
+    pickIn: '→ выберите заезд', pickOut: '→ теперь выезд',
+    cleaning: 'уборка', total: 'итого', onRequest: 'по запросу',
+    errDates: 'сначала выберите даты', errName: 'укажите имя', errContact: 'укажите контакт',
+    errSend: 'не отправилось — напишите в telegram', send: '↗ отправить заявку', sending: 'отправляем…',
+    placeholders: { telegram: '@username', whatsapp: '+995 …', email: 'name@email.com' },
+  },
+});
 ---
 <SiteRu title={(apt.title_ru || apt.title) + ' — rega rega batumi'} description={stripEmoji(apt.summary_ru || apt.summary) || 'проверенная квартира в батуми.'} ogTitle={String(apt.title_ru || apt.title).toLowerCase() + ' — rega rega batumi'} ogDescription="" image={(apt.photos && apt.photos[0]) ? '/og/stay-' + apt.slug + '-ru.png' : undefined} accent='#3A4868' accentDeep='#2C3850'>
 <Fragment set:html={content} />
+<script is:inline set:html={'window.APT_BOOK=' + aptBookCfg + ';'}></script>
 <script is:inline set:html={script}></script>
+<script is:inline src="/apt-booking.js"></script>
 <script is:inline src="/rega-map.js"></script>
 <script is:inline set:html={'const APT_GEO=' + JSON.stringify({lat:apt.lat,lng:apt.lng,title:apt.title}) + ';' + aptMapInit}></script>
 <script is:inline async src={'https://maps.googleapis.com/maps/api/js?key=' + GMAPS_KEY + '&callback=__initAptMap&loading=async&language=ru&region=GE'}></script>

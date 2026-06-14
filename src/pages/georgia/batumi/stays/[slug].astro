@@ -103,9 +103,11 @@ let content = template
   .replace('%%INSIDE%%', inside)
   .replace('%%AMENITIES%%', amenities)
   .replace('%%SIMILAR%%', similarHtml);
+// Build-time price is just a fallback — the panel script fills the live "from $X"
+// (min available nightly ×1.1) once it loads. Never leave the %%PRICE%% token visible.
 content = apt.price_from
   ? content.replaceAll('%%PRICE%%', '₾' + apt.price_from)
-  : content.replace('<em>from %%PRICE%%</em> <span class="per">/ night</span>', '<em>on request</em>');
+  : content.replace('<em id="abFrom">from %%PRICE%%</em> <span class="per" id="abPer">/ night</span>', '<em id="abFrom">price on request</em> <span class="per" id="abPer" hidden>/ night</span>');
 
 // "around here" — real nearest guide places (Haversine walking distance)
 const escG = (s: any) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
@@ -126,16 +128,20 @@ content = content
   .replace(/<div class="guide-picks">[\s\S]*?<\/div>\s*<\/div>\s*<!-- RULES -->/, '<div class="guide-picks">' + guidePicksHtml + '</div>\n    </div>\n\n    <!-- RULES -->')
   .replace(/<div class="loc-near pending">[\s\S]*?<\/div>\s*<\/div>/, locNearHtml);
 
-const _aline = (t => t.length > 100 ? t.slice(0, 100).replace(/\s+\S*$/, '') + '…' : t)(stripEmoji(apt.summary || '').replace(/\s+/g, ' ').trim());
-const _storyBtn = photos[0] ? '<button class="apt-share story-btn" type="button" data-photo="' + escG(photos[0]) + '" data-name="' + escG(apt.title.toLowerCase()) + '" data-tag="apartment" data-line="' + escG(_aline) + '" data-kicker="batumi · stays" data-cta="book direct" data-accent="#FF5E1A">↗ story</button>' : '';
-content = content.replace('%%STORY%%', _storyBtn);
+content = content.replace('%%STORY%%', '');
 const photosJson = JSON.stringify(photos.map((p) => ({ src: p, alt: apt.title })));
 const script = pageScript.replaceAll('%%TITLE%%', apt.title).replace('%%PHOTOS%%', photosJson);
 const aptMapInit = "window.__initAptMap=function(){RegaMap.single('aptMap',APT_GEO,{routeLabel:'↗ get directions'});};";
+// Booking panel needs live data in the browser: apartment id + public Supabase access.
+const SB_URL = import.meta.env.PUBLIC_SUPABASE_URL || 'https://qkzinjawtumhjbezlyog.supabase.co';
+const SB_KEY = import.meta.env.PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_R0NeSmTwX9qt0bxlHYj1AA_JIVRqsqU';
+const aptBookCfg = JSON.stringify({ id: apt.id, title: apt.title, maxGuests: apt.max_guests ?? 2, url: SB_URL, key: SB_KEY });
 ---
 <Site title={apt.title + ' — rega rega batumi'} description={stripEmoji(apt.summary) || 'a checked flat in batumi.'} ogTitle={String(apt.title).toLowerCase() + ' — rega rega batumi'} ogDescription="" image={(apt.photos && apt.photos[0]) ? '/og/stay-' + apt.slug + '.png' : undefined} accent='#3A4868' accentDeep='#2C3850'>
 <Fragment set:html={content} />
+<script is:inline set:html={'window.APT_BOOK=' + aptBookCfg + ';'}></script>
 <script is:inline set:html={script}></script>
+<script is:inline src="/apt-booking.js"></script>
 <script is:inline src="/rega-map.js"></script>
 <script is:inline set:html={'const APT_GEO=' + JSON.stringify({lat:apt.lat,lng:apt.lng,title:apt.title}) + ';' + aptMapInit}></script>
 <script is:inline async src={'https://maps.googleapis.com/maps/api/js?key=' + GMAPS_KEY + '&callback=__initAptMap&loading=async&language=en&region=GE'}></script>

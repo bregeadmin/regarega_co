@@ -1,6 +1,5 @@
 ---
 import Site from '../../../../../layouts/Site.astro';
-import news from '../../../../../data/news.json';
 import { supabase } from '../../../../../lib/supabase';
 import { GUIDE_CATS } from '../../../../../lib/guideCats';
 
@@ -11,9 +10,11 @@ export async function getStaticPaths() {
     .from('guide_places')
     .select('slug,title,name,category,photos,image')
     .eq('status', 'published');
+  const { data: news } = await supabase
+    .from('news').select('*').eq('status', 'published').order('date', { ascending: false });
   const pmap: Record<string, any> = {};
   (gp || []).forEach((p: any) => { pmap[p.slug] = p; });
-  return (news as any[]).map((n) => ({
+  return (news || []).map((n: any) => ({
     params: { slug: n.slug },
     props: { n, place: n.place ? (pmap[n.place] || null) : null },
   }));

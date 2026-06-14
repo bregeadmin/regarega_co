@@ -66,12 +66,13 @@
 .rrp-row::-webkit-scrollbar { display: none; }
 .rrp-place {
   scroll-snap-align: start;
-  flex: 0 0 auto; width: 116px;
+  flex: 0 0 auto; width: 236px;
   text-decoration: none; color: var(--ink);
 }
 .rrp-ph {
-  display: block; width: 116px; height: 146px; border-radius: 13px;
-  background: var(--bg2) center/cover no-repeat; margin-bottom: 8px;
+  display: block; width: 100%; aspect-ratio: 5 / 3; border-radius: 13px;
+  background-color: #F1ECDF; background-position: center; background-size: cover; background-repeat: no-repeat;
+  margin-bottom: 8px;
 }
 .rrp-meta { display: block; }
 .rrp-meta b {

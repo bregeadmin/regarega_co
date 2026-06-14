@@ -97,7 +97,7 @@
   function opt(u, w) { return u ? ('/_vercel/image?url=' + encodeURIComponent(u) + '&w=' + (w || 320) + '&q=72') : ''; }
   function placeCard(p, origin) {
     var d = havKm(origin, p);
-    var img = opt(p.photo, 320);
+    var img = opt(p.photo, 640);
     return '<a class="rrp-place" href="' + esc(p.href) + '">' +
       (img ? '<span class="rrp-ph" style="background-image:url(' + esc(img) + ')"></span>' : '<span class="rrp-ph"></span>') +
       '<span class="rrp-meta"><b>' + esc(p.title) + '</b>' +

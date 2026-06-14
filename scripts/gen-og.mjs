@@ -28,7 +28,6 @@ const supabase = createClient(
 const CAT_COLOR = { 'eat-drink': '#3A4868', 'wellness': '#1F8A5B', 'work': '#1F8A5B', 'move-around': '#3A4868' };
 const CAT_LABEL = { 'eat-drink': 'eat & drink', 'wellness': 'wellness', 'work': 'work & remote', 'move-around': 'move around' };
 const CAT_LABEL_RU = { 'eat-drink': 'еда и напитки', 'wellness': 'велнес', 'work': 'работа', 'move-around': 'транспорт' };
-const guideRu = JSON.parse(readFileSync(join(__dir, '..', 'src', 'data', 'guide_ru.json'), 'utf8'));
 
 const W = 1200, H = 630;
 
@@ -128,7 +127,7 @@ async function card(d) {
 
 (async () => {
   let n = 0;
-  const { data: gp } = await supabase.from('guide_places').select('slug,title,name,category,take_title,summary,photos,image').eq('status', 'published');
+  const { data: gp } = await supabase.from('guide_places').select('slug,title,name,category,take_title,summary,summary_ru,body_ru,photos,image').eq('status', 'published');
   for (const p of (gp || [])) {
     const photo = (p.photos && p.photos[0]) || p.image; if (!photo) continue;
     const img = await fetchImg(photo);
@@ -137,8 +136,7 @@ async function card(d) {
     // EN
     writeFileSync(join(OUT, 'place-' + p.slug + '.png'), await card({ img, name, accent, tag: CAT_LABEL[p.category] || p.category || 'guide', kicker: 'batumi · the guide', cta: 'open in the guide', line: clip(p.take_title || p.summary, 130) })); n++;
     // RU (line from body_ru — guide summary_ru is hours/address)
-    const tr = guideRu[p.slug] || {};
-    writeFileSync(join(OUT, 'place-' + p.slug + '-ru.png'), await card({ img, name, accent, tag: CAT_LABEL_RU[p.category] || p.category || 'гид', kicker: 'батуми · гид', cta: 'открыть в гиде', ru: true, line: clip(tr.body_ru || p.take_title, 130) })); n++;
+    writeFileSync(join(OUT, 'place-' + p.slug + '-ru.png'), await card({ img, name, accent, tag: CAT_LABEL_RU[p.category] || p.category || 'гид', kicker: 'батуми · гид', cta: 'открыть в гиде', ru: true, line: clip(p.body_ru || p.take_title, 130) })); n++;
   }
   const { data: apts } = await supabase.from('apartments_public').select('slug,title,title_ru,summary,summary_ru,photos');
   for (const a of (apts || [])) {
@@ -150,7 +148,7 @@ async function card(d) {
     writeFileSync(join(OUT, 'stay-' + a.slug + '-ru.png'), await card({ img, name: String(a.title_ru || a.title || '').toLowerCase(), tag: 'квартира', accent: '#FF5E1A', kicker: 'батуми · квартиры', cta: 'забронировать', ru: true, line: clip(a.summary_ru || a.summary, 130) })); n++;
   }
   // --- news (editorial link-preview cards) ---
-  const news = JSON.parse(readFileSync(join(__dir, '..', 'src', 'data', 'news.json'), 'utf8'));
+  const { data: news } = await supabase.from('news').select('*').eq('status', 'published');
   for (const nw of (news || [])) {
     const photo = nw.image || (nw.photos && nw.photos[0]); if (!photo) continue;
     const img = await fetchImg(photo);
