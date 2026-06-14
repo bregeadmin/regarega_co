@@ -103,6 +103,7 @@
       BASE = (p.base_rate != null) ? Number(p.base_rate) : null;
       CUR = p.currency || 'usd';
       CLEAN = (p.cleaning != null) ? Number(p.cleaning) : 0;
+      if (p.min_nights != null) MIN_NIGHTS = Math.max(1, Number(p.min_nights) || 2);
       PRICE = {};
       (p.rates || []).forEach(function (r) { PRICE[r.date] = Number(r.price); });
       updateFrom();
@@ -193,7 +194,7 @@
     }
     var n = nightsCount();
     if (startDate && endDate) {
-      if (n < MIN_NIGHTS) { calNight.textContent = t('minNights', 'min 2 nights'); }
+      if (n < MIN_NIGHTS) { calNight.textContent = t('minNights', 'min 2 nights').replace(/\d+/, MIN_NIGHTS); }
       else { calNight.textContent = '✓ ' + n + ' ' + nightsLabel(n); }
     } else if (startDate) { calNight.textContent = t('pickOut', '→ now pick checkout'); }
     else { calNight.textContent = t('pickIn', '→ pick arrival'); }
