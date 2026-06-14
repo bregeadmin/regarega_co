@@ -15,7 +15,7 @@ const homeApts = apts.map((a) => {
 }).join('');
 // кандидаты мини-карточек тизера: реальные квартиры + места гида с фото; пара выбирается на клиенте
 const { data: gpData } = await supabase.from('guide_places')
-  .select('slug,title,name,category,photos,image').eq('status', 'published');
+  .select('slug,title,name,category,tags,photos,image,take_title,summary').eq('status', 'published');
 const gplaces = (gpData as any[]) || [];
 const gph = (p: any) => (p && ((p.photos && p.photos[0]) || p.image)) || '';
 const PLACE_COLOR: Record<string, string> = { 'eat-drink': '#3A4868', 'wellness': '#1F8A5B' };
@@ -42,7 +42,37 @@ const ruEd = _newsHome.map((n: any, i: number) => {
     '<h4>' + _escEd(n.title_ru || n.title) + '</h4>' +
     '<div class="ed-foot"><span><b>читать →</b></span><span>↗</span></div></a>';
 }).join('');
-const injectEd = (h: string) => ruEd ? h.replace(/<div class="hero-card edition" id="heroEdition">[\s\S]*?<\/section>/, '<div class="hero-card edition" id="heroEdition">' + ruEd + '</div></div></section>') : h;
+// секция гида «в этом выпуске» — из базы по категориям (как на EN)
+const _countsRu: Record<string, number> = {};
+gplaces.forEach((p: any) => { _countsRu[p.category] = (_countsRu[p.category] || 0) + 1; });
+const _byCatRu = (c: string) => gplaces.filter((p: any) => p.category === c);
+const _gphRu = (p: any) => (p && ((p.photos && p.photos[0]) || p.image)) || '';
+const _clipRu = (s: any, n: number) => { const t = String(s || '').replace(/\s+/g, ' ').replace(/\*\*?/g, '').trim(); return t.length > n ? t.slice(0, n).replace(/[ ,;:.]+\S*$/, '') + '…' : t; };
+const CATLBL_RU2: Record<string, string> = { 'eat-drink': 'есть и пить', 'wellness': 'велнес', 'work': 'работа', 'move-around': 'как передвигаться' };
+const _catColRu = (key: string, h3: string) => {
+  const list = _byCatRu(key); if (!list.length) return '';
+  const feat = list[0], posts = list.slice(1, 3);
+  const tag = (p: any) => (p.tags && p.tags[0]) ? _escEd(p.tags[0]) : (CATLBL_RU2[key] || key);
+  const featHtml = '<a class="feat" href="/ru/georgia/batumi/guide/' + feat.slug + '"><div class="ph"><img src="' + _escEd(_gphRu(feat)) + '" alt=""/><span class="tag">' + tag(feat) + '</span></div><div class="body"><span class="kicker">' + (CATLBL_RU2[key] || key) + '</span><h4>' + _escEd(feat.title || feat.name) + '</h4><p>' + _escEd(_clipRu(feat.summary || feat.take_title, 92)) + '</p></div></a>';
+  const postsHtml = posts.map((p: any) => '<a class="post" href="/ru/georgia/batumi/guide/' + p.slug + '"><div class="ph"><img src="' + _escEd(_gphRu(p)) + '" alt=""/></div><div class="body"><span class="kicker">' + tag(p) + '</span><h4>' + _escEd(p.title || p.name) + '</h4></div></a>').join('');
+  return '<div class="cat reveal"><div class="cat-head"><h3>' + h3 + '</h3><span class="count">' + (_countsRu[key] || 0) + ' мест</span></div>' + featHtml + '<div class="cat-posts">' + postsHtml + '</div></div>';
+};
+const ruGuideCats = _catColRu('eat-drink', 'есть и <em>пить</em>') + _catColRu('wellness', '<em>велнес</em>') + _catColRu('move-around', 'как <em>передвигаться</em>');
+const ruNowGuide = _newsHome[0] ? '<a href="/ru/georgia/batumi/guide/news/' + _newsHome[0].slug + '">' + _escEd(_clipRu(_newsHome[0].title_ru || _newsHome[0].title, 26)) + '</a><span class="small">→ свежее из батуми</span>' : '';
+const _fmtDMru = (d: string) => { const m = (d || '').match(/(\d{4})-(\d{2})-(\d{2})/); return m ? (m[3] + '/' + m[2]) : ''; };
+const _footPlaceRu = _byCatRu('eat-drink')[0];
+const _footItemsRu = _newsHome.slice(0, 2).map((n: any) => ({ href: '/ru/georgia/batumi/guide/news/' + n.slug, ph: _escEd(n.image || (n.photos && n.photos[0]) || ''), kick: 'новость · ' + _fmtDMru(n.date), title: _escEd(n.title_ru || n.title) }))
+  .concat(_footPlaceRu ? [{ href: '/ru/georgia/batumi/guide/' + _footPlaceRu.slug, ph: _escEd(_gphRu(_footPlaceRu)), kick: 'есть и пить', title: _escEd(_footPlaceRu.title || _footPlaceRu.name) }] : []);
+const ruFootPosts = _footItemsRu.map((it: any) => '<a class="fp" href="' + it.href + '"><div class="ph"><img src="' + it.ph + '" alt=""/></div><div class="body"><div class="kicker">' + it.kick + '</div><h5>' + it.title + '</h5></div></a>').join('');
+
+const injectEd = (h: string) => {
+  let out = h;
+  if (ruEd) out = out.replace(/<div class="hero-card edition" id="heroEdition">[\s\S]*?<\/section>/, '<div class="hero-card edition" id="heroEdition">' + ruEd + '</div></div></section>');
+  if (ruGuideCats) out = out.replace(/<div class="guide-categories">[\s\S]*?<\/div>\s*<\/section>/, '<div class="guide-categories">' + ruGuideCats + '</div></section>');
+  if (ruFootPosts) out = out.replace(/<div class="footer-posts">[\s\S]*?<\/div>\s*<\/section>/, '<div class="footer-posts">' + ruFootPosts + '</div></section>');
+  if (ruNowGuide) out = out.replace(/<div class="now-label">Из гайда<\/div>\s*<div class="now-val">[\s\S]*?<\/div>/, '<div class="now-label">Из гайда</div><div class="now-val">' + ruNowGuide + '</div>');
+  return out;
+};
 ---
 <SiteRu title="rega rega \u2014 \u043a\u0432\u0430\u0440\u0442\u0438\u0440\u044b \u0438 \u0433\u0430\u0439\u0434 \u043f\u043e \u0431\u0430\u0442\u0443\u043c\u0438">
 <HomeIntro />
