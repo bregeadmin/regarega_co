@@ -16,11 +16,11 @@ export async function getStaticPaths() {
   (gp || []).forEach((p: any) => { pmap[p.slug] = p; });
   return (news || []).map((n: any) => ({
     params: { slug: n.slug },
-    props: { n, place: n.place ? (pmap[n.place] || null) : null },
+    props: { n, places: ((n.places && n.places.length) ? n.places : (n.place ? [n.place] : [])).map((s: string) => pmap[s]).filter(Boolean) },
   }));
 }
 
-const { n, place } = Astro.props as { n: any; place: any };
+const { n, places } = Astro.props as { n: any; places: any[] };
 // русский контент с откатом на английский, если RU-поля не заданы
 const nt = n.title_ru || n.title;
 const nd = n.descr_ru || n.descr;
@@ -44,11 +44,11 @@ const words = String(nb || nd || '').split(/\s+/).filter(Boolean).length;
 const mins = Math.max(1, Math.round(words / 90));
 
 let placeHtml = '';
-if (place) {
+for (const place of (places || [])) {
   const pc = CAT[place.category] || { color: '#ff5e1a', label: place.category };
   const pName = place.title || place.name || place.slug;
   const pPhoto = (place.photos && place.photos.length) ? place.photos[0] : (place.image || '');
-  placeHtml =
+  placeHtml +=
     '<a class="place-card" href="/ru/georgia/batumi/guide/' + esc(place.slug) + '" style="--pc:' + pc.color + '">' +
       (pPhoto ? '<div class="pc-ph"><img src="' + esc(pPhoto) + '" alt="" loading="lazy"></div>' : '') +
       '<div class="pc-body">' +
