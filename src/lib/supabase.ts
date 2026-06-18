@@ -20,6 +20,7 @@ export type Apartment = {
   baths: number | null;
   max_guests: number | null;
   price_from: number | null;
+  price_currency: string | null;
   lat: number | null;
   lng: number | null;
   photos: string[];
