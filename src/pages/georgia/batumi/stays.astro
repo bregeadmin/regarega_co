@@ -3,13 +3,14 @@ import Site from '../../../layouts/Site.astro';
 import { supabase, applyNames, type Apartment } from '../../../lib/supabase';
 import { GMAPS_KEY } from '../../../lib/maps';
 import { teaser } from '../../../lib/text';
+import { priceFrom, priceShort } from '../../../lib/price';
 const { data } = await supabase
   .from('apartments_public')
-  .select('id,slug,title,summary,neighborhood,bedrooms,max_guests,price_from,photos,lat,lng')
+  .select('id,slug,title,summary,neighborhood,bedrooms,max_guests,price_from,price_currency,photos,lat,lng')
   .order('price_from', { ascending: true });
 const apartments = ((data as Apartment[]) || []).map(applyNames);
 const ph = (a: Apartment) => (a.photos && a.photos[0]) || `https://picsum.photos/seed/${a.slug}/900/700`;
-const mapData = apartments.filter((a)=>a.lat!=null&&a.lng!=null).map((a)=>({slug:a.slug,title:a.title,lat:a.lat,lng:a.lng,photo:(a.photos&&a.photos[0])||'',href:`/georgia/batumi/stays/${a.slug}`,sub:(a.bedrooms===0?'studio':`${a.bedrooms??1} bed`)+` · ${a.max_guests??2} guests`,cta:a.price_from?`₾${a.price_from} / night`:'from ₾X / night',pill:a.price_from?`₾${a.price_from}`:'₾X'}));
+const mapData = apartments.filter((a)=>a.lat!=null&&a.lng!=null).map((a)=>({slug:a.slug,title:a.title,lat:a.lat,lng:a.lng,photo:(a.photos&&a.photos[0])||'',href:`/georgia/batumi/stays/${a.slug}`,sub:(a.bedrooms===0?'studio':`${a.bedrooms??1} bed`)+` · ${a.max_guests??2} guests`,cta:priceFrom(a,'en'),pill:priceShort(a)||'—'}));
 
 const initJs = "window.__initGMap=function(){"
   + "var api=RegaMap.stays('staysMap',MAP_DATA,{cardSel:'.apts .apt',cluster:true,fullscreen:false});"
@@ -55,7 +56,7 @@ const initJs = "window.__initGMap=function(){"
                 <span>{a.max_guests ?? 2} guests</span>
               </div>
               <div class="price-row">
-                <div class="price"><span class="from">from</span>₾{a.price_from ?? 'X'}<span class="u">/night</span></div>
+                <div class="price"><span class="from">from</span>{priceShort(a) ?? '—'}<span class="u">/night</span></div>
                 <span class="cta">view →</span>
               </div>
             </div>

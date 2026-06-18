@@ -3,12 +3,13 @@ import Site from '../../../layouts/Site.astro';
 import HomeIntro from '../../../components/HomeIntro.astro';
 import { mapTeaserHTML } from '../../../lib/homeTeaser';
 import { supabase, applyNames, type Apartment } from '../../../lib/supabase';
-const { data } = await supabase.from('apartments_public').select('id,slug,title,bedrooms,max_guests,price_from,photos,neighborhood').limit(6);
+import { priceShort } from '../../../lib/price';
+const { data } = await supabase.from('apartments_public').select('id,slug,title,bedrooms,max_guests,price_from,price_currency,photos,neighborhood').limit(6);
 const apts = ((data as Apartment[]) || []).map(applyNames);
 const homeApts = apts.map((a) => {
   const photo = (a.photos && a.photos[0]) || `https://picsum.photos/seed/${a.slug}/1200/900`;
   const bedType = a.bedrooms === 0 ? 'studio' : `${a.bedrooms ?? 1} bed`;
-  const price = a.price_from ? `₾${a.price_from}<span class="u">/NT</span>` : `<span style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.04em">on request</span>`;
+  const price = a.price_from ? `${priceShort(a)}<span class="u">/NT</span>` : `<span style="font-size:13px;font-weight:700;text-transform:uppercase;letter-spacing:.04em">on request</span>`;
   const dist = a.neighborhood ? `<span class="dist">${a.neighborhood}</span>` : '';
   return `<a class="apt reveal" href="/georgia/batumi/stays/${a.slug}"><div class="ph"><img src="${photo}" alt="${a.title}"/><button class="fav" type="button" aria-label="save">♡</button></div><div class="info"><div class="top"><h4>${a.title}</h4><div class="price">${price}</div></div><div class="sub"><span>${bedType} · ${a.max_guests ?? 2} guests</span>${dist}</div></div></a>`;
 }).join('');
@@ -45,7 +46,7 @@ const heroEdition = edSlides.length
 const PLACE_COLOR: Record<string, string> = { 'eat-drink': '#3A4868', 'wellness': '#1F8A5B' };
 const thumb = (u: string) => '/_vercel/image?url=' + encodeURIComponent(u) + '&w=320&q=72';
 const flatCands = apts.filter((a) => a.photos && a.photos[0]).slice(0, 6).map((a) => ({
-  n: String(a.title || '').toLowerCase(), s: a.price_from ? `flat · ₾${a.price_from}/nt` : 'on request',
+  n: String(a.title || '').toLowerCase(), s: priceShort(a) ? `flat · ${priceShort(a)}/nt` : 'on request',
   p: thumb(a.photos[0]), h: `/georgia/batumi/stays/${a.slug}`, c: '#FF5E1A',
 }));
 const placeCands = places.filter((p) => PLACE_COLOR[p.category] && gph(p)).slice(0, 6).map((p) => ({

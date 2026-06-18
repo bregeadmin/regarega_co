@@ -3,6 +3,7 @@ import Site from '../../../layouts/Site.astro';
 import '../../../styles/guide-hub.css';
 import { supabase } from '../../../lib/supabase';
 import { GMAPS_KEY } from '../../../lib/maps';
+import { priceFrom } from '../../../lib/price';
 
 const { data: gp } = await supabase
   .from('guide_places').select('slug,title,name,category,lat,lng,photos,price,show_on_map,hours')
@@ -18,7 +19,7 @@ const personalPlaces = (places as any[])
     href: '/georgia/batumi/guide/' + p.slug }));
 const counts: Record<string, number> = {};
 places.forEach((p) => { counts[p.category] = (counts[p.category] || 0) + 1; });
-const { data: apts } = await supabase.from('apartments_public').select('slug,title,lat,lng,photos,price_from');
+const { data: apts } = await supabase.from('apartments_public').select('slug,title,lat,lng,photos,price_from,price_currency');
 const aptCount = (apts || []).length;
 const total = places.length;
 
@@ -33,7 +34,7 @@ const placePins = places.filter((p) => p.show_on_map && p.lat != null && p.lng !
 const aptPins = (apts || []).filter((a) => a.lat != null && a.lng != null).map((a) => ({
   slug: 'a-' + a.slug, title: a.title, lat: a.lat, lng: a.lng,
   photo: (a.photos && a.photos[0]) || '', href: '/georgia/batumi/stays/' + a.slug,
-  sub: 'flat', cta: a.price_from ? ('₾' + a.price_from + ' / night') : 'on request',
+  sub: 'flat', cta: priceFrom(a, 'en'),
   color: '#ff5e1a', ring: '#0a0908', flat: true,
 }));
 const mapData = placePins.concat(aptPins);

@@ -5,11 +5,12 @@ import { supabase, applyNames, type Apartment } from '../../../../lib/supabase';
 import { template, pageScript } from '../../../../lib/aptDetail';
 import { stripEmoji } from '../../../../lib/text';
 import { GMAPS_KEY } from '../../../../lib/maps';
+import { priceFrom, priceSym } from '../../../../lib/price';
 
 export async function getStaticPaths() {
   const { data } = await supabase
     .from('apartments_public')
-    .select('id,slug,title,summary,neighborhood,bedrooms,max_guests,price_from,photos,rooms,amenities,lat,lng');
+    .select('id,slug,title,summary,neighborhood,bedrooms,max_guests,price_from,price_currency,photos,rooms,amenities,lat,lng');
   const apartments = ((data as Apartment[]) || []).map(applyNames);
   const { data: gpData } = await supabase.from('guide_places')
     .select('slug,title,name,category,tags,lat,lng,photos,image').eq('status', 'published');
@@ -88,7 +89,7 @@ const simPhoto = (s: Apartment) => (s.photos && s.photos[0]) || `https://picsum.
 const similarHtml = similar
   .map((s) => {
     const beds = s.bedrooms === 0 ? 'studio' : (s.bedrooms ?? 1) + ' bed';
-    const price = s.price_from ? 'from ₾' + s.price_from + ' / night' : 'on request';
+    const price = priceFrom(s, 'en');
     return `<a class="sim" href="/georgia/batumi/stays/${s.slug}"><div class="ph"><img src="${simPhoto(s)}" alt="${s.title}"></div><div class="body"><h5>${s.title}</h5><div class="meta">${beds} · ${s.max_guests ?? 2} guests</div><div class="price">${price}</div></div></a>`;
   })
   .join('');
@@ -106,7 +107,7 @@ let content = template
 // Build-time price is just a fallback — the panel script fills the live "from $X"
 // (min available nightly ×1.1) once it loads. Never leave the %%PRICE%% token visible.
 content = apt.price_from
-  ? content.replaceAll('%%PRICE%%', '₾' + apt.price_from)
+  ? content.replaceAll('%%PRICE%%', priceSym(apt.price_currency) + apt.price_from)
   : content.replace('<em id="abFrom">from %%PRICE%%</em> <span class="per" id="abPer">/ night</span>', '<em id="abFrom">price on request</em> <span class="per" id="abPer" hidden>/ night</span>');
 
 // "around here" — real nearest guide places (Haversine walking distance)
