@@ -3,6 +3,7 @@ import SiteRu from '../../../../../layouts/SiteRu.astro';
 import '../../../../../styles/guide.css';
 import { supabase } from '../../../../../lib/supabase';
 import { GUIDE_CATS } from '../../../../../lib/guideCats';
+import { priceShort } from '../../../../../lib/price';
 
 const CAT = Object.fromEntries(Object.entries(GUIDE_CATS).map(([k, v]) => [k, { color: v.color, tint: v.tint, dark: v.dark, label: v.label.ru }]));
 
@@ -10,7 +11,7 @@ export async function getStaticPaths() {
   const { data: gp } = await supabase.from('guide_places').select('*').eq('status', 'published');
   const { data: apts } = await supabase
     .from('apartments_public')
-    .select('slug,title,title_ru,bedrooms,max_guests,price_from,photos,lat,lng');
+    .select('slug,title,title_ru,bedrooms,max_guests,price_from,price_currency,photos,lat,lng');
   const places = gp || [];
   const apartments = (apts || []).filter((a) => a.lat != null && a.lng != null);
   const hav = (a, b) => {
@@ -97,7 +98,7 @@ const nearbyCards = nearby.map((o) => {
   const a = o.a;
   const ph = (a.photos && a.photos[0]) || ('https://picsum.photos/seed/' + a.slug + '/900/700');
   const beds = a.bedrooms === 0 ? 'студия' : (a.bedrooms ?? 1) + ' спальня';
-  const price = a.price_from ? ('₾' + a.price_from + '<span class="u">/ноч</span>') : 'по запросу';
+  const price = a.price_from ? ((priceShort(a) || '') + '<span class="u">/ноч</span>') : 'по запросу';
   return '<a class="apt" href="/ru/georgia/batumi/stays/' + a.slug + '"><div class="ph"><img src="' + esc(ph) + '" alt="" loading="lazy"></div><div class="top"><h4>' + esc(a.title_ru || a.title) + '</h4><span class="price">' + price + '</span></div><div class="sub">' + beds + ' · до ' + (a.max_guests ?? 2) + '</div><div class="dist">' + km(o.d) + '</div></a>';
 }).join('');
 const nearbySection = nearbyCards

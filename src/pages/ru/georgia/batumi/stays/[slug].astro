@@ -6,11 +6,12 @@ import { template, pageScript } from '../../../../../lib/aptDetailRu';
 import { stripEmoji } from '../../../../../lib/text';
 import { GMAPS_KEY } from '../../../../../lib/maps';
 import { tRoom, tAmenity } from '../../../../../lib/roomsRu';
+import { priceFrom, priceSym } from '../../../../../lib/price';
 
 export async function getStaticPaths() {
   const { data } = await supabase
     .from('apartments_public')
-    .select('id,slug,title,title_ru,summary,summary_ru,neighborhood,bedrooms,max_guests,price_from,photos,rooms,amenities,lat,lng');
+    .select('id,slug,title,title_ru,summary,summary_ru,neighborhood,bedrooms,max_guests,price_from,price_currency,photos,rooms,amenities,lat,lng');
   const apartments = ((data as Apartment[]) || []).map(applyNames);
   const { data: gpData } = await supabase.from('guide_places')
     .select('slug,title,name,category,tags,lat,lng,photos,image').eq('status', 'published');
@@ -94,7 +95,7 @@ const similarHtml = similar
   .map((s) => {
     const nm = s.title_ru || s.title;
     const beds = s.bedrooms === 0 ? 'студия' : (s.bedrooms ?? 1) + ' ' + bedsW(s.bedrooms ?? 1);
-    const price = s.price_from ? 'от ₾' + s.price_from + ' / ночь' : 'по запросу';
+    const price = priceFrom(s, 'ru');
     return `<a class="sim" href="/ru/georgia/batumi/stays/${s.slug}"><div class="ph"><img src="${simPhoto(s)}" alt="${nm}"></div><div class="body"><h5>${nm}</h5><div class="meta">${beds} · ${s.max_guests ?? 2} ${guestsW(s.max_guests ?? 2)}</div><div class="price">${price}</div></div></a>`;
   })
   .join('');
@@ -112,7 +113,7 @@ let content = template
 // Цена при сборке — лишь запасной вариант; скрипт панели подставит живое «от $X»
 // (мин. доступная ставка ×1.1) когда загрузится. Токен %%PRICE%% не оставляем.
 content = apt.price_from
-  ? content.replaceAll('%%PRICE%%', '₾' + apt.price_from)
+  ? content.replaceAll('%%PRICE%%', priceSym(apt.price_currency) + apt.price_from)
   : content.replace('<em id="abFrom">от %%PRICE%%</em> <span class="per" id="abPer">/ ночь</span>', '<em id="abFrom">по запросу</em> <span class="per" id="abPer" hidden>/ ночь</span>');
 
 // «что рядом» — реальные ближайшие места из гида (Haversine)
