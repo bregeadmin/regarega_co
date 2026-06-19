@@ -102,6 +102,7 @@
       if (!p) return;
       BASE = (p.base_rate != null) ? Number(p.base_rate) : null;
       CUR = p.currency || 'usd';
+      if (p.markup_pct != null) MARKUP = 1 + Number(p.markup_pct) / 100;   // наценка = комиссия оператора (фолбэк 1.10)
       CLEAN = (p.cleaning != null) ? Number(p.cleaning) : 0;
       if (p.min_nights != null) MIN_NIGHTS = Math.max(1, Number(p.min_nights) || 2);
       PRICE = {};
