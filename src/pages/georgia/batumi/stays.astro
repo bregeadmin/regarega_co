@@ -14,7 +14,7 @@ const mapData = apartments.filter((a)=>a.lat!=null&&a.lng!=null).map((a)=>({slug
 
 const initJs = "window.__initGMap=function(){"
   + "var api=RegaMap.stays('staysMap',MAP_DATA,{cardSel:'.apts .apt',cluster:true,fullscreen:false});"
-  + "if(!api)return;"
+  + "if(!api)return;window.__staysApi=api;if(window.__staysApplyFilter)window.__staysApplyFilter();"
   + "var right=document.getElementById('rightPane');var pane=document.querySelector('.map-pane');"
   + "var exp=pane&&pane.querySelector('.map-expand');var near=pane&&pane.querySelector('.map-near');"
   + "function setExpanded(on){right.classList.toggle('expanded',on);document.documentElement.classList.toggle('map-locked',on);document.body.classList.toggle('map-locked',on);if(window.google&&api.map)setTimeout(function(){google.maps.event.trigger(api.map,'resize');api.refit();},90);}"
@@ -40,7 +40,7 @@ const initJs = "window.__initGMap=function(){"
 
       <div class="apts">
         {apartments.map((a) => (
-          <a class="apt" data-slug={a.slug} href={`/georgia/batumi/stays/${a.slug}`}>
+          <a class="apt" data-slug={a.slug} data-id={a.id} data-guests={a.max_guests ?? 2} href={`/georgia/batumi/stays/${a.slug}`}>
             <div class="ph">
               <img src={ph(a)} alt={a.title} loading="lazy" />
               <button class="fav" type="button" aria-label="save">♡</button>
@@ -125,5 +125,54 @@ const initJs = "window.__initGMap=function(){"
     document.addEventListener('rr:favschange', refresh);
     refresh();
   })();
+</script>
+
+<style is:inline>.filters-strip{display:none}</style>
+<script is:inline>
+/* поиск по датам+гостям (без фильтров-удобств — те ждут «Стандарт Rega»).
+   читаем гостей из #searchGuestsVal, даты из выбранных .cal-day.start/.end (data-date),
+   доступность — анонимная RPC public_apartment_availability; фильтруем список и карту (setFilter). */
+(function(){
+  var SUPA='https://qkzinjawtumhjbezlyog.supabase.co';
+  var KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFremluamF3dHVtaGpiZXpseW9nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2NTE3NDgsImV4cCI6MjA5NDIyNzc0OH0.u_BEKndkTR-SNRl0GSn9i4PTU3Jlrq2dKbD_Dw4l3bQ';
+  var availCache={}, active=false;
+  function apts(){ return Array.prototype.slice.call(document.querySelectorAll('.apts .apt')); }
+  function selGuests(){ var el=document.getElementById('searchGuestsVal'); if(!el) return 0; var m=String(el.textContent).match(/\d+/); return m?+m[0]:0; }
+  function selDates(){ var s=document.querySelector('.cal-day.start[data-date]'), e=document.querySelector('.cal-day.end[data-date]'); return { start:s&&s.getAttribute('data-date'), end:e&&e.getAttribute('data-date') }; }
+  function fetchAvail(id){
+    if(availCache[id]) return Promise.resolve(availCache[id]);
+    return fetch(SUPA+'/rest/v1/rpc/public_apartment_availability',{method:'POST',headers:{'apikey':KEY,'Authorization':'Bearer '+KEY,'Content-Type':'application/json'},body:JSON.stringify({p_apartment:id})})
+      .then(function(r){ return r.ok?r.json():[]; }).then(function(rows){ availCache[id]=Array.isArray(rows)?rows:[]; return availCache[id]; }).catch(function(){ availCache[id]=[]; return []; });
+  }
+  function freeForRange(booked,start,end){ for(var i=0;i<booked.length;i++){ var b=booked[i]; if(b.ci<end && b.co>start) return false; } return true; }
+  function syncMap(){ if(window.__staysApi && window.__staysApi.setFilter) window.__staysApi.setFilter(function(item){ var c=document.querySelector('.apts .apt[data-slug="'+item.slug+'"]'); return c?!c.hidden:true; }); }
+  window.__staysApplyFilter=function(){
+    var list=apts();
+    if(!active){ list.forEach(function(c){ c.hidden=false; }); var em0=document.getElementById('aptsEmpty'); if(em0) em0.hidden=true; if(window.__staysApi&&window.__staysApi.clearFilter) window.__staysApi.clearFilter(); return; }
+    var g=selGuests(), d=selDates();
+    function doFilter(freeSet){
+      var shown=0;
+      list.forEach(function(card){
+        var ok=true;
+        if(g && +(card.getAttribute('data-guests')||0) < g) ok=false;
+        if(ok && freeSet){ var id=card.getAttribute('data-id'); if(id && freeSet[id]===false) ok=false; }
+        card.hidden=!ok; if(ok) shown++;
+      });
+      var em=document.getElementById('aptsEmpty'); if(em) em.hidden = shown>0;
+      syncMap();
+    }
+    if(d.start && d.end){
+      Promise.all(list.map(function(card){ var id=card.getAttribute('data-id'); if(!id) return Promise.resolve(); return fetchAvail(id).then(function(bk){ card._free=freeForRange(bk,d.start,d.end); }); }))
+        .then(function(){ var fs={}; list.forEach(function(c){ var id=c.getAttribute('data-id'); if(id) fs[id]=(c._free!==false); }); doFilter(fs); });
+    } else { doFilter(null); }
+  };
+  function search(){ active=true; window.__staysApplyFilter(); }
+  function wire(){
+    var sub=document.querySelector('.searchbar .submit'); if(sub) sub.addEventListener('click', function(e){ if(e&&e.preventDefault) e.preventDefault(); search(); });
+    var ca=document.getElementById('calApply'); if(ca) ca.addEventListener('click', function(){ setTimeout(search,30); });
+    var ga=document.getElementById('gpApply'); if(ga) ga.addEventListener('click', function(){ setTimeout(search,30); });
+  }
+  if(document.readyState!=='loading') wire(); else document.addEventListener('DOMContentLoaded', wire);
+})();
 </script>
 </Site>
