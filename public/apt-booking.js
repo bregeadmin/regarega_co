@@ -21,6 +21,7 @@
   var calNext = document.getElementById('calNext');
   var calNight = document.getElementById('calNight');
   var calApply = document.getElementById('calApply');
+  var calMin = document.getElementById('calMin');
   var dateVal = document.getElementById('dateVal');
   var abFrom = document.getElementById('abFrom');
   var abSave = document.getElementById('abSave');
@@ -50,6 +51,9 @@
     return n === 1 ? f[0] : f[1];
   }
   function nightsLabel(n) { return pl(n, T.nightsForms || ['night', 'nights', 'nights']); }
+  function minStayText() { return t('minStay', 'minimum') + ' ' + MIN_NIGHTS + ' ' + nightsLabel(MIN_NIGHTS); }
+  function updateMinChip() { if (!calMin) return; if (MIN_NIGHTS > 1) { calMin.textContent = minStayText(); calMin.hidden = false; } else { calMin.hidden = true; } }
+  function flashMin() { if (!calMin || calMin.hidden) return; calMin.classList.remove('flash'); void calMin.offsetWidth; calMin.classList.add('flash'); }
   // the shared guests widget writes its label in English; re-localize it for RU
   function localizeGuests() {
     if (CFG.lang !== 'ru') return;
@@ -105,6 +109,7 @@
       if (p.markup_pct != null) MARKUP = 1 + Number(p.markup_pct) / 100;   // наценка = комиссия оператора (фолбэк 1.10)
       CLEAN = (p.cleaning != null) ? Number(p.cleaning) : 0;
       if (p.min_nights != null) MIN_NIGHTS = Math.max(1, Number(p.min_nights) || 2);
+      updateMinChip();
       PRICE = {};
       (p.rates || []).forEach(function (r) { PRICE[r.date] = Number(r.price); });
       updateFrom();
@@ -155,6 +160,10 @@
       if (endDate && fmtKey(endDate) === key) cls += ' end';
       if (startDate && endDate && date > startDate && date < endDate) cls += ' inside';
       if (isToday) cls += ' is-today';
+      if (startDate && !endDate && !lock && date > startDate) {   // checkout too early for min stay
+        var nn0 = Math.round((date - startDate) / 86400000);
+        if (nn0 > 0 && nn0 < MIN_NIGHTS) cls += ' too-short';
+      }
       var pTxt = (price != null) ? '<span class="cd-p">' + money(price) + '</span>' : '<span class="cd-p"></span>';
       html += '<button class="' + cls + '"' + (lock ? ' disabled' : '') + ' data-date="' + key + '"><span class="cd-n">' + dd + '</span>' + pTxt + '</button>';
     }
@@ -174,6 +183,10 @@
         } else {
           if (bookedInRange(startDate, d)) {          // can't span a booked night
             startDate = d; endDate = null; mode = 'end';
+          } else if (Math.round((d - startDate) / 86400000) < MIN_NIGHTS) {
+            var snap = new Date(startDate); snap.setDate(snap.getDate() + MIN_NIGHTS);   // too short → snap to the minimum
+            if (!bookedInRange(startDate, snap)) { endDate = snap; mode = 'start'; flashMin(); }
+            else { endDate = d; mode = 'start'; }     // min stay blocked by a booked night → keep, message shows
           } else {
             endDate = d; mode = 'start';
           }
@@ -195,7 +208,7 @@
     }
     var n = nightsCount();
     if (startDate && endDate) {
-      if (n < MIN_NIGHTS) { calNight.textContent = t('minNights', 'min 2 nights').replace(/\d+/, MIN_NIGHTS); }
+      if (n < MIN_NIGHTS) { calNight.textContent = minStayText(); }
       else { calNight.textContent = '✓ ' + n + ' ' + nightsLabel(n); }
     } else if (startDate) { calNight.textContent = t('pickOut', '→ now pick checkout'); }
     else { calNight.textContent = t('pickIn', '→ pick arrival'); }
@@ -294,6 +307,7 @@
   // init
   if (abContact) abContact.placeholder = placeholders.telegram;
   localizeGuests();
+  updateMinChip();
   var gpApply = document.getElementById('gpApply');
   if (gpApply) gpApply.addEventListener('click', function () { setTimeout(localizeGuests, 0); });
   loadData();
