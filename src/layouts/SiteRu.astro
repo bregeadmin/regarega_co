@@ -212,8 +212,8 @@ const ogImage = new URL(image, Astro.site).href;
       b.addEventListener('click',function(e){
         e.preventDefault();e.stopPropagation();
         var url=location.origin+location.pathname;
-        var d=document.querySelector('meta[name="description"]');
-        var data={title:document.title,text:d?d.content:'',url:url};
+        /* короткий шеринг: имя + короткий дескриптор, БЕЗ простыни-описания (хвост «— rega rega batumi» → «· батуми») */
+        var data={title:(document.title||'').replace(/\s*—\s*rega rega batumi\s*$/i,' · батуми'),text:'',url:url};
         if(navigator.share){navigator.share(data).catch(function(){});}
         else if(navigator.clipboard){navigator.clipboard.writeText(url).then(function(){toast('ссылка скопирована');});}
         else{toast(url);}
