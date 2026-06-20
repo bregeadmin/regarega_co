@@ -10,7 +10,7 @@ import { priceFrom, priceSym } from '../../../../lib/price';
 export async function getStaticPaths() {
   const { data } = await supabase
     .from('apartments_public')
-    .select('id,slug,title,summary,neighborhood,bedrooms,max_guests,price_from,price_currency,photos,rooms,amenities,lat,lng');
+    .select('id,slug,operator_id,title,summary,neighborhood,bedrooms,max_guests,price_from,price_currency,photos,rooms,amenities,lat,lng');
   const apartments = ((data as Apartment[]) || []).map(applyNames);
   const { data: gpData } = await supabase.from('guide_places')
     .select('slug,title,name,category,tags,lat,lng,photos,image').eq('status', 'published');
@@ -33,7 +33,7 @@ export async function getStaticPaths() {
     const similar = (apt.lat != null && apt.lng != null
       ? others.filter((x) => x.lat != null && x.lng != null).sort((p, q) => hav(apt, p) - hav(apt, q))
       : others
-    ).slice(0, 3);
+    ).slice(0, 6);
     const near = (apt.lat != null && apt.lng != null)
       ? guides.map((g) => ({ g, d: havKm(apt, g) })).sort((x, y) => x.d - y.d).slice(0, 8)
       : [];
@@ -90,7 +90,7 @@ const similarHtml = similar
   .map((s) => {
     const beds = s.bedrooms === 0 ? 'studio' : (s.bedrooms ?? 1) + ' bed';
     const price = priceFrom(s, 'en');
-    return `<a class="sim" href="/georgia/batumi/stays/${s.slug}"><div class="ph"><img src="${simPhoto(s)}" alt="${s.title}"></div><div class="body"><h5>${s.title}</h5><div class="meta">${beds} · ${s.max_guests ?? 2} guests</div><div class="price">${price}</div></div></a>`;
+    return `<a class="sim" data-op="${s.operator_id || ''}" href="/georgia/batumi/stays/${s.slug}"><div class="ph"><img src="${simPhoto(s)}" alt="${s.title}"></div><div class="body"><h5>${s.title}</h5><div class="meta">${beds} · ${s.max_guests ?? 2} guests</div><div class="price">${price}</div></div></a>`;
   })
   .join('');
 
@@ -146,4 +146,28 @@ const aptBookCfg = JSON.stringify({ id: apt.id, title: apt.title, maxGuests: apt
 <script is:inline src="/rega-map.js"></script>
 <script is:inline set:html={'const APT_GEO=' + JSON.stringify({lat:apt.lat,lng:apt.lng,title:apt.title}) + ';' + aptMapInit}></script>
 <script is:inline async src={'https://maps.googleapis.com/maps/api/js?key=' + GMAPS_KEY + '&callback=__initAptMap&loading=async&language=en&region=GE'}></script>
+
+<style is:inline>
+.similar .sim[hidden]{display:none!important}
+.similar[hidden]{display:none!important}
+.similar:not(.sim-ready) .sim:nth-of-type(n+4){display:none}
+</style>
+<script is:inline>
+/* "nearest flats": keep an operator-referred guest among that operator's apartments.
+   Render up to 6 server-side; show the first 3 the guest is allowed to see. */
+(function(){
+  var sec = document.querySelector('.similar');
+  if(!sec) return;
+  var cards = Array.prototype.slice.call(sec.querySelectorAll('.sim'));
+  if(!cards.length) return;
+  var opId = window.__rrOpId || '';
+  var shown = 0;
+  cards.forEach(function(c){
+    var ok = !opId || c.getAttribute('data-op')===opId;
+    if(ok && shown < 3){ c.hidden=false; shown++; } else { c.hidden=true; }
+  });
+  sec.classList.add('sim-ready');
+  if(shown===0) sec.hidden = true;
+})();
+</script>
 </Site>

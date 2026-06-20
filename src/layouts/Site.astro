@@ -64,6 +64,20 @@ const ogImage = new URL(image, Astro.site).href;
     gtag('js', new Date());
     gtag('config', 'G-Y7CLMKHX41');
   </script>
+  <!-- Operator referral mode: a guest arriving from an operator's own site (?from=<op>)
+       sees only that operator's apartments until they choose to see all of rega rega. -->
+  <script is:inline>
+    (function(){
+      var OP_IDS = { bre:'041fc1a6-8452-446a-921e-2a8544fab809', sunset:'f05b7eaf-8de8-4eda-a0a1-3093b5b75f3f' };
+      try {
+        var from = new URLSearchParams(location.search).get('from');
+        if (from) sessionStorage.setItem('rr_op', from);
+        window.__rrOp = sessionStorage.getItem('rr_op') || '';
+      } catch(e) { window.__rrOp = ''; }
+      window.__rrOpId = (window.__rrOp && OP_IDS[window.__rrOp]) || '';
+      window.__rrClearOp = function(){ try{ sessionStorage.removeItem('rr_op'); }catch(e){} window.__rrOp=''; window.__rrOpId=''; };
+    })();
+  </script>
 </head>
 <body style={`--page:${accent};--page-deep:${accentDeep}`}>
 <a class="skip-link" href="#main">skip to content</a>

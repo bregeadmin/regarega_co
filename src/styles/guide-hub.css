@@ -1,3 +1,4 @@
+@import "./guide-cards.css";
 .masthead{padding:88px 24px 28px;height:100vh;min-height:760px;display:grid;grid-template-columns:1.4fr 1fr;gap:16px;border-bottom:1px solid var(--line);background:var(--bg)}
 .masthead-photo{position:relative;border-radius:14px;overflow:hidden;background:var(--bg-2)}
 .masthead-photo img{width:100%;height:100%;object-fit:cover;transition:transform 3s cubic-bezier(.2,.7,.2,1)}
@@ -40,56 +41,7 @@ section{position:relative;z-index:2}
 .cats-head .right{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.2em;text-transform:uppercase;color:var(--ink-soft);font-weight:500;max-width:42ch;line-height:1.6;text-align:right}
 .cats-head .right b{color:var(--ink);font-weight:600}
 .cats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px}
-.cat-tile{position:relative;display:flex;flex-direction:column;justify-content:space-between;padding:24px;min-height:240px;border-radius:14px;overflow:hidden;transition:transform .3s cubic-bezier(.2,.7,.2,1),border-color .25s ease;border:1px solid transparent}
-.cat-tile:hover{transform:translateY(-4px)}
-/* "soon" tiles: muted, non-interactive (rendered as <div>, no arrow) */
-.cat-tile.is-soon{opacity:.5;cursor:default}
-.cat-tile.is-soon:hover{transform:none}
-.cat-tile.is-soon .go{display:none}
-.cat-tile > *{position:relative;z-index:2}
-.cat-tile .top{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
-.cat-tile .num{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:44px;line-height:.9;letter-spacing:-.03em}
-.cat-tile .ico{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;transition:background .25s ease}
-.cat-tile h3{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:26px;line-height:1;letter-spacing:-.03em;text-transform:lowercase;margin-top:auto}
-.cat-tile .sub{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;font-weight:500;margin-top:8px}
-.cat-tile .desc{font-size:13px;line-height:1.45;margin-top:8px;max-width:24ch}
-.cat-tile .go{position:absolute;right:18px;bottom:18px;z-index:3;width:32px;height:32px;border-radius:50%;border:1px solid currentColor;display:flex;align-items:center;justify-content:center;opacity:.5;transition:opacity .25s ease,transform .25s ease,background .25s ease,color .25s ease,border-color .25s ease}
-.cat-tile:hover .go{opacity:1;transform:translate(2px,-2px)}
-.cat-tile .badge{display:inline-flex;align-items:center;gap:8px;padding:5px 11px;border:1px solid currentColor;border-radius:999px;font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.22em;text-transform:uppercase;font-weight:600}
-.cat-tile.featured .badge{border-color:rgba(255,255,255,.4);background:rgba(255,255,255,.12);backdrop-filter:blur(6px);color:#FAF7F0}
-.cat-tile.featured .badge .pulse{width:5px;height:5px;border-radius:50%;background:#FAF7F0}
-.cat-tile.featured .top{align-items:center}
-.cat-tile.featured .cta{display:inline-flex;align-items:center;gap:8px;padding:9px 14px;background:#FAF7F0;color:var(--tile-color);border-radius:999px;font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;font-weight:700;width:fit-content;margin-top:14px;transition:gap .25s ease,transform .25s ease;box-shadow:0 4px 16px rgba(0,0,0,.12)}
-.cat-tile.featured:hover .cta{gap:14px}
-.cat-tile.featured .cta svg{transition:transform .25s ease}
-.cat-tile.featured:hover .cta svg{transform:translate(2px,-2px)}
-.cat-tile.featured .go{display:none}
-.cat-tile.primary{background:var(--tile-color);color:#FAF7F0}
-.cat-tile.primary .ico{background:rgba(255,255,255,.16);color:#FAF7F0;border:1px solid rgba(255,255,255,.2)}
-.cat-tile.primary .sub{opacity:.75}
-.cat-tile.primary .desc{opacity:.92}
-.cat-tile.primary:hover .go{background:#FAF7F0;color:var(--tile-color);border-color:#FAF7F0}
-.cat-tile.primary::before{content:"";position:absolute;inset:0;background:radial-gradient(circle at top right,rgba(255,255,255,.16) 0%,transparent 60%);z-index:0}
-.cat-tile.primary::after{content:"";position:absolute;left:-30%;bottom:-40%;width:140%;height:80%;background:radial-gradient(ellipse at center,rgba(0,0,0,.12) 0%,transparent 60%);z-index:0}
-.cat-tile.secondary{background:var(--paper);color:var(--ink);border-color:var(--line)}
-.cat-tile.secondary:hover{border-color:var(--tile-color)}
-.cat-tile.secondary .num{color:var(--ink)}
-.cat-tile.secondary .ico{background:var(--bg-2);color:var(--tile-color);border:1px solid var(--line)}
-.cat-tile.secondary:hover .ico{background:var(--tile-color);color:#FAF7F0;border-color:var(--tile-color)}
-.cat-tile.secondary h3{color:var(--ink)}
-.cat-tile.secondary .sub{color:var(--ink-soft)}
-.cat-tile.secondary .desc{color:var(--ink-soft)}
-.cat-tile.secondary .go{color:var(--ink-soft)}
-.cat-tile.secondary:hover .go{background:var(--tile-color);color:#FAF7F0;border-color:var(--tile-color);opacity:1}
-.cat-tile.secondary::before{content:"";position:absolute;top:0;left:0;width:5px;height:48px;background:var(--tile-color);border-radius:0 4px 4px 0;z-index:0}
-.cat-tile.eat{--tile-color:var(--slate)}
-.cat-tile.wellness{--tile-color:var(--green)}
-.cat-tile.nightlife{--tile-color:var(--blue)}
-.cat-tile.stay{--tile-color:var(--accent)}
-.cat-tile.move{--tile-color:var(--slate)}
-.cat-tile.work{--tile-color:var(--green)}
-.cat-tile.experiences{--tile-color:var(--blue)}
-.cat-tile.explore{--tile-color:var(--ink)}
+/* .cat-tile rules now live in guide-cards.css (single source — shared with category pages) */
 .stories-wrap{padding:80px 0 80px 28px;background:var(--paper);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
 .stories-head{display:flex;justify-content:space-between;align-items:flex-end;margin-bottom:40px;gap:24px;flex-wrap:wrap;padding-right:28px}
 .stories-head h3{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:clamp(36px,4vw,56px);letter-spacing:-.03em;line-height:1;text-transform:lowercase}
@@ -211,13 +163,7 @@ body.map-locked .map-fab{display:none}
 .cats-head{flex-direction:column;align-items:flex-start;gap:16px;margin-bottom:32px}
 .cats-head .right{text-align:left;font-size:10px}
 .cats-grid{grid-template-columns:1fr 1fr;gap:10px}
-.cat-tile{padding:18px;min-height:180px}
-.cat-tile .num{font-size:32px}
-.cat-tile h3{font-size:20px}
-.cat-tile .ico{width:30px;height:30px}
-.cat-tile .desc{display:none}
-.cat-tile.featured .badge{font-size:8px;padding:4px 9px}
-.cat-tile.featured .cta{font-size:9px;padding:8px 12px;margin-top:10px}
+/* .cat-tile mobile overrides now live in guide-cards.css */
 .stories-wrap{padding:56px 0 56px 14px}
 .stories-head{padding-right:14px;flex-direction:column;align-items:flex-start;gap:14px}
 .stories-head .right{text-align:left;font-size:10px;flex-direction:column;align-items:flex-start;gap:8px}

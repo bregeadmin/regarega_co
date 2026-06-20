@@ -6,7 +6,7 @@ import { teaser } from '../../../lib/text';
 import { priceFrom, priceShort } from '../../../lib/price';
 const { data } = await supabase
   .from('apartments_public')
-  .select('id,slug,title,summary,neighborhood,bedrooms,max_guests,price_from,price_currency,photos,lat,lng')
+  .select('id,slug,operator_id,title,summary,neighborhood,bedrooms,max_guests,price_from,price_currency,photos,lat,lng')
   .order('price_from', { ascending: true });
 const apartments = ((data as Apartment[]) || []).map(applyNames);
 const ph = (a: Apartment) => (a.photos && a.photos[0]) || `https://picsum.photos/seed/${a.slug}/900/700`;
@@ -40,7 +40,7 @@ const initJs = "window.__initGMap=function(){"
 
       <div class="apts">
         {apartments.map((a) => (
-          <a class="apt" data-slug={a.slug} data-id={a.id} data-guests={a.max_guests ?? 2} href={`/georgia/batumi/stays/${a.slug}`}>
+          <a class="apt" data-slug={a.slug} data-id={a.id} data-op={a.operator_id ?? ''} data-guests={a.max_guests ?? 2} href={`/georgia/batumi/stays/${a.slug}`}>
             <div class="ph">
               <img src={ph(a)} alt={a.title} loading="lazy" />
               <button class="fav" type="button" aria-label="save">♡</button>
@@ -137,6 +137,7 @@ const initJs = "window.__initGMap=function(){"
   var KEY='eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InFremluamF3dHVtaGpiZXpseW9nIiwicm9sZSI6ImFub24iLCJpYXQiOjE3Nzg2NTE3NDgsImV4cCI6MjA5NDIyNzc0OH0.u_BEKndkTR-SNRl0GSn9i4PTU3Jlrq2dKbD_Dw4l3bQ';
   var availCache={}, active=false;
   function apts(){ return Array.prototype.slice.call(document.querySelectorAll('.apts .apt')); }
+  function breAllows(c){ return window.__rrOpId ? (c.getAttribute('data-op')===window.__rrOpId) : true; }
   function selGuests(){ var el=document.getElementById('searchGuestsVal'); if(!el) return 0; var m=String(el.textContent).match(/\d+/); return m?+m[0]:0; }
   function selDates(){ var s=document.querySelector('.cal-day.start[data-date]'), e=document.querySelector('.cal-day.end[data-date]'); return { start:s&&s.getAttribute('data-date'), end:e&&e.getAttribute('data-date') }; }
   function fetchAvail(id){
@@ -148,17 +149,26 @@ const initJs = "window.__initGMap=function(){"
   function syncMap(){ if(window.__staysApi && window.__staysApi.setFilter) window.__staysApi.setFilter(function(item){ var c=document.querySelector('.apts .apt[data-slug="'+item.slug+'"]'); return c?!c.hidden:true; }); }
   window.__staysApplyFilter=function(){
     var list=apts();
-    if(!active){ list.forEach(function(c){ c.hidden=false; }); var em0=document.getElementById('aptsEmpty'); if(em0) em0.hidden=true; if(window.__staysApi&&window.__staysApi.clearFilter) window.__staysApi.clearFilter(); return; }
+    if(!active){
+      var shown0=0;
+      list.forEach(function(c){ var ok=breAllows(c); c.hidden=!ok; if(ok) shown0++; });
+      var em0=document.getElementById('aptsEmpty'); if(em0) em0.hidden=true;
+      if(window.__rrOpId){ syncMap(); } else if(window.__staysApi&&window.__staysApi.clearFilter){ window.__staysApi.clearFilter(); }
+      if(window.__breRender) window.__breRender(shown0);
+      return;
+    }
     var g=selGuests(), d=selDates();
     function doFilter(freeSet){
       var shown=0;
       list.forEach(function(card){
         var ok=true;
-        if(g && +(card.getAttribute('data-guests')||0) < g) ok=false;
+        if(!breAllows(card)) ok=false;
+        if(ok && g && +(card.getAttribute('data-guests')||0) < g) ok=false;
         if(ok && freeSet){ var id=card.getAttribute('data-id'); if(id && freeSet[id]===false) ok=false; }
         card.hidden=!ok; if(ok) shown++;
       });
-      var em=document.getElementById('aptsEmpty'); if(em) em.hidden = shown>0;
+      var em=document.getElementById('aptsEmpty'); if(em) em.hidden = shown>0 || !!window.__rrOpId;
+      if(window.__breRender) window.__breRender(shown);
       syncMap();
     }
     if(d.start && d.end){
@@ -173,6 +183,56 @@ const initJs = "window.__initGMap=function(){"
     var ga=document.getElementById('gpApply'); if(ga) ga.addEventListener('click', function(){ setTimeout(search,30); });
   }
   if(document.readyState!=='loading') wire(); else document.addEventListener('DOMContentLoaded', wire);
+})();
+</script>
+
+<style is:inline>
+.bre-exit{margin-top:24px;padding:18px 2px 4px;border-top:1px dashed var(--line-strong);display:flex;flex-direction:column;gap:9px;align-items:flex-start}
+.bre-exit .be-msg{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--ink-soft);font-weight:600;margin:0}
+.bre-exit .be-msg:empty{display:none}
+.bre-exit .be-link{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.16em;text-transform:uppercase;font-weight:700;color:var(--page);background:transparent;border:0;padding:0;cursor:pointer}
+.bre-exit .be-link:hover{text-decoration:underline}
+.bre-exit.empty{align-items:center;text-align:center;border:1px solid var(--line-strong);border-radius:14px;background:var(--paper);padding:36px 24px;gap:16px;margin-top:8px}
+.bre-exit.empty .be-msg{font-family:"Bricolage Grotesque",sans-serif;font-size:19px;text-transform:none;letter-spacing:-.01em;color:var(--ink);font-weight:700}
+.bre-exit.empty .be-link{padding:12px 22px;border:1px solid var(--page);border-radius:999px}
+.bre-exit.empty .be-link:hover{background:var(--page);color:#FAF7F0;text-decoration:none}
+</style>
+<script is:inline>
+/* bre referral mode on the catalog: keep the visit inside the referring operator,
+   offer a graceful "show all" exit (quiet at the foot of the list, prominent when nothing fits). */
+(function(){
+  if(!window.__rrOpId) return; // not an operator referral visit → leave catalog untouched
+  var grid = document.querySelector('.apts');
+  var countB = document.querySelector('.left-head .count b');
+  if(!grid) return;
+  var exit = document.createElement('div');
+  exit.className = 'bre-exit'; exit.hidden = true;
+  exit.innerHTML = '<p class="be-msg"></p><button class="be-link" type="button">show all rega rega apartments →</button>';
+  grid.parentNode.insertBefore(exit, grid.nextSibling);
+  var msg = exit.querySelector('.be-msg');
+  var link = exit.querySelector('.be-link');
+
+  window.__breRender = function(shown){
+    if(!window.__rrOpId){ exit.hidden = true; return; }
+    exit.hidden = false;
+    if(shown === 0){
+      exit.classList.add('empty');
+      msg.textContent = 'no bre apartment is free for these dates.';
+    } else {
+      exit.classList.remove('empty');
+      msg.textContent = "didn't find your place?";
+    }
+    if(countB) countB.textContent = shown + (shown===1 ? ' place' : ' places');
+  };
+
+  link.addEventListener('click', function(){
+    if(window.__rrClearOp) window.__rrClearOp();
+    exit.hidden = true;
+    if(window.__staysApplyFilter) window.__staysApplyFilter();
+  });
+
+  // apply the bre base filter immediately, before any search
+  if(window.__staysApplyFilter) window.__staysApplyFilter();
 })();
 </script>
 </Site>

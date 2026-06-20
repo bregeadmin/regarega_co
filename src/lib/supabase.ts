@@ -10,6 +10,7 @@ export const supabase = createClient(url, key);
 export type Apartment = {
   id: string;
   slug: string;
+  operator_id: string | null;
   title: string;
   title_ru: string | null;
   summary: string | null;
