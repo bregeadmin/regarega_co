@@ -228,8 +228,7 @@
     if (missing) {
       rows = '<div class="ab-line"><span>' + n + ' ' + nightsLabel(n) + '</span><span>' + t('onRequest', 'on request') + '</span></div>';
     } else {
-      var avg = sub / n;
-      rows += '<div class="ab-line"><span>' + money(avg) + ' × ' + n + ' ' + nightsLabel(n) + '</span><span>' + money(sub) + '</span></div>';
+      rows += '<div class="ab-line"><span>' + n + ' ' + nightsLabel(n) + '</span><span>' + money(sub) + '</span></div>';
       if (CLEAN > 0) rows += '<div class="ab-line"><span>' + t('cleaning', 'cleaning') + '</span><span>' + money(CLEAN) + '</span></div>';
       rows += '<div class="ab-line total"><span>' + t('total', 'total') + '</span><span>' + money(sub + CLEAN) + '</span></div>';
     }
@@ -282,6 +281,7 @@
     var contact = (abContact.value || '').trim();
     if (!name) { showErr(t('errName', 'add your name')); abName.focus(); return; }
     if (!contact) { showErr(t('errContact', 'add a contact')); abContact.focus(); return; }
+    if (channel === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact)) { showErr(t('errEmail', CFG.lang === 'ru' ? 'проверьте email — например name@mail.com' : 'check the email — e.g. name@mail.com')); abContact.focus(); return; }
     var g = (window.__getBookingGuests && window.__getBookingGuests()) || { adults: 2, children: 0 };
     var adults = (g.adults || 2) + (g.children || 0);
     var amount = abSummary && abSummary.dataset.amount ? Number(abSummary.dataset.amount) : null;

@@ -1,0 +1,149 @@
+/* ============================================================
+   NATIVE DATE PICKER  (preview layer, additive)
+   Re-skins the existing .cal-pop into:
+     - mobile: a bottom sheet that fits the screen, months scroll
+       inside, "done" sticks to the bottom
+     - desktop: the existing anchored popover, but lifted ABOVE
+       the install banner so no dates get blocked
+   Reuses the site's real calendar logic, colours and fonts.
+   ============================================================ */
+
+/* lift the calendar above the install banner (z-index 200) everywhere */
+.cal-pop{ z-index:1400 !important; }
+
+/* keep the install banner out of the way while the calendar is open
+   (CSS, so it stays hidden even if the banner appears on a delay) */
+body.cal-open #rr-install{ display:none !important; }
+
+/* the install banner is a "add the guide to your phone" promo — it has no place
+   covering the apartment results on the booking list */
+body.on-stays #rr-install{ display:none !important; }
+
+/* dim layer behind the sheet / popover */
+.cal-scrim{
+  position:fixed; inset:0; background:rgba(20,16,8,0.42);
+  opacity:0; pointer-events:none; transition:opacity .3s ease; z-index:1350;
+}
+.cal-scrim.on{ opacity:1; pointer-events:auto; }
+
+/* ---------- MOBILE: bottom sheet ---------- */
+@media (max-width:720px){
+  body.cal-open{ overflow:hidden; }
+  .cal-scrim{ background:rgba(20,16,8,0.5); }
+
+  .cal-pop:not([hidden]){
+    position:fixed !important;
+    top:auto !important; left:0 !important; right:0 !important; bottom:0 !important;
+    width:100% !important; max-width:100% !important; margin:0 !important;
+    height:86dvh; max-height:86dvh;
+    border-radius:22px 22px 0 0;
+    padding:10px 18px calc(16px + env(safe-area-inset-bottom));
+    display:flex; flex-direction:column; overflow:hidden;
+    box-shadow:0 -12px 44px rgba(10,9,8,0.22);
+    transition:transform .42s cubic-bezier(.32,.72,0,1);
+    will-change:transform;
+  }
+  /* drag handle */
+  .cal-pop:not([hidden])::before{
+    content:''; flex:0 0 auto; width:40px; height:5px; border-radius:3px;
+    background:var(--line-strong); margin:2px auto 10px; opacity:.55;
+  }
+
+  .cal-pop:not([hidden]) .cal-min{ flex:0 0 auto; margin-bottom:10px; }
+
+  /* months scroll inside the sheet; nav arrows stay centred beside them */
+  .cal-pop:not([hidden]) .cal-head{
+    flex:1 1 auto; min-height:0; margin-bottom:0; gap:8px; align-items:stretch;
+  }
+  .cal-pop:not([hidden]) #calMonths{
+    min-height:0; height:100%; overflow-y:auto; -webkit-overflow-scrolling:touch;
+    align-self:stretch; padding-right:2px;
+  }
+  .cal-pop:not([hidden]) .cal-nav{ align-self:center; }
+
+  /* sticky footer: just nights + done, drop the legend chips */
+  .cal-pop:not([hidden]) .cal-legend{
+    flex:0 0 auto; padding-top:14px; margin-top:4px;
+    justify-content:space-between; background:var(--paper);
+  }
+  .cal-pop:not([hidden]) .cal-legend .cal-leg{ display:none; }
+  .cal-pop:not([hidden]) .cal-legend .cal-leg-night{ margin-left:0; font-size:13px; }
+  .cal-pop:not([hidden]) .cal-apply{ margin-left:0; padding:14px 26px; font-size:11px; }
+
+  /* a touch more height on day cells for fat fingers */
+  .cal-pop:not([hidden]) .cal-day{ min-height:48px; }
+}
+
+/* ---------- DESKTOP: keep the anchored popover inside the viewport ----------
+   When the date field sits low on the page the popover used to hang past the
+   bottom edge and the "done" button fell off-screen. Clamp its height, let the
+   months scroll, and pin the footer. */
+@media (min-width:721px){
+  .cal-pop.cal-clamp{ display:flex; flex-direction:column; overflow:hidden; }
+  .cal-pop.cal-clamp .cal-min{ flex:0 0 auto; }
+  .cal-pop.cal-clamp .cal-head{ flex:1 1 auto; min-height:0; margin-bottom:14px; }
+  .cal-pop.cal-clamp #calMonths{ min-height:0; max-height:100%; overflow-y:auto; padding-right:4px; }
+  .cal-pop.cal-clamp .cal-legend{
+    flex:0 0 auto; position:sticky; bottom:0; margin-top:0; padding-top:14px;
+    background:var(--paper);
+  }
+}
+
+@media (prefers-reduced-motion:reduce){
+  .cal-pop:not([hidden]){ transition:none; }
+  .cal-scrim{ transition:none; }
+}
+
+/* ---------- small fixes ----------
+   1) the search-bar LOCATION is a single city (Batumi) — it shouldn't look
+      tappable like the dates/guests fields */
+#searchLocation{ cursor:default; }
+#searchLocation:hover{ background:transparent; }
+#searchLocation .field-val{ cursor:default; }
+
+/* 2) gallery lightbox: show a soft placeholder tile instead of pure black
+      while the full-size photos are still loading */
+.lb-cell{ background:rgba(250,247,240,0.07); }
+
+/* 3) homepage hero search — show "guests" on mobile too (was hidden), so the
+      search is consistent across desktop and mobile; both fields hand off to
+      the real picker on /stays */
+@media (max-width:720px){
+  .hero-search{ grid-template-columns:1fr 1fr auto !important; }
+  .hs-field#hsGuestBtn{ display:flex !important; }
+}
+
+/* 4) install banner must not cover the hero (home + guide) while at the top */
+body.at-hero-top #rr-install{ transform:translateY(180%) !important; }
+
+/* 5) collapsed search becomes a labelled pill instead of a bare magnifier icon */
+.search-collapsed{ width:auto !important; padding:0 16px !important; gap:8px; border-radius:999px !important; }
+.search-collapsed::after{
+  content:"search"; font-family:"JetBrains Mono",monospace; font-size:11px;
+  letter-spacing:.16em; text-transform:uppercase; font-weight:700; color:var(--ink);
+}
+html[lang="ru"] .search-collapsed::after{ content:"поиск"; }
+
+/* when the search button jumps to the results, leave room for the sticky header so the
+   first apartment isn't tucked underneath it */
+.left-head{ scroll-margin-top:84px; }
+@media (max-width:880px){ .left-head{ scroll-margin-top:156px; } }
+
+/* search now runs on the button press (not live) — pulse it once dates/guests are
+   set so it's clear you press to see results */
+.searchbar .submit.pending{ animation:rrSearchPulse 1.5s ease-in-out infinite; }
+@keyframes rrSearchPulse{
+  0%, 100%{ box-shadow:0 0 0 0 rgba(255,94,26,0); }
+  50%{ box-shadow:0 0 0 6px rgba(255,94,26,0.22); }
+}
+@media (prefers-reduced-motion:reduce){
+  .searchbar .submit.pending{ animation:none; outline:2px solid var(--accent); outline-offset:2px; }
+}
+
+/* 6) floating "near me / map" buttons don't clutter the hero — hidden at the very
+      top, slide in once you scroll into the guide content */
+body.at-hero-top .rr-fab, body.at-hero-top .map-fab{
+  opacity:0 !important; pointer-events:none !important; transform:translateY(10px) !important;
+}
+
+.rr-fab, .map-fab{ transition:opacity .25s ease, transform .25s ease, box-shadow .2s ease !important; }

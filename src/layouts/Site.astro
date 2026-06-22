@@ -1,6 +1,7 @@
 ---
 // Shared shell: head, topbar, mobile menu, footer, cursor + shell JS. Edit ONCE.
 import '../styles/shell.css';
+import '../styles/date-sheet.css';
 export interface Props { title?: string; description?: string; ogTitle?: string; ogDescription?: string; accent?: string; accentDeep?: string; image?: string; ogType?: string; }
 const {
   title = 'rega rega — apartments & the batumi guide',
@@ -360,5 +361,6 @@ window.__rrBuildStory = async function (d) {
 </script>
 <link rel="stylesheet" href="/rega-install.css" />
 <script is:inline src="/rega-install.js"></script>
+<script is:inline src="/rega-enhance.js"></script>
 </body>
 </html>

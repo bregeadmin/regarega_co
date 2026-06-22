@@ -178,9 +178,11 @@ const mapData = apartments.filter((a)=>a.lat!=null&&a.lng!=null).map((a)=>({slug
   };
   function search(){ active=true; window.__staysApplyFilter(); }
   function wire(){
-    var sub=document.querySelector('.searchbar .submit'); if(sub) sub.addEventListener('click', function(e){ if(e&&e.preventDefault) e.preventDefault(); search(); });
-    var ca=document.getElementById('calApply'); if(ca) ca.addEventListener('click', function(){ setTimeout(search,30); });
-    var ga=document.getElementById('gpApply'); if(ga) ga.addEventListener('click', function(){ setTimeout(search,30); });
+    var sub=document.querySelector('.searchbar .submit');
+    function pending(){ if(sub) sub.classList.add('pending'); }
+    if(sub) sub.addEventListener('click', function(e){ if(e&&e.preventDefault) e.preventDefault(); sub.classList.remove('pending'); search(); });
+    var ca=document.getElementById('calApply'); if(ca) ca.addEventListener('click', pending);
+    var ga=document.getElementById('gpApply'); if(ga) ga.addEventListener('click', pending);
   }
   if(document.readyState!=='loading') wire(); else document.addEventListener('DOMContentLoaded', wire);
 })();
