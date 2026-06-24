@@ -192,12 +192,17 @@
 .cal-day.past .cd-n{text-decoration:line-through;color:var(--faint)}
 .cal-day.booked{cursor:not-allowed}
 .cal-day.booked .cd-n{text-decoration:line-through;text-decoration-thickness:1.5px;text-decoration-color:var(--page);color:var(--faint)}
+/* turnover day — booked night, but still selectable as a check-OUT (morning departure) */
+.cal-day.co-ok{cursor:pointer;background:linear-gradient(135deg,rgba(58,72,104,0.05) 0 48%,rgba(58,72,104,0.18) 52% 100%)}
+.cal-day.co-ok .cd-n{text-decoration:none;color:var(--ink)}
+.cal-day.co-ok:hover{border-color:var(--page);background:linear-gradient(135deg,rgba(58,72,104,0.10) 0 48%,rgba(58,72,104,0.24) 52% 100%)}
 .cal-day.inside{background:rgba(58,72,104,0.12);border-radius:0}
 .cal-day.inside .cd-p{color:var(--page)}
 .cal-day.start,.cal-day.end{background:var(--page);border-color:var(--page)}
 .cal-day.start .cd-n,.cal-day.end .cd-n,.cal-day.start .cd-p,.cal-day.end .cd-p{color:#FAF7F0}
 .cal-day.start{border-top-right-radius:0;border-bottom-right-radius:0}
 .cal-day.end{border-top-left-radius:0;border-bottom-left-radius:0}
+.cal-day.start .cd-n,.cal-day.end .cd-n{text-decoration:none}
 .cal-day.range-single{border-radius:10px !important}
 .cal-day.is-today::after{content:'';position:absolute;top:3px;left:50%;transform:translateX(-50%);width:4px;height:4px;border-radius:50%;background:var(--accent)}
 .cal-legend{display:flex;align-items:center;gap:18px;flex-wrap:wrap;padding-top:18px;border-top:1px solid var(--line);font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;color:var(--ink-soft);font-weight:600}

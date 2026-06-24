@@ -154,7 +154,15 @@
       var isToday = date.getTime() === today.getTime();
       var cls = 'cal-day', lock = false, price = null;
       if (date < today) { cls += ' past'; lock = true; }
-      else if (BOOKED.has(key)) { cls += ' booked'; lock = true; }
+      else if (BOOKED.has(key)) {
+        cls += ' booked';
+        // turnover day: the check-IN day of an existing booking is still a valid
+        // check-OUT for a new stay — the outgoing guest leaves in the morning before
+        // the next one arrives. Allow it only while picking checkout and only if no
+        // booked night falls between the chosen check-in and this day.
+        if (startDate && !endDate && date > startDate && !bookedInRange(startDate, date)) cls += ' co-ok';
+        else lock = true;
+      }
       else { cls += ' av'; price = nightlyGuest(key); }
       if (startDate && fmtKey(startDate) === key) { cls += ' start'; if (endDate && fmtKey(endDate) === key) cls += ' range-single'; }
       if (endDate && fmtKey(endDate) === key) cls += ' end';
@@ -173,7 +181,7 @@
   function render() {
     var nm = viewMonth + 1, ny = nm > 11 ? viewYear + 1 : viewYear; nm = nm > 11 ? 0 : nm;
     calMonths.innerHTML = renderMonth(viewYear, viewMonth) + renderMonth(ny, nm);
-    calMonths.querySelectorAll('.cal-day.av').forEach(function (btn) {
+    calMonths.querySelectorAll('.cal-day.av, .cal-day.co-ok').forEach(function (btn) {
       btn.addEventListener('click', function (ev) {
         ev.stopPropagation();
         var p = btn.dataset.date.split('-').map(Number);
