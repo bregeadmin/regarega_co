@@ -38,6 +38,15 @@
 
 body.has-tabbar{ padding-bottom:64px; }
 
+/* Safe-area iPhone (чёлка/островок): в Capacitor-обёртке и установленном PWA контент
+   уходит под статус-бар — опускаем шапку и знак на высоту выреза (env=0 в обычном браузере).
+   Требует viewport-fit=cover в <meta viewport> (добавлен в лейаутах). */
+.topbar{ padding-top:calc(22px + env(safe-area-inset-top)); }
+.brand-sign{ top:calc(26px + env(safe-area-inset-top)); }
+@media (max-width:880px){
+  .topbar{ padding-top:calc(18px + env(safe-area-inset-top)); }
+}
+
 /* Плашка «гид на телефон» (rega-install) прибита к bottom:12px и легла бы на таб-бар —
    поднимаем над ним и опускаем под него по слою (70 < 80), чтобы спрятанное состояние
    (translateY на at-hero-top) не выглядывало поверх бара. */
