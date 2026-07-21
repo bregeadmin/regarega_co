@@ -1,6 +1,8 @@
 ---
 import '../styles/shell.css';
 import '../styles/date-sheet.css';
+import '../styles/tabbar.css';
+import TabBar from '../components/TabBar.astro';
 export interface Props { title?: string; description?: string; ogTitle?: string; ogDescription?: string; accent?: string; accentDeep?: string; image?: string; ogType?: string; }
 const {
   title = 'rega rega — квартиры и гайд по батуми',
@@ -78,7 +80,7 @@ const ogImage = new URL(image, Astro.site).href;
     })();
   </script>
 </head>
-<body style={`--page:${accent};--page-deep:${accentDeep}`}>
+<body class="has-tabbar" style={`--page:${accent};--page-deep:${accentDeep}`}>
 <a class="skip-link" href="#main">к содержимому</a>
 <span id="flyingDot"></span>
 <a class="brand-sign" href="/ru/georgia/batumi" aria-label="rega rega — на главную"><svg viewBox="0 0 100 100" aria-hidden="true"><path fill-rule="evenodd" fill="#FF5E1A" d="M 50,50 m -50,0 a 50,50 0 1,1 100,0 a 50,50 0 1,1 -100,0 z M 64,64 m -12,0 a 12,12 0 1,1 24,0 a 12,12 0 1,1 -24,0 z"/></svg></a>
@@ -360,5 +362,6 @@ window.__rrBuildStory = async function (d) {
 <link rel="stylesheet" href="/rega-install.css" />
 <script is:inline src="/rega-install.js"></script>
 <script is:inline src="/rega-enhance.js"></script>
+<TabBar lang="ru" />
 </body>
 </html>
