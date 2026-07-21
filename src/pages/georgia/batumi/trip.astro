@@ -1,0 +1,300 @@
+---
+import Site from '../../../layouts/Site.astro';
+import '../../../styles/trip.css';
+---
+<Site title="my trip — rega rega batumi" description="your booking, codes and wifi — all in one place.">
+<main class="trip-page" id="tripPage">
+  <p class="trip-loading" id="tripLoading">loading your trip…</p>
+
+  <div class="trip-empty" id="tripEmpty" hidden>
+    <svg class="trip-empty__icon" viewBox="0 0 24 24" width="56" height="56" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+      <path stroke="none" d="M0 0h24v24H0z" fill="none"/>
+      <path d="M3 7m0 2a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v9a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2z" />
+      <path d="M8 7v-2a2 2 0 0 1 2 -2h4a2 2 0 0 1 2 2v2" />
+      <path d="M12 12l0 .01" />
+      <path d="M3 13a20 20 0 0 0 18 0" />
+    </svg>
+    <h1 class="trip-empty__title">your trip will appear here</h1>
+    <p class="trip-empty__line">book a stay, or open a booking link from your host</p>
+    <p class="trip-empty__note" id="tripNotFoundNote" hidden>link didn't open — check the link from your message</p>
+    <a class="trip-empty__cta" href="/georgia/batumi/stays">see stays</a>
+    <p class="trip-empty__login">already have a booking? open the link from your message</p>
+  </div>
+
+  <div class="trip-content" id="tripContent" hidden>
+    <span class="trip-pill" id="tripPill"></span>
+
+    <section class="trip-card" aria-label="booking">
+      <h1 class="trip-card__title" id="tripAptTitle"></h1>
+      <p class="trip-card__dates" id="tripDates"></p>
+      <p class="trip-card__meta" id="tripMeta"></p>
+      <p class="trip-card__greeting" id="tripGreeting" hidden></p>
+    </section>
+
+    <section class="trip-codes" id="tripCodes" hidden aria-label="codes and wifi">
+      <h2 class="trip-section-title">codes &amp; wifi</h2>
+      <ul class="trip-steps" id="tripSteps"></ul>
+      <div class="trip-wifi" id="tripWifi" hidden>
+        <div class="trip-wifi__row">
+          <span class="trip-wifi__label">wifi</span>
+          <span class="trip-wifi__value" id="tripWifiName"></span>
+        </div>
+        <div class="trip-wifi__row">
+          <span class="trip-wifi__label">password</span>
+          <span class="trip-wifi__value" id="tripWifiPass"></span>
+        </div>
+      </div>
+    </section>
+
+    <section class="trip-address" id="tripAddress" hidden aria-label="address">
+      <h2 class="trip-section-title">address</h2>
+      <p class="trip-address__line" id="tripAddressLine"></p>
+      <a class="trip-address__map" id="tripMapLink" href="#" target="_blank" rel="noopener" hidden>open map →</a>
+    </section>
+
+    <section class="trip-welcome" id="tripWelcome" hidden aria-label="welcome offer">
+      <h3 class="trip-welcome__title" id="tripWelcomeTitle"></h3>
+      <p class="trip-welcome__text" id="tripWelcomeText"></p>
+    </section>
+
+    <footer class="trip-operator" id="tripOperator" hidden></footer>
+    <p class="trip-offline-note" id="tripOfflineNote" hidden>offline copy</p>
+  </div>
+</main>
+
+<script>
+import { supabase } from '../../../lib/supabase';
+
+const LANG = 'en';
+const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+const els = {
+  loading: document.getElementById('tripLoading'),
+  empty: document.getElementById('tripEmpty'),
+  notFoundNote: document.getElementById('tripNotFoundNote'),
+  content: document.getElementById('tripContent'),
+  pill: document.getElementById('tripPill'),
+  aptTitle: document.getElementById('tripAptTitle'),
+  dates: document.getElementById('tripDates'),
+  meta: document.getElementById('tripMeta'),
+  greeting: document.getElementById('tripGreeting'),
+  codes: document.getElementById('tripCodes'),
+  steps: document.getElementById('tripSteps'),
+  wifi: document.getElementById('tripWifi'),
+  wifiName: document.getElementById('tripWifiName'),
+  wifiPass: document.getElementById('tripWifiPass'),
+  address: document.getElementById('tripAddress'),
+  addressLine: document.getElementById('tripAddressLine'),
+  mapLink: document.getElementById('tripMapLink'),
+  welcome: document.getElementById('tripWelcome'),
+  welcomeTitle: document.getElementById('tripWelcomeTitle'),
+  welcomeText: document.getElementById('tripWelcomeText'),
+  operator: document.getElementById('tripOperator'),
+  offlineNote: document.getElementById('tripOfflineNote'),
+};
+
+function parseDateOnly(s) {
+  if (!s) return null;
+  const m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(s));
+  if (m) return new Date(Number(m[1]), Number(m[2]) - 1, Number(m[3]));
+  const d = new Date(s);
+  return isNaN(d.getTime()) ? null : d;
+}
+
+function fmtDate(s) {
+  const d = parseDateOnly(s);
+  if (!d) return '';
+  try {
+    return new Intl.DateTimeFormat('en', { day: 'numeric', month: 'long' }).format(d);
+  } catch (e) { return ''; }
+}
+
+function todayLocal() {
+  const t = new Date();
+  t.setHours(0, 0, 0, 0);
+  return t;
+}
+
+function pick(obj, keys) {
+  if (!obj) return undefined;
+  for (const k of keys) {
+    if (obj[k] != null && obj[k] !== '') return obj[k];
+  }
+  return undefined;
+}
+
+function showLoading() {
+  els.loading.hidden = false;
+  els.empty.hidden = true;
+  els.content.hidden = true;
+}
+
+function showEmpty(notFound) {
+  els.loading.hidden = true;
+  els.content.hidden = true;
+  els.empty.hidden = false;
+  els.notFoundNote.hidden = !notFound;
+}
+
+function renderSteps(steps) {
+  els.steps.innerHTML = '';
+  if (!Array.isArray(steps) || !steps.length) { els.steps.hidden = true; return; }
+  els.steps.hidden = false;
+  steps.forEach((s) => {
+    const li = document.createElement('li');
+    li.className = 'trip-step';
+    const text = pick(s, ['text', 'title', 'label', 'instruction', 'name']);
+    const code = pick(s, ['code', 'value', 'pin']);
+    if (text) {
+      const span = document.createElement('span');
+      span.className = 'trip-step__text';
+      span.textContent = text;
+      li.appendChild(span);
+    }
+    if (code) {
+      const c = document.createElement('code');
+      c.className = 'trip-step__code';
+      c.textContent = code;
+      li.appendChild(c);
+    }
+    if (li.childNodes.length) els.steps.appendChild(li);
+  });
+}
+
+function renderWifi(wifi) {
+  const name = pick(wifi, ['name', 'ssid']);
+  const pass = pick(wifi, ['pass', 'password', 'pwd']);
+  if (!name && !pass) { els.wifi.hidden = true; return; }
+  els.wifi.hidden = false;
+  els.wifiName.textContent = name || '—';
+  els.wifiPass.textContent = pass || '—';
+}
+
+function render(p) {
+  const state = p.state || 'pre';
+  const aptTitle = pick(p, ['apt_title', 'apt_name']) || 'apartment';
+  const ci = fmtDate(p.ci);
+  const co = fmtDate(p.co);
+  const nights = (p.nights != null) ? p.nights : '—';
+  const adults = (p.adults != null) ? p.adults : '—';
+  const guestName = (p.guest || '').toString().trim();
+
+  let pillText = '';
+  if (state === 'pre') {
+    pillText = `check-in ${ci || '—'} · codes unlock ${fmtDate(p.unlock_date) || '—'}`;
+  } else if (state === 'open') {
+    const ciD = parseDateOnly(p.ci);
+    const coD = parseDateOnly(p.co);
+    const today = todayLocal();
+    const isNow = ciD && coD && today >= ciD && today <= coD;
+    pillText = isNow ? 'staying now' : `check-in ${ci || '—'}`;
+  } else if (state === 'expired') {
+    pillText = 'trip completed';
+  }
+  els.pill.textContent = pillText;
+
+  els.aptTitle.textContent = aptTitle;
+  els.dates.textContent = (ci || co) ? `${ci || '—'} – ${co || '—'}` : '';
+  els.meta.textContent = `nights: ${nights} · guests: ${adults}`;
+  if (guestName) {
+    els.greeting.textContent = `hi, ${guestName.toLowerCase()}`;
+    els.greeting.hidden = false;
+  } else {
+    els.greeting.hidden = true;
+  }
+
+  if (state === 'open') {
+    els.codes.hidden = false;
+    renderSteps(p.instructions && p.instructions.steps);
+    renderWifi(p.wifi);
+  } else {
+    els.codes.hidden = true;
+  }
+
+  const addr = p.addr || '';
+  const hasGeo = p.lat != null && p.lng != null;
+  if (addr || hasGeo) {
+    els.address.hidden = false;
+    els.addressLine.textContent = addr;
+    els.addressLine.hidden = !addr;
+    if (hasGeo) {
+      els.mapLink.href = `https://maps.google.com/?q=${p.lat},${p.lng}`;
+      els.mapLink.hidden = false;
+    } else {
+      els.mapLink.hidden = true;
+    }
+  } else {
+    els.address.hidden = true;
+  }
+
+  const welcomeTitle = pick(p.welcome, ['title', 'name', 'heading']);
+  const welcomeText = pick(p.welcome, ['text', 'description', 'body', 'message']);
+  if (p.welcome && (welcomeTitle || welcomeText)) {
+    els.welcome.hidden = false;
+    els.welcomeTitle.textContent = welcomeTitle || 'a welcome gift';
+    els.welcomeText.textContent = welcomeText || '';
+  } else {
+    els.welcome.hidden = true;
+  }
+
+  const opName = p.operator && p.operator.name;
+  if (opName) {
+    els.operator.hidden = false;
+    els.operator.textContent = `host: ${opName}`;
+  } else {
+    els.operator.hidden = true;
+  }
+}
+
+function showContent(payload, offline) {
+  els.loading.hidden = true;
+  els.empty.hidden = true;
+  els.content.hidden = false;
+  render(payload);
+  els.offlineNote.hidden = !offline;
+}
+
+async function main() {
+  showLoading();
+
+  const params = new URLSearchParams(location.search);
+  const urlToken = params.get('t');
+  let token = '';
+  if (urlToken) {
+    token = urlToken;
+    try { localStorage.setItem('rr_trip_token', token); } catch (e) {}
+  } else {
+    try { token = localStorage.getItem('rr_trip_token') || ''; } catch (e) { token = ''; }
+  }
+
+  if (!token || !UUID_RE.test(token)) {
+    showEmpty(false);
+    return;
+  }
+
+  try {
+    const { data, error } = await supabase.rpc('guest_instruction', { p_token: token });
+    if (error) throw error;
+    if (!data) {
+      showEmpty(true);
+      return;
+    }
+    try {
+      localStorage.setItem('rr_trip', JSON.stringify(data));
+      localStorage.setItem('rr_trip_token', token);
+    } catch (e) {}
+    showContent(data, false);
+  } catch (err) {
+    let cached = null;
+    try { cached = JSON.parse(localStorage.getItem('rr_trip') || 'null'); } catch (e) {}
+    if (cached) {
+      showContent(cached, true);
+    } else {
+      showEmpty(true);
+    }
+  }
+}
+
+main();
+</script>
+</Site>
