@@ -38,6 +38,16 @@
 
 body.has-tabbar{ padding-bottom:64px; }
 
+/* Плашка «гид на телефон» (rega-install) прибита к bottom:12px и легла бы на таб-бар —
+   поднимаем над ним и опускаем под него по слою (70 < 80), чтобы спрятанное состояние
+   (translateY на at-hero-top) не выглядывало поверх бара. */
+@media (max-width:719.98px){
+  body.has-tabbar #rr-install{
+    bottom:calc(64px + env(safe-area-inset-bottom) + 10px);
+    z-index:70;
+  }
+}
+
 @media (min-width:720px){
   .tabbar{ display:none; }
   body.has-tabbar{ padding-bottom:0; }
