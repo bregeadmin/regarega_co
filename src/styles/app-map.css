@@ -1,0 +1,114 @@
+/* Native app "map" screen — one full-bleed Google map showing both guide places (ink dots)
+   and apartments (orange dots), with floating filter chips + a "near me" button on top.
+   Self-contained (doesn't import shell.css) so this screen never pulls in site-chrome CSS —
+   same convention as app-shell.css/app-guide.css. Map card + zoom-control rules below are
+   copied from shell.css's "stays map" section so the shared rega-map.js engine looks
+   identical here to how it looks on /stays and the guide map. */
+:root{
+  --bg-2:#F1ECDF;
+  --line-strong:#E0DACE;
+}
+
+/* fixed so it fills the viewport below the sticky app header; the opaque tab bar
+   (z-index:80, app-shell.css/tabbar.css) overlays its lower edge — no seams, no scroll. */
+.app-map-screen{
+  position:fixed;
+  top:calc(48px + env(safe-area-inset-top));
+  left:0; right:0; bottom:0;
+  z-index:1;
+  background:var(--bg-2);
+}
+#appMap{
+  position:absolute;
+  inset:0;
+  width:100%;
+  height:100%;
+}
+
+/* floating filter chips, over the top of the map */
+.map-chips{
+  position:absolute;
+  top:14px;
+  left:14px;
+  right:14px;
+  z-index:5;
+  display:flex;
+  gap:8px;
+  overflow-x:auto;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:none;
+}
+.map-chips::-webkit-scrollbar{ display:none; }
+.map-chip{
+  flex:none;
+  font-family:"JetBrains Mono", monospace;
+  font-size:11px;
+  letter-spacing:.04em;
+  font-weight:500;
+  color:var(--ink);
+  background:var(--paper);
+  border:1px solid var(--line-strong);
+  border-radius:999px;
+  padding:9px 15px;
+  cursor:pointer;
+  white-space:nowrap;
+  text-transform:lowercase;
+  box-shadow:0 3px 10px rgba(10,9,8,.12);
+  transition:background .15s ease, color .15s ease, border-color .15s ease;
+}
+.map-chip.is-active{
+  background:var(--ink);
+  border-color:var(--ink);
+  color:var(--bg);
+}
+
+/* "near me" button — bottom-right, sits above the tab bar */
+.map-near-btn{
+  position:absolute;
+  right:14px;
+  bottom:14px;
+  z-index:5;
+  width:46px;
+  height:46px;
+  border-radius:50%;
+  border:1px solid var(--line-strong);
+  background:var(--paper);
+  box-shadow:0 3px 12px rgba(10,9,8,.16);
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  color:var(--ink);
+  cursor:pointer;
+  transition:border-color .18s ease, color .18s ease;
+}
+.map-near-btn:hover{ border-color:var(--accent); color:var(--accent); }
+.map-near-btn.is-loading{ opacity:.55; pointer-events:none; }
+.map-near-btn.is-err{ border-color:#d9402a; color:#d9402a; }
+
+/* round custom zoom controls injected by rega-map.js (replaces Google's default) */
+.rega-zoom-wrap{ display:flex; flex-direction:column; gap:8px; margin:0 14px 14px 0; }
+.rega-zoom{
+  width:40px; height:40px; border-radius:50%; background:var(--paper);
+  border:1px solid rgba(10,9,8,.1); box-shadow:0 3px 12px rgba(0,0,0,.16);
+  display:flex; align-items:center; justify-content:center; cursor:pointer;
+  color:var(--ink); padding:0; transition:transform .15s ease, background .15s ease, box-shadow .15s ease;
+}
+.rega-zoom:hover{ background:var(--bg-2); transform:translateY(-1px); box-shadow:0 5px 16px rgba(0,0,0,.2); }
+.rega-zoom:active{ transform:translateY(0); }
+.rega-zoom svg{ width:16px; height:16px; display:block; }
+
+/* the map-mini card rega-map.js renders inside the Google InfoWindow on marker tap */
+.map-mini{ display:block; width:236px; text-decoration:none; color:inherit; cursor:pointer; }
+.map-mini .mm-ph{ aspect-ratio:5/3; overflow:hidden; background:var(--bg-2); }
+.map-mini .mm-ph img{ width:100%; height:100%; object-fit:cover; display:block; }
+.map-mini .mm-info{ padding:12px 14px; }
+.map-mini h5{ font-family:"Bricolage Grotesque", sans-serif; font-weight:700; font-size:15px; letter-spacing:-.02em; text-transform:lowercase; color:var(--ink); line-height:1.15; margin:0; }
+.map-mini .mm-sub{ font-family:"JetBrains Mono", monospace; font-size:10px; letter-spacing:.12em; text-transform:uppercase; color:var(--ink-soft); font-weight:500; margin-top:4px; }
+.map-mini .mm-cta{ font-family:"JetBrains Mono", monospace; font-size:11px; font-weight:700; color:var(--accent); margin-top:6px; }
+
+/* Google InfoWindow chrome → brand card (hide default padding/tail/close button) */
+.gm-style .gm-style-iw-c{ padding:0 !important; border-radius:14px !important; box-shadow:0 14px 40px rgba(10,9,8,.22) !important; overflow:hidden; max-width:none !important; max-height:none !important; }
+.gm-style .gm-style-iw-d{ overflow:hidden !important; max-width:none !important; max-height:none !important; }
+.gm-style .gm-ui-hover-effect{ display:none !important; }
+.gm-style .gm-style-iw-tc{ display:none !important; }
+.gm-style-iw-chr{ display:none; }

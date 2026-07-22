@@ -1,0 +1,108 @@
+---
+// Native app "map" screen — RU mirror. See the EN twin at
+// src/pages/georgia/batumi/app/map.astro for the full explanation of the data source
+// and the map-loading pattern.
+import App from '../../../../../layouts/App.astro';
+import '../../../../../styles/app-map.css';
+import { supabase, applyNames, type Apartment } from '../../../../../lib/supabase';
+import { GMAPS_KEY } from '../../../../../lib/maps';
+import { catLabel } from '../../../../../lib/guideCats';
+import { priceFrom } from '../../../../../lib/price';
+
+const LANG = 'ru' as const;
+const BASE = '/ru/georgia/batumi';
+
+const { data: aptData } = await supabase
+  .from('apartments_public')
+  .select('id,slug,title,neighborhood,bedrooms,max_guests,price_from,price_currency,photos,lat,lng');
+const apartments = ((aptData as Apartment[]) || []).map(applyNames);
+
+const { data: gp } = await supabase
+  .from('guide_places')
+  .select('slug,title,name,category,photos,image,address,lat,lng')
+  .eq('status', 'published');
+const places = (gp || []) as any[];
+
+// place titles stay as the original (mostly Latin-script) business names — same rule
+// the RU app guide screen uses; only summary/body get translated, not the name.
+const areaOf = (p: any) => {
+  const a = String(p.address || '').trim();
+  if (!a) return '';
+  const cleaned = a.replace(/,?\s*Batumi[^,]*,?\s*Georgia\s*$/i, '').replace(/,\s*Georgia\s*$/i, '').trim();
+  const first = (cleaned.split(',')[0] || '').trim();
+  if (!first) return '';
+  return first.length > 26 ? first.slice(0, 26).replace(/\s+\S*$/, '') + '…' : first;
+};
+
+const stayItems = apartments
+  .filter((a) => a.lat != null && a.lng != null)
+  .map((a) => ({
+    slug: a.slug,
+    kind: 'stay',
+    title: a.title,
+    lat: a.lat,
+    lng: a.lng,
+    photo: (a.photos && a.photos[0]) || '',
+    href: `${BASE}/stays/${a.slug}`,
+    sub: (a.bedrooms === 0 ? 'студия' : `${a.bedrooms ?? 1} спален`) + ` · ${a.max_guests ?? 2} гостей`,
+    cta: priceFrom(a, LANG),
+    color: '#FF5E1A',
+    ring: '#ffffff',
+  }));
+
+const placeItems = places
+  .filter((p) => p.lat != null && p.lng != null)
+  .map((p) => {
+    const area = areaOf(p);
+    return {
+      slug: p.slug,
+      kind: 'place',
+      title: p.title || p.name,
+      lat: p.lat,
+      lng: p.lng,
+      photo: (p.photos && p.photos[0]) || p.image || '',
+      href: `${BASE}/guide/${p.slug}`,
+      sub: catLabel(p.category, LANG) + (area ? ` · ${area}` : ''),
+      cta: 'смотреть',
+      color: '#0A0908',
+      ring: '#ffffff',
+    };
+  });
+
+const MAP_DATA = [...placeItems, ...stayItems];
+
+const initJs = "window.__initGMap=function(){"
+  + "var api=RegaMap.stays('appMap',MAP_DATA,{cluster:true,fullscreen:false,gesture:'greedy'});"
+  + "if(!api)return;window.__mapApi=api;"
+  + "var chips=document.querySelectorAll('.map-chips .map-chip');"
+  + "chips.forEach(function(chip){chip.addEventListener('click',function(){"
+  + "chips.forEach(function(c){c.classList.remove('is-active');});"
+  + "chip.classList.add('is-active');"
+  + "var f=chip.getAttribute('data-filter');"
+  + "if(f==='all')api.clearFilter();else api.setFilter(function(it){return it.kind===f;});"
+  + "});});"
+  + "var near=document.getElementById('mapNearBtn');"
+  + "if(near)near.addEventListener('click',function(){"
+  + "var b=this;b.classList.add('is-loading');"
+  + "api.locate(function(u){b.classList.remove('is-loading');if(!u){b.classList.add('is-err');setTimeout(function(){b.classList.remove('is-err');},2200);}});"
+  + "});"
+  + "};";
+---
+<App lang={LANG} title="карта — rega rega" description="все проверенные квартиры и места, которые мы бы посоветовали другу, на одной карте.">
+  <div class="app-map-screen">
+    <nav class="map-chips" aria-label="фильтр">
+      <button class="map-chip is-active" data-filter="all" type="button">всё</button>
+      <button class="map-chip" data-filter="place" type="button">места</button>
+      <button class="map-chip" data-filter="stay" type="button">жильё</button>
+    </nav>
+    <div id="appMap"></div>
+    <button class="map-near-btn" id="mapNearBtn" type="button" aria-label="рядом со мной">
+      <svg width="18" height="18" viewBox="0 0 16 16" fill="none"><circle cx="8" cy="8" r="2.6" fill="currentColor"/><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.4"/><path d="M8 0.5v3M8 12.5v3M0.5 8h3M12.5 8h3" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>
+    </button>
+  </div>
+
+  <script is:inline src="https://unpkg.com/@googlemaps/markerclusterer@2.5.3/dist/index.min.js"></script>
+  <script is:inline src="/rega-map.js"></script>
+  <script is:inline set:html={'const MAP_DATA = ' + JSON.stringify(MAP_DATA) + ';' + initJs}></script>
+  <script is:inline async src={'https://maps.googleapis.com/maps/api/js?key=' + GMAPS_KEY + '&callback=__initGMap&loading=async&language=' + LANG + '&region=GE'}></script>
+</App>

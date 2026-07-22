@@ -17,12 +17,9 @@ const ICONS = {
   route: '<path d="M3 19a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" /><path d="M19 7a2 2 0 1 0 0 -4a2 2 0 0 0 0 4" /><path d="M11 19h5.5a3.5 3.5 0 0 0 0 -7h-8a3.5 3.5 0 0 1 0 -7h4.5" />',
 };
 
-// The site has no dedicated map page yet — the map view lives inside /stays (list ↔ map toggle),
-// so the "map" tab points there for now. `match` is kept distinct from stays' so the two tabs
-// don't both light up on /stays; swap both to '/map' once a real map route ships.
 const TABS = [
   { key: 'guide', href: `${base}/app/guide`, match: '/guide', icon: ICONS.compass, label: isRu ? 'гид' : 'guide' },
-  { key: 'map', href: `${base}/stays#map`, match: '/map', icon: ICONS.map2, label: isRu ? 'карта' : 'map' },
+  { key: 'map', href: `${base}/app/map`, match: '/map', icon: ICONS.map2, label: isRu ? 'карта' : 'map' },
   { key: 'stays', href: `${base}/stays`, match: '/stays', icon: ICONS.bed, label: isRu ? 'жильё' : 'stays' },
   { key: 'trip', href: `${base}/trip`, match: '/trip', icon: ICONS.route, label: isRu ? 'поездка' : 'trip' },
 ];
@@ -43,24 +40,3 @@ const TABS = [
     );
   })}
 </nav>
-<script is:inline>
-// Вкладка «карта» = /stays#map: включаем карточный режим страницы жилья (кнопка #viewMap)
-// и переносим подсветку на «карту» (сервер по URL этого не видит — hash не доходит).
-(function () {
-  function apply() {
-    var isMap = location.hash === '#map';
-    var bM = document.getElementById('viewMap'), bL = document.getElementById('viewList');
-    if (isMap && bM) bM.click();
-    else if (!isMap && bL && document.body.classList.contains('stays-map-open')) bL.click();
-    var tM = document.querySelector('.tabbar__item[data-tab="map"]');
-    var tS = document.querySelector('.tabbar__item[data-tab="stays"]');
-    if (tM && tS && (tS.classList.contains('is-active') || tM.classList.contains('is-active'))) {
-      tM.classList.toggle('is-active', isMap);
-      tS.classList.toggle('is-active', !isMap);
-    }
-  }
-  window.addEventListener('hashchange', apply);
-  if (document.readyState !== 'loading') apply();
-  else document.addEventListener('DOMContentLoaded', apply);
-})();
-</script>
