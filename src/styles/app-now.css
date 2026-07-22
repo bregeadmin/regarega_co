@@ -1,6 +1,9 @@
-/* Native app "now" home screen — cinematic moment-hero + curated picks + stay hook + flat
-   bottom bar. Self-contained on top of the :root tokens from app-shell.css (imported once
-   by now.astro alongside this file) — this file only styles body.app-full and .now-*. */
+/* Native app "now" home screen — approved layout (2026-07-22): city-pill + search header,
+   compact real-photo moment hero, guide-category chips, 2 real place picks, 2 real cheapest
+   apartments, and a flat LABELED bottom bar (гид / жильё / консьерж / профиль — profile tab
+   is the dot-punch photo avatar). Self-contained on top of the :root tokens from
+   app-shell.css (imported once by now.astro alongside this file) — this file only styles
+   body.app-full and .now-*. */
 
 body.app-full{
   margin:0;
@@ -12,199 +15,247 @@ body.app-full{
 body.app-full *{ box-sizing:border-box; }
 body.app-full a{ color:inherit; text-decoration:none; }
 
-.now-screen{ padding-bottom:92px; }
+.now-screen{ padding-bottom:calc(72px + env(safe-area-inset-bottom)); }
 
-/* ---------- hero ---------- */
+/* ---------- header: city pill + search ---------- */
+.now-topbar{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:14px 15px 8px;
+  padding-top:calc(14px + env(safe-area-inset-top));
+}
+.now-citypill{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  background:#F1ECDF;
+  border:none;
+  border-radius:999px;
+  padding:6px 12px;
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+.now-citypill__pin{ width:14px; height:14px; flex:none; display:block; color:var(--accent); }
+.now-citypill__label{
+  font-family:"Bricolage Grotesque", sans-serif;
+  font-size:13px;
+  font-weight:500;
+  color:var(--ink);
+  text-transform:lowercase;
+}
+.now-citypill__chevron{ width:14px; height:14px; flex:none; display:block; color:var(--ink-soft); }
+.now-search{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:32px; height:32px;
+  color:var(--ink-soft);
+}
+.now-search__icon{ width:19px; height:19px; display:block; }
+
+/* ---------- compact moment hero ---------- */
 .now-hero{
   position:relative;
-  height:52vh;
-  min-height:320px;
-  max-height:520px;
-  width:100%;
+  margin:6px 15px 14px;
+  height:132px;
+  border-radius:15px;
   overflow:hidden;
   background-size:cover;
   background-position:center;
   background-color:#2b2320;
 }
-.now-hero::before{
-  /* legibility fade so the cream top-bar text reads over a bright sky */
-  content:"";
-  position:absolute; inset:0 0 auto 0; height:36%;
-  background:linear-gradient(to bottom, rgba(10,7,4,.38), rgba(10,7,4,0));
-  pointer-events:none;
-}
-.now-hero::after{
-  /* long fade into the caption block, on top of the flat scrim below */
-  content:"";
-  position:absolute; inset:auto 0 0 0; height:62%;
-  background:linear-gradient(to bottom, rgba(18,10,4,0), rgba(18,10,4,.55));
-  pointer-events:none;
-}
-
-.now-hero__topbar{
-  position:absolute;
-  top:0; left:0; right:0;
-  z-index:2;
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  padding:calc(16px + env(safe-area-inset-top)) 18px 16px;
-}
-.now-hero__brand{
-  display:inline-flex;
-  align-items:center;
-  gap:6px;
-  font-size:14px;
-  font-weight:500;
-  color:#FAF7F0;
-  text-transform:lowercase;
-  letter-spacing:.01em;
-}
-.now-hero__mark{ width:16px; height:16px; flex:none; display:block; }
-.now-hero__time{
-  font-family:"JetBrains Mono", monospace;
-  font-size:13px;
-  color:#FAF7F0;
-  letter-spacing:.02em;
-  font-variant-numeric:tabular-nums;
-}
-
-.now-hero__bottom{
+.now-hero__scrim{
   position:absolute;
   left:0; right:0; bottom:0;
-  z-index:2;
-  padding:22px 18px 24px;
-  background:rgba(18,10,4,.46);
+  background:rgba(18,10,4,.42);
+  padding:12px 14px 13px;
 }
-.now-hero__seal{
-  display:inline-flex;
-  align-items:center;
-  gap:5px;
-  border:.5px solid rgba(250,247,240,.4);
-  border-radius:999px;
-  padding:4px 9px;
-  margin-bottom:14px;
-}
-.now-hero__seal-dot{ width:10px; height:10px; flex:none; display:block; }
-.now-hero__seal-label{
+.now-hero__overline{
+  margin:0 0 4px;
   font-family:"JetBrains Mono", monospace;
-  font-size:10px;
-  letter-spacing:.14em;
+  font-size:9px;
+  letter-spacing:.16em;
   text-transform:uppercase;
   color:#f0e4d0;
 }
-.now-hero__overline{
-  margin:0 0 8px;
-  font-family:"JetBrains Mono", monospace;
-  font-size:11px;
-  letter-spacing:.18em;
-  text-transform:uppercase;
-  color:#e9d3b4;
-}
 .now-hero__headline{
-  margin:0 0 8px;
+  margin:0;
   font-family:"Bricolage Grotesque", sans-serif;
-  font-size:32px;
+  font-size:21px;
   font-weight:500;
-  line-height:1.04;
-  letter-spacing:-.01em;
+  line-height:1.05;
   text-transform:lowercase;
   color:#FAF7F0;
 }
-.now-hero__sub{
-  margin:0;
-  font-size:13px;
-  line-height:1.4;
-  color:#e4d3ba;
-}
 
-/* ---------- "ещё сейчас" ---------- */
-.now-section{ padding:20px 18px 6px; }
-.now-section__label{
-  margin:0 0 14px;
-  font-size:13px;
+/* ---------- category chips ---------- */
+.now-chips{
+  display:flex;
+  gap:7px;
+  padding:0 15px 15px;
+  overflow-x:auto;
+  scrollbar-width:none;
+  -webkit-overflow-scrolling:touch;
+}
+.now-chips::-webkit-scrollbar{ display:none; }
+.now-chip{
+  flex:none;
+  font-family:"Bricolage Grotesque", sans-serif;
+  font-size:12.5px;
+  font-weight:500;
+  color:var(--ink);
+  background:#F1ECDF;
+  border:none;
+  border-radius:999px;
+  padding:7px 14px;
+  cursor:pointer;
+  white-space:nowrap;
+  text-transform:lowercase;
+}
+.now-chip.is-active{ background:var(--accent); color:#fff; }
+
+/* ---------- section header row (shared: места рядом / где остановиться) ---------- */
+.now-block{ padding:0 0 4px; }
+.now-block__head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:0 15px 10px;
+}
+.now-block__title{
+  margin:0;
+  font-family:"Bricolage Grotesque", sans-serif;
+  font-size:14px;
   font-weight:500;
   color:var(--ink);
   text-transform:lowercase;
 }
-.now-places{ display:flex; flex-direction:column; }
-.now-place{
-  display:flex;
-  align-items:center;
-  gap:12px;
-  padding:12px 0;
+.now-block__all{
+  font-family:"Bricolage Grotesque", sans-serif;
+  font-size:12px;
+  font-weight:500;
+  color:var(--accent);
 }
-.now-place + .now-place{ border-top:.5px solid var(--line); }
-.now-place__photo{
-  width:52px; height:52px; flex:none;
-  border-radius:12px;
+
+/* ---------- места рядом: 2 real place cards ---------- */
+.now-cardrow{ display:flex; gap:11px; padding:0 15px 18px; }
+.now-placecard{ flex:1 1 0; min-width:0; display:block; }
+.now-placecard__photo{
+  height:80px;
+  border-radius:11px;
   overflow:hidden;
   background:var(--paper);
 }
-.now-place__photo img{ width:100%; height:100%; object-fit:cover; display:block; }
-.now-place__body{ flex:1 1 auto; min-width:0; }
-.now-place__name{
-  margin:0 0 2px;
-  font-size:15px;
+.now-placecard__photo img{ width:100%; height:100%; object-fit:cover; display:block; }
+.now-placecard__name{
+  margin:8px 0 2px;
+  font-family:"Bricolage Grotesque", sans-serif;
+  font-size:12px;
   font-weight:500;
   color:var(--ink);
   white-space:nowrap;
   overflow:hidden;
   text-overflow:ellipsis;
 }
-.now-place__meta{
+.now-placecard__meta{
   margin:0;
-  font-size:12px;
+  font-family:"Bricolage Grotesque", sans-serif;
+  font-size:11px;
   color:var(--ink-soft);
   white-space:nowrap;
   overflow:hidden;
   text-overflow:ellipsis;
 }
-.now-place__dot{ width:8px; height:8px; flex:none; display:block; }
 
-/* ---------- stay hook ---------- */
-.now-stay{
+/* ---------- где остановиться: 2 real apartment cards ---------- */
+.now-cardrow--stays{ padding-bottom:14px; }
+.now-staycard{
+  flex:1 1 0;
+  min-width:0;
+  display:block;
+  border:.5px solid var(--line);
+  border-radius:11px;
+  background:var(--paper);
+  overflow:hidden;
+}
+.now-staycard__photo{ height:76px; background:var(--line); }
+.now-staycard__photo img{ width:100%; height:100%; object-fit:cover; display:block; }
+.now-staycard__row{
   display:flex;
   align-items:center;
-  gap:12px;
-  margin:8px 18px 0;
-  padding:18px 0;
-  border-top:.5px solid var(--line);
+  justify-content:space-between;
+  gap:6px;
+  padding:8px 10px 0;
 }
-.now-stay__icon{ width:20px; height:20px; flex:none; color:var(--accent); }
-.now-stay__text{ flex:1 1 auto; font-size:14px; color:var(--ink); line-height:1.35; }
-.now-stay__muted{ color:var(--ink-soft); }
-.now-stay__arrow{ flex:none; color:var(--accent); font-size:16px; }
+.now-staycard__name{
+  font-family:"Bricolage Grotesque", sans-serif;
+  font-size:12px;
+  font-weight:500;
+  color:var(--ink);
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+  min-width:0;
+}
+.now-staycard__price{
+  flex:none;
+  font-family:"Bricolage Grotesque", sans-serif;
+  font-size:12px;
+  font-weight:500;
+  color:var(--ink);
+}
+.now-staycard__meta{
+  margin:2px 0 0;
+  padding:0 10px 9px;
+  font-family:"Bricolage Grotesque", sans-serif;
+  font-size:11px;
+  color:var(--ink-soft);
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
 
-/* ---------- bottom bar ---------- */
+/* ---------- bottom bar: 4 LABELED tabs, profile = dot-punch avatar ---------- */
 .now-tabbar{
   position:fixed;
   left:0; right:0; bottom:0;
   z-index:80;
   display:flex;
-  justify-content:space-around;
-  align-items:center;
-  background:var(--bg);
   border-top:.5px solid var(--line);
-  padding:13px 24px calc(20px + env(safe-area-inset-bottom));
+  padding:8px 6px calc(11px + env(safe-area-inset-bottom));
+  background:var(--bg);
 }
-.now-tab{ display:flex; align-items:center; justify-content:center; color:#bdb7ab; }
-.now-tab__icon{ width:25px; height:25px; display:block; }
+.now-tab{
+  flex:1 1 0;
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  justify-content:center;
+  gap:3px;
+  color:#8a857c;
+}
+.now-tab__icon{ width:23px; height:23px; display:block; }
+.now-tab__label{
+  font-family:"Bricolage Grotesque", sans-serif;
+  font-size:11px;
+  line-height:1;
+}
 .now-tab.is-active{ color:var(--accent); }
 
 .now-avatar{
   position:relative;
-  width:33px; height:33px;
+  width:24px; height:24px;
   border-radius:50%;
   overflow:hidden;
   display:block;
-  background:var(--paper);
+  background:#a56b3f;
 }
 .now-avatar img{ width:100%; height:100%; object-fit:cover; display:block; }
 .now-avatar__hole{
   position:absolute;
-  right:1px; bottom:1px;
-  width:11px; height:11px;
+  right:0; bottom:0;
+  width:8px; height:8px;
   border-radius:50%;
   background:var(--bg);
 }

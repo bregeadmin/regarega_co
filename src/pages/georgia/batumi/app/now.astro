@@ -1,10 +1,11 @@
 ---
-// Native app "Сейчас" (Now) home screen — the flagship first screen of the app.
-// Cinematic moment-hero (real photo) + 2 real curated place picks + a real stay hook +
-// a flat bottom bar whose profile tab is a dot-punch photo avatar. Edge-to-edge: own
-// full-bleed layout (AppFull), no site topbar/hamburger/footer, no app-header/TabBar.
-// Build-time data — same guide_places / apartments_public queries the other app
-// screens use (see app/guide.astro, app/stays.astro), just narrowed to 2 picks + 1 stay.
+// Native app "Сейчас" (Now) home screen — approved layout (2026-07-22 design pass):
+// city pill + search header, a compact real-photo moment hero, real guide categories as
+// chips, 2 real curated places, 2 real cheapest-with-photo apartments, and a flat LABELED
+// bottom bar (гид / жильё / консьерж / профиль) whose profile tab is the dot-punch avatar.
+// Edge-to-edge: own full-bleed layout (AppFull), no site topbar/hamburger/footer.
+// Build-time data — same guide_places / apartments_public queries the other app screens
+// use (see app/guide.astro, app/stays.astro), narrowed to 2 + 2 picks.
 import AppFull from '../../../../layouts/AppFull.astro';
 import '../../../../styles/app-shell.css';
 import '../../../../styles/app-now.css';
@@ -14,12 +15,15 @@ import { priceSym } from '../../../../lib/price';
 
 const BASE = '/georgia/batumi';
 
-// --- guide places: same table/columns as app/guide.astro, 2 with a real photo ---
+// --- guide places: same table/columns as app/guide.astro ---
 const { data: gp } = await supabase
   .from('guide_places')
   .select('slug,title,name,category,photos,image,address')
   .eq('status', 'published');
+const gpAll = (gp || []) as any[];
+
 const photoOf = (p: any) => (p.photos && p.photos[0]) || p.image || '';
+// no dedicated "area" column on guide_places — derive a short area label from the street address
 const areaOf = (p: any) => {
   const a = String(p.address || '').trim();
   if (!a) return '';
@@ -28,129 +32,148 @@ const areaOf = (p: any) => {
   if (!first) return '';
   return first.length > 26 ? first.slice(0, 26).replace(/\s+\S*$/, '') + '…' : first;
 };
-const places = ((gp || []) as any[]).filter((p) => photoOf(p)).slice(0, 2);
 
-// --- apartments: same table/columns as app/stays.astro, cheapest with a real photo ---
+// category chips: only worlds that actually have published places (same order/filter as app/guide.astro)
+const CAT_ORDER = ['eat-drink', 'wellness', 'move-around', 'work'];
+const cats = CAT_ORDER.filter((c) => gpAll.some((p) => p.category === c));
+
+// 2 curated picks with a real photo
+const places = gpAll.filter((p) => photoOf(p)).slice(0, 2);
+
+// --- apartments: same table/columns as app/stays.astro, 2 cheapest with a real photo ---
 const { data: apts } = await supabase
   .from('apartments_public')
   .select('id,slug,title,neighborhood,bedrooms,max_guests,price_from,price_currency,photos')
   .order('price_from', { ascending: true });
-const apartments = ((apts as Apartment[]) || []).map(applyNames).filter((a) => a.photos && a.photos[0]);
-const stay = apartments[0] || null;
+const apartments = ((apts as Apartment[]) || [])
+  .map(applyNames)
+  .filter((a) => a.photos && a.photos[0])
+  .slice(0, 2);
+const bedroomLabel = (n: number | null | undefined) => (!n ? 'студия' : n === 1 ? '1 спальня' : `${n} спальни`);
 
-// hero: golden-hour Batumi street (public/img/hero-batumi.jpg) — fall back to the first
-// place's photo if it's ever missing.
+// hero: golden-hour Batumi street (public/img/hero-batumi.jpg)
 const heroPhoto = '/img/hero-batumi.jpg';
 
-// avatar stand-in: no real user photo yet — use a real curated-place photo as the stand-in
-// the spec calls for.
-const avatarPhoto = (places[1] && photoOf(places[1])) || (stay && stay.photos[0]) || '';
+// avatar stand-in: no real user photo yet — use a real curated-place photo (falls back to a
+// warm solid fill in CSS if neither picks nor apartments have one).
+const avatarPhoto = (places[1] && photoOf(places[1])) || (apartments[0] && apartments[0].photos[0]) || '';
 
-const REGA_MARK = 'M 50,50 m -50,0 a 50,50 0 1,1 100,0 a 50,50 0 1,1 -100,0 z M 64,64 m -12,0 a 12,12 0 1,1 24,0 a 12,12 0 1,1 -24,0 z';
+// icon paths — real Tabler-icons "outline" path data (viewBox 0 0 24 24), same convention
+// already used by src/components/TabBar.astro (compass/bed reused verbatim from there).
+const ICONS = {
+  mapPin: '<path d="M9 11a3 3 0 1 0 6 0a3 3 0 0 0 -6 0" /><path d="M17.657 16.657l-4.243 4.243a2 2 0 0 1 -2.827 0l-4.244 -4.243a8 8 0 1 1 11.314 0z" />',
+  chevronDown: '<path d="M6 9l6 6l6 -6" />',
+  search: '<path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0" /><path d="M21 21l-6 -6" />',
+  compass: '<path d="M8 16l2 -6l6 -2l-2 6l-6 2" /><path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" /><path d="M12 3l0 2" /><path d="M12 19l0 2" /><path d="M3 12l2 0" /><path d="M19 12l2 0" />',
+  bed: '<path d="M5 9a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" /><path d="M22 17v-3h-20" /><path d="M2 8v9" /><path d="M12 14h10v-2a3 3 0 0 0 -3 -3h-7v5" />',
+  message: '<path d="M3 20l1.3 -3.9c-2.324 -3.437 -1.426 -7.872 2.1 -10.374c3.526 -2.501 8.59 -2.296 11.845 .48c3.255 2.777 3.695 7.266 1.029 10.501c-2.666 3.235 -7.615 4.215 -11.574 2.293l-4.7 1" />',
+};
 ---
-<AppFull lang="ru" title="сейчас — rega rega" description="батуми прямо сейчас — момент, пара мест по стандарту rega и где остановиться рядом.">
+<AppFull lang="ru" title="сейчас — rega rega" description="батуми прямо сейчас — момент, категории гида, пара мест по стандарту rega и где остановиться рядом.">
   <main class="now-screen">
+    <header class="now-topbar">
+      <button class="now-citypill" type="button">
+        <svg class="now-citypill__pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={ICONS.mapPin} />
+        <span class="now-citypill__label">батуми</span>
+        <svg class="now-citypill__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={ICONS.chevronDown} />
+      </button>
+      <a class="now-search" href="#" aria-label="поиск">
+        <svg class="now-search__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={ICONS.search} />
+      </a>
+    </header>
+
     <section class="now-hero" style={`background-image:url(${heroPhoto})`}>
-      <div class="now-hero__topbar">
-        <span class="now-hero__brand">
-          <svg class="now-hero__mark" viewBox="0 0 100 100" aria-hidden="true"><path fill-rule="evenodd" fill="#FAF7F0" d={REGA_MARK} /></svg>
-          батуми
-        </span>
-        <span class="now-hero__time" id="nowTime">--:--</span>
-      </div>
-      <div class="now-hero__bottom">
-        <span class="now-hero__seal">
-          <svg class="now-hero__seal-dot" viewBox="0 0 100 100" aria-hidden="true"><path fill-rule="evenodd" fill="#FF5E1A" d={REGA_MARK} /></svg>
-          <span class="now-hero__seal-label">rega standard</span>
-        </span>
-        <p class="now-hero__overline" id="nowOverline">вечер в батуми</p>
+      <div class="now-hero__scrim">
+        <p class="now-hero__overline" id="nowOverline">вечер · rega standard</p>
         <h1 class="now-hero__headline" id="nowHeadline">куда пойти вечером.</h1>
-        <p class="now-hero__sub" id="nowSub">бар с винилом рядом</p>
       </div>
     </section>
 
-    <section class="now-section">
-      <p class="now-section__label">ещё сейчас</p>
-      <div class="now-places">
+    <nav class="now-chips" aria-label="категории">
+      <button class="now-chip is-active" data-cat="all" type="button">всё</button>
+      {cats.map((c) => (
+        <button class="now-chip" data-cat={c} type="button">{catLabel(c, 'ru')}</button>
+      ))}
+    </nav>
+
+    <section class="now-block">
+      <div class="now-block__head">
+        <h2 class="now-block__title">места рядом</h2>
+        <a class="now-block__all" href={`${BASE}/guide`}>все →</a>
+      </div>
+      <div class="now-cardrow">
         {places.map((p) => {
           const photo = photoOf(p);
           const area = areaOf(p);
           const name = p.title || p.name;
           return (
-            <a class="now-place" href={`${BASE}/guide/${p.slug}`}>
-              <div class="now-place__photo">{photo && <img src={photo} alt="" loading="lazy" />}</div>
-              <div class="now-place__body">
-                <p class="now-place__name">{name}</p>
-                <p class="now-place__meta">{catLabel(p.category, 'ru')}{area ? ` · ${area}` : ''}</p>
-              </div>
-              <svg class="now-place__dot" viewBox="0 0 100 100" aria-hidden="true"><path fill-rule="evenodd" fill="#FF5E1A" d={REGA_MARK} /></svg>
+            <a class="now-placecard" href={`${BASE}/guide/${p.slug}`}>
+              <div class="now-placecard__photo">{photo && <img src={photo} alt="" loading="lazy" />}</div>
+              <p class="now-placecard__name">{name}</p>
+              <p class="now-placecard__meta">{catLabel(p.category, 'ru')}{area ? ` · ${area}` : ''}</p>
             </a>
           );
         })}
       </div>
     </section>
 
-    {stay && (
-      <a class="now-stay" href={`${BASE}/app/stays/${stay.slug}`}>
-        <svg class="now-stay__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-          <path d="M5 9a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" /><path d="M22 17v-3h-20" /><path d="M2 8v9" /><path d="M12 14h10v-2a3 3 0 0 0 -3 -3h-7v5" />
-        </svg>
-        <span class="now-stay__text">жить в этом районе — <span class="now-stay__muted">от {priceSym(stay.price_currency)}{stay.price_from}</span></span>
-        <span class="now-stay__arrow" aria-hidden="true">→</span>
-      </a>
-    )}
+    <section class="now-block">
+      <div class="now-block__head">
+        <h2 class="now-block__title">где остановиться</h2>
+        <a class="now-block__all" href={`${BASE}/app/stays`}>все →</a>
+      </div>
+      <div class="now-cardrow now-cardrow--stays">
+        {apartments.map((a) => (
+          <a class="now-staycard" href={`${BASE}/app/stays/${a.slug}`}>
+            <div class="now-staycard__photo"><img src={a.photos[0]} alt="" loading="lazy" /></div>
+            <div class="now-staycard__row">
+              <span class="now-staycard__name">{a.title}</span>
+              <span class="now-staycard__price">{priceSym(a.price_currency)}{a.price_from}</span>
+            </div>
+            <p class="now-staycard__meta">{bedroomLabel(a.bedrooms)}{a.neighborhood ? ` · ${a.neighborhood}` : ''}</p>
+          </a>
+        ))}
+      </div>
+    </section>
   </main>
 
   <nav class="now-tabbar" aria-label="навигация">
     <a class="now-tab is-active" href={`${BASE}/app/now`} aria-current="page">
-      <svg class="now-tab__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <circle cx="12" cy="12" r="4" />
-        <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41 -1.41M17.66 6.34l1.41 -1.41" />
-      </svg>
+      <svg class="now-tab__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={ICONS.compass} />
+      <span class="now-tab__label">гид</span>
     </a>
-    <a class="now-tab" href="/georgia/batumi/trip">
-      <svg class="now-tab__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="M3 7m0 2a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v9a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2z" />
-        <path d="M8 7v-2a2 2 0 0 1 2 -2h4a2 2 0 0 1 2 2v2" />
-        <path d="M3 13a20 20 0 0 0 18 0" />
-      </svg>
+    <a class="now-tab" href={`${BASE}/app/stays`}>
+      <svg class="now-tab__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={ICONS.bed} />
+      <span class="now-tab__label">жильё</span>
     </a>
     <a class="now-tab" href="#">
-      <svg class="now-tab__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
-        <path d="M3 20l1.3 -3.9c-2.324 -3.437 -1.426 -7.872 2.1 -10.374c3.526 -2.501 8.59 -2.296 11.845 .48c3.255 2.777 3.695 7.266 1.029 10.501c-2.666 3.235 -7.615 4.215 -11.574 2.293l-4.7 1" />
-      </svg>
+      <svg class="now-tab__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={ICONS.message} />
+      <span class="now-tab__label">консьерж</span>
     </a>
     <a class="now-tab now-tab--avatar" href="#" aria-label="профиль">
       <span class="now-avatar">
         {avatarPhoto && <img src={avatarPhoto} alt="" />}
         <span class="now-avatar__hole" aria-hidden="true"></span>
       </span>
+      <span class="now-tab__label">профиль</span>
     </a>
   </nav>
 
   <script is:inline>
     (function () {
-      var d = new Date();
-      var hh = String(d.getHours()).padStart(2, '0');
-      var mm = String(d.getMinutes()).padStart(2, '0');
-      var timeEl = document.getElementById('nowTime');
-      if (timeEl) timeEl.textContent = hh + ':' + mm;
-
       var MOMENTS = [
-        { from: 5, to: 11, overline: 'утро в батуми', headline: 'начни с кофе.', sub: 'nova coffee рядом, спешелти' },
-        { from: 11, to: 16, overline: 'день', headline: 'пообедай и поработай.', sub: 'по стандарту rega' },
-        { from: 16, to: 20, overline: 'закат скоро', headline: 'иди на набережную.', sub: 'по пути — wine bar' },
+        { from: 5, to: 11, moment: 'утро', headline: 'начни с кофе.' },
+        { from: 11, to: 16, moment: 'день', headline: 'пообедай и поработай.' },
+        { from: 16, to: 20, moment: 'закат через 40 мин', headline: 'иди на набережную.' },
       ];
-      var hour = d.getHours();
+      var hour = new Date().getHours();
       var m = MOMENTS.find(function (x) { return hour >= x.from && hour < x.to; });
-      if (!m) m = { overline: 'вечер в батуми', headline: 'куда пойти вечером.', sub: 'бар с винилом рядом' };
+      if (!m) m = { moment: 'вечер', headline: 'куда пойти вечером.' };
 
       var ov = document.getElementById('nowOverline');
       var hl = document.getElementById('nowHeadline');
-      var sb = document.getElementById('nowSub');
-      if (ov) ov.textContent = m.overline;
+      if (ov) ov.textContent = m.moment + ' · rega standard';
       if (hl) hl.textContent = m.headline;
-      if (sb) sb.textContent = m.sub;
     })();
   </script>
 </AppFull>
