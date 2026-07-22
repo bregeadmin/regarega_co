@@ -1,0 +1,98 @@
+---
+// Native app "guide" screen — dedicated app-shell screen (no site topbar/hamburger/footer).
+// Build-time data: same guide_places / news tables the site guide pages use, queried at build
+// (static HTML, same pattern as src/pages/georgia/batumi/guide/[slug].astro).
+import App from '../../../../layouts/App.astro';
+import '../../../../styles/app-guide.css';
+import { supabase } from '../../../../lib/supabase';
+import { catLabel } from '../../../../lib/guideCats';
+
+const LANG = 'en' as const;
+const BASE = '/georgia/batumi';
+
+const { data: gp } = await supabase
+  .from('guide_places')
+  .select('slug,title,name,category,photos,image,address')
+  .eq('status', 'published');
+const places = (gp || []) as any[];
+
+// most recent news item, respecting the same on_guide flag the site's guide hub honours
+const { data: newsData } = await supabase
+  .from('news').select('*').eq('status', 'published').order('date', { ascending: false });
+const news = ((newsData || []) as any[]).filter((n) => n.on_guide !== false)[0] || null;
+
+// category chips: only worlds that actually have published places (skip "soon" placeholders
+// like nightlife/experiences/explore — those have zero rows in guide_places today)
+const CAT_ORDER = ['eat-drink', 'wellness', 'move-around', 'work'];
+const cats = CAT_ORDER.filter((c) => places.some((p) => p.category === c));
+
+const photoOf = (p: any) => (p.photos && p.photos[0]) || p.image || '';
+// no dedicated "area" column on guide_places — derive a short area label from the street address
+const areaOf = (p: any) => {
+  const a = String(p.address || '').trim();
+  if (!a) return '';
+  const cleaned = a.replace(/,?\s*Batumi[^,]*,?\s*Georgia\s*$/i, '').replace(/,\s*Georgia\s*$/i, '').trim();
+  const first = (cleaned.split(',')[0] || '').trim();
+  if (!first) return '';
+  return first.length > 26 ? first.slice(0, 26).replace(/\s+\S*$/, '') + '…' : first;
+};
+const newsPhoto = news ? (news.image || (news.photos && news.photos[0]) || '') : '';
+---
+<App lang={LANG} title="the guide — rega rega" description="cafés, wellness, work spots and how to get around batumi — places we'd hand to a friend.">
+  <nav class="chip-row" aria-label="categories">
+    <button class="chip is-active" data-cat="all" type="button">all</button>
+    {cats.map((c) => (
+      <button class="chip" data-cat={c} type="button">{catLabel(c, LANG)}</button>
+    ))}
+  </nav>
+
+  <div class="place-grid" id="placeGrid">
+    {news && (
+      <a class="news-tile" href={`${BASE}/guide/news/${news.slug}`}>
+        {newsPhoto && <div class="news-tile__photo"><img src={newsPhoto} alt="" loading="lazy" /></div>}
+        <div class="news-tile__body">
+          <span class="news-tile__kicker">news</span>
+          <h3 class="news-tile__title">{news.headline || news.title}</h3>
+        </div>
+      </a>
+    )}
+    {places.map((p) => {
+      const photo = photoOf(p);
+      const area = areaOf(p);
+      return (
+        <a class="place-tile" data-category={p.category} href={`${BASE}/guide/${p.slug}`}>
+          <div class="place-tile__photo">
+            {photo && <img src={photo} alt="" loading="lazy" />}
+          </div>
+          <div class="place-tile__body">
+            <h3 class="place-tile__name">{p.title || p.name}</h3>
+            <p class="place-tile__meta">{catLabel(p.category, LANG)}{area ? ` · ${area}` : ''}</p>
+          </div>
+        </a>
+      );
+    })}
+    <p class="place-grid__empty" id="placeGridEmpty" hidden>nothing here yet</p>
+  </div>
+
+  <script is:inline>
+    (function () {
+      var chips = document.querySelectorAll('.chip-row .chip');
+      var tiles = document.querySelectorAll('.place-grid .place-tile');
+      var empty = document.getElementById('placeGridEmpty');
+      chips.forEach(function (chip) {
+        chip.addEventListener('click', function () {
+          chips.forEach(function (c) { c.classList.remove('is-active'); });
+          chip.classList.add('is-active');
+          var cat = chip.getAttribute('data-cat');
+          var visible = 0;
+          tiles.forEach(function (t) {
+            var match = cat === 'all' || t.getAttribute('data-category') === cat;
+            t.classList.toggle('is-hidden', !match);
+            if (match) visible++;
+          });
+          if (empty) empty.hidden = visible !== 0;
+        });
+      });
+    })();
+  </script>
+</App>

@@ -21,7 +21,7 @@ const ICONS = {
 // so the "map" tab points there for now. `match` is kept distinct from stays' so the two tabs
 // don't both light up on /stays; swap both to '/map' once a real map route ships.
 const TABS = [
-  { key: 'guide', href: `${base}/guide`, match: '/guide', icon: ICONS.compass, label: isRu ? 'гид' : 'guide' },
+  { key: 'guide', href: `${base}/app/guide`, match: '/guide', icon: ICONS.compass, label: isRu ? 'гид' : 'guide' },
   { key: 'map', href: `${base}/stays#map`, match: '/map', icon: ICONS.map2, label: isRu ? 'карта' : 'map' },
   { key: 'stays', href: `${base}/stays`, match: '/stays', icon: ICONS.bed, label: isRu ? 'жильё' : 'stays' },
   { key: 'trip', href: `${base}/trip`, match: '/trip', icon: ICONS.route, label: isRu ? 'поездка' : 'trip' },

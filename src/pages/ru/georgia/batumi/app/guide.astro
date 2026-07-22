@@ -1,0 +1,95 @@
+---
+// Native app "guide" screen — RU mirror. See the EN twin at
+// src/pages/georgia/batumi/app/guide.astro for the full explanation of the data source.
+import App from '../../../../../layouts/App.astro';
+import '../../../../../styles/app-guide.css';
+import { supabase } from '../../../../../lib/supabase';
+import { catLabel } from '../../../../../lib/guideCats';
+
+const LANG = 'ru' as const;
+const BASE = '/ru/georgia/batumi';
+
+const { data: gp } = await supabase
+  .from('guide_places')
+  .select('slug,title,name,category,photos,image,address')
+  .eq('status', 'published');
+const places = (gp || []) as any[];
+
+const { data: newsData } = await supabase
+  .from('news').select('*').eq('status', 'published').order('date', { ascending: false });
+const news = ((newsData || []) as any[]).filter((n) => n.on_guide !== false)[0] || null;
+
+const CAT_ORDER = ['eat-drink', 'wellness', 'move-around', 'work'];
+const cats = CAT_ORDER.filter((c) => places.some((p) => p.category === c));
+
+const photoOf = (p: any) => (p.photos && p.photos[0]) || p.image || '';
+// place titles stay as the original (mostly Latin-script) business names — same rule
+// GuideCategory.astro uses on RU pages: only summary/body get translated, not the name.
+const areaOf = (p: any) => {
+  const a = String(p.address || '').trim();
+  if (!a) return '';
+  const cleaned = a.replace(/,?\s*Batumi[^,]*,?\s*Georgia\s*$/i, '').replace(/,\s*Georgia\s*$/i, '').trim();
+  const first = (cleaned.split(',')[0] || '').trim();
+  if (!first) return '';
+  return first.length > 26 ? first.slice(0, 26).replace(/\s+\S*$/, '') + '…' : first;
+};
+const newsPhoto = news ? (news.image || (news.photos && news.photos[0]) || '') : '';
+---
+<App lang={LANG} title="гид — rega rega" description="кафе, велнес, места для работы и как передвигаться по батуми — места, которые мы бы посоветовали другу.">
+  <nav class="chip-row" aria-label="категории">
+    <button class="chip is-active" data-cat="all" type="button">всё</button>
+    {cats.map((c) => (
+      <button class="chip" data-cat={c} type="button">{catLabel(c, LANG)}</button>
+    ))}
+  </nav>
+
+  <div class="place-grid" id="placeGrid">
+    {news && (
+      <a class="news-tile" href={`${BASE}/guide/news/${news.slug}`}>
+        {newsPhoto && <div class="news-tile__photo"><img src={newsPhoto} alt="" loading="lazy" /></div>}
+        <div class="news-tile__body">
+          <span class="news-tile__kicker">новости</span>
+          <h3 class="news-tile__title">{news.headline || news.title}</h3>
+        </div>
+      </a>
+    )}
+    {places.map((p) => {
+      const photo = photoOf(p);
+      const area = areaOf(p);
+      return (
+        <a class="place-tile" data-category={p.category} href={`${BASE}/guide/${p.slug}`}>
+          <div class="place-tile__photo">
+            {photo && <img src={photo} alt="" loading="lazy" />}
+          </div>
+          <div class="place-tile__body">
+            <h3 class="place-tile__name">{p.title || p.name}</h3>
+            <p class="place-tile__meta">{catLabel(p.category, LANG)}{area ? ` · ${area}` : ''}</p>
+          </div>
+        </a>
+      );
+    })}
+    <p class="place-grid__empty" id="placeGridEmpty" hidden>здесь пока пусто</p>
+  </div>
+
+  <script is:inline>
+    (function () {
+      var chips = document.querySelectorAll('.chip-row .chip');
+      var tiles = document.querySelectorAll('.place-grid .place-tile');
+      var empty = document.getElementById('placeGridEmpty');
+      chips.forEach(function (chip) {
+        chip.addEventListener('click', function () {
+          chips.forEach(function (c) { c.classList.remove('is-active'); });
+          chip.classList.add('is-active');
+          var cat = chip.getAttribute('data-cat');
+          var visible = 0;
+          tiles.forEach(function (t) {
+            var match = cat === 'all' || t.getAttribute('data-category') === cat;
+            t.classList.toggle('is-hidden', !match);
+            if (match) visible++;
+          });
+          if (empty) empty.hidden = visible !== 0;
+        });
+      });
+    })();
+  </script>
+</App>

@@ -1,0 +1,58 @@
+/* Native app-shell chrome — thin header only. NO topbar, NO hamburger, NO footer.
+   Tokens copied verbatim from shell.css (kept local so this file never pulls in site chrome styles). */
+:root{
+  --bg:#FAF7F0;
+  --paper:#FDFBF6;
+  --ink:#0A0908;
+  --ink-soft:#6B6862;
+  --faint:#9b9a94;
+  --line:#ECE8DF;
+  --accent:#FF5E1A;
+  --accent-deep:#C63D0F;
+  --accent-soft:#FBE7DC;
+}
+
+html{ background:var(--bg); }
+body.app-shell{
+  margin:0;
+  background:var(--bg);
+  color:var(--ink);
+  font-family:"Bricolage Grotesque","Helvetica Neue",sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+body.app-shell *{ box-sizing:border-box; }
+body.app-shell a{ color:inherit; text-decoration:none; }
+
+.app-header{
+  position:sticky;
+  top:0;
+  z-index:50;
+  background:var(--bg);
+  border-bottom:.5px solid var(--line);
+  padding-top:env(safe-area-inset-top);
+}
+.app-header__inner{
+  height:48px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:0 16px;
+}
+.app-header__city{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  font-family:"JetBrains Mono", monospace;
+  font-size:13px;
+  font-weight:500;
+  color:var(--ink);
+  text-transform:lowercase;
+}
+.app-header__pin{
+  width:7px;
+  height:7px;
+  flex:none;
+  border-radius:50%;
+  background:var(--accent);
+}
+.app-header__right{ flex:none; }

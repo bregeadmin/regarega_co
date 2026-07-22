@@ -1,0 +1,48 @@
+---
+// Native app-shell layout: dedicated app screens (guide, later trip/chat).
+// NO site topbar, NO hamburger menu, NO black footer — just a thin app header + slot + tab bar.
+// Single layout for both languages — pass lang='en'|'ru', it drives TabBar hrefs/labels + <html lang>.
+import '../styles/app-shell.css';
+import '../styles/tabbar.css';
+import TabBar from '../components/TabBar.astro';
+
+export interface Props { title?: string; description?: string; lang?: 'en' | 'ru' }
+const {
+  title = 'rega rega',
+  description = 'the batumi guide — rega rega app.',
+  lang = 'en',
+} = Astro.props;
+const cityLabel = lang === 'ru' ? 'батуми' : 'batumi';
+---
+<!doctype html>
+<html lang={lang}>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <title>{title}</title>
+  <meta name="description" content={description} />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@10..48,200..900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link rel="icon" href="/favicon.ico?v=2" sizes="48x48" />
+  <link rel="apple-touch-icon" sizes="180x180" href="/icons/apple-touch-icon.png?v=7" />
+  <meta name="theme-color" content="#FAF7F0" />
+  <link rel="manifest" href="/manifest.webmanifest" />
+  <meta name="apple-mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-title" content="Rega Rega" />
+  <script is:inline>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){});});}</script>
+</head>
+<body class="app-shell has-tabbar">
+  <header class="app-header">
+    <div class="app-header__inner">
+      <span class="app-header__city">
+        <span class="app-header__pin" aria-hidden="true"></span>
+        {cityLabel}
+      </span>
+      <span class="app-header__right"></span>
+    </div>
+  </header>
+  <slot />
+  <TabBar lang={lang} />
+</body>
+</html>
