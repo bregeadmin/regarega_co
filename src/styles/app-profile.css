@@ -1,0 +1,138 @@
+/* Native app "profile" screen — the cabinet (visual stub: chips/rows aren't wired up yet).
+   Self-contained on top of the :root tokens + body.app-full reset from app-shell.css
+   (imported alongside this file) — this file only styles .pf-*. */
+
+.pf-screen{ padding:4px 15px calc(88px + env(safe-area-inset-bottom)); }
+
+/* screen-reader-only heading: the avatar + name already carry this visually */
+.pf-screen .sr-only{
+  position:absolute;
+  width:1px; height:1px;
+  padding:0; margin:-1px;
+  overflow:hidden;
+  clip:rect(0,0,0,0);
+  white-space:nowrap;
+  border:0;
+}
+
+/* ---------- hero: large dot-punch avatar + name ---------- */
+.pf-hero{
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+  text-align:center;
+  padding:22px 0 24px;
+}
+.pf-avatar{
+  position:relative;
+  width:72px; height:72px;
+  border-radius:50%;
+  overflow:hidden;
+  display:block;
+  background:#a56b3f;
+}
+.pf-avatar__hole{
+  position:absolute;
+  right:0; bottom:0;
+  width:24px; height:24px;
+  border-radius:50%;
+  background:var(--bg);
+}
+.pf-name{
+  margin:14px 0 2px;
+  font-family:"Bricolage Grotesque", sans-serif;
+  font-size:19px;
+  font-weight:600;
+  color:var(--ink);
+  text-transform:lowercase;
+}
+.pf-since{
+  margin:0;
+  font-family:"JetBrains Mono", monospace;
+  font-size:11px;
+  letter-spacing:.02em;
+  color:var(--ink-soft);
+  text-transform:lowercase;
+}
+
+/* ---------- shared section header ---------- */
+.pf-section{ padding:0 0 22px; }
+.pf-section__title{
+  margin:0 0 10px;
+  font-family:"Bricolage Grotesque", sans-serif;
+  font-size:14px;
+  font-weight:500;
+  color:var(--ink);
+  text-transform:lowercase;
+}
+
+/* ---------- твой вкус: chips ---------- */
+.pf-chips{ display:flex; flex-wrap:wrap; gap:7px; }
+.pf-chip{
+  font-family:"Bricolage Grotesque", sans-serif;
+  font-size:12.5px;
+  font-weight:500;
+  color:var(--accent-deep);
+  background:var(--accent-soft);
+  border-radius:999px;
+  padding:7px 14px;
+  white-space:nowrap;
+  text-transform:lowercase;
+}
+
+/* ---------- твои города: rows ---------- */
+.pf-city{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  border:.5px solid var(--line);
+  border-radius:13px;
+  padding:12px 14px;
+  margin-bottom:8px;
+}
+.pf-city:last-child{ margin-bottom:0; }
+.pf-city__icon{ flex:none; width:18px; height:18px; color:var(--ink-soft); }
+.pf-city__label{
+  font-family:"Bricolage Grotesque", sans-serif;
+  font-size:13px;
+  font-weight:500;
+  color:var(--ink);
+  text-transform:lowercase;
+}
+.pf-city--accent{
+  border-color:transparent;
+  background:var(--accent-soft);
+}
+.pf-city--accent .pf-city__icon{ color:var(--accent); }
+.pf-city--accent .pf-city__label{ color:var(--accent-deep); }
+
+/* ---------- settings list ---------- */
+.pf-list{ border-top:.5px solid var(--line); }
+.pf-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:14px 2px;
+  border-bottom:.5px solid var(--line);
+}
+.pf-row__label{
+  font-family:"Bricolage Grotesque", sans-serif;
+  font-size:13.5px;
+  font-weight:500;
+  color:var(--ink);
+  text-transform:lowercase;
+}
+.pf-row__right{
+  display:flex;
+  align-items:center;
+  gap:6px;
+  flex:none;
+  color:var(--ink-soft);
+}
+.pf-row__value{
+  font-family:"JetBrains Mono", monospace;
+  font-size:11.5px;
+  color:var(--ink-soft);
+}
+.pf-row__chevron{ width:16px; height:16px; flex:none; display:block; }

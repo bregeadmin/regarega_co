@@ -1,6 +1,11 @@
 ---
-// Mobile app-shell bottom tab bar — guide / map / stays / trip.
-// Mobile-only (hidden ≥720px via tabbar.css); the existing <header class="topbar"> covers wide screens.
+// Shared bottom nav — 4 LABELED tabs (гид / жильё / консьерж / профиль), reused on every
+// native app screen. Visual + markup source of truth: the "now" screen's inline bottom bar
+// (src/pages/georgia/batumi/app/now.astro) — same icon set, same dot-punch avatar technique
+// for "профиль". Labels stay Russian regardless of `lang` (matches the now screen); `lang`
+// only decides which base path ("" vs "/ru") the other tabs' hrefs point at.
+// Mobile-only (hidden ≥720px via tabbar.css); the existing <header class="topbar"> covers
+// wide screens on the old (non-app) site pages, which don't render this component at all.
 import '../styles/tabbar.css';
 
 export interface Props { lang?: 'en' | 'ru' }
@@ -8,35 +13,52 @@ const { lang = 'en' } = Astro.props;
 const isRu = lang === 'ru';
 const base = isRu ? '/ru/georgia/batumi' : '/georgia/batumi';
 const path = Astro.url.pathname;
+const isActive = (...needles: string[]) => needles.some((n) => path.includes(n));
 
-// Real Tabler-icons "outline" path data (viewBox 0 0 24 24, stroke currentColor, stroke-width 2).
+// Real Tabler-icons "outline" path data (viewBox 0 0 24 24, stroke currentColor,
+// stroke-width 2) — copied verbatim from now.astro's inline bottom bar.
 const ICONS = {
   compass: '<path d="M8 16l2 -6l6 -2l-2 6l-6 2" /><path d="M3 12a9 9 0 1 0 18 0a9 9 0 1 0 -18 0" /><path d="M12 3l0 2" /><path d="M12 19l0 2" /><path d="M3 12l2 0" /><path d="M19 12l2 0" />',
-  map2: '<path d="M12 18.5l-3 -1.5l-6 3v-13l6 -3l6 3l6 -3v7.5" /><path d="M9 4v13" /><path d="M15 7v5.5" /><path d="M21.121 20.121a3 3 0 1 0 -4.242 0c.418 .419 1.125 1.045 2.121 1.879c1.051 -.89 1.759 -1.516 2.121 -1.879" /><path d="M19 18v.01" />',
   bed: '<path d="M5 9a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" /><path d="M22 17v-3h-20" /><path d="M2 8v9" /><path d="M12 14h10v-2a3 3 0 0 0 -3 -3h-7v5" />',
-  route: '<path d="M3 19a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" /><path d="M19 7a2 2 0 1 0 0 -4a2 2 0 0 0 0 4" /><path d="M11 19h5.5a3.5 3.5 0 0 0 0 -7h-8a3.5 3.5 0 0 1 0 -7h4.5" />',
+  message: '<path d="M3 20l1.3 -3.9c-2.324 -3.437 -1.426 -7.872 2.1 -10.374c3.526 -2.501 8.59 -2.296 11.845 .48c3.255 2.777 3.695 7.266 1.029 10.501c-2.666 3.235 -7.615 4.215 -11.574 2.293l-4.7 1" />',
 };
 
+// "гид" always opens the single "сейчас" home screen — it has no per-language mirror
+// (its content is Russian by design, same as this bar's labels), so its href never
+// changes with `lang`, unlike the other three tabs.
+const GUIDE_HOME = '/georgia/batumi/app/now';
+
 const TABS = [
-  { key: 'guide', href: `${base}/app/guide`, match: '/guide', icon: ICONS.compass, label: isRu ? 'гид' : 'guide' },
-  { key: 'map', href: `${base}/app/map`, match: '/map', icon: ICONS.map2, label: isRu ? 'карта' : 'map' },
-  { key: 'stays', href: `${base}/app/stays`, match: '/stays', icon: ICONS.bed, label: isRu ? 'жильё' : 'stays' },
-  { key: 'trip', href: `${base}/trip`, match: '/trip', icon: ICONS.route, label: isRu ? 'поездка' : 'trip' },
+  { key: 'guide', href: GUIDE_HOME, active: isActive('/app/now', '/app/guide', '/guide'), icon: ICONS.compass, label: 'гид' },
+  { key: 'stays', href: `${base}/app/stays`, active: isActive('/app/stays', '/stays'), icon: ICONS.bed, label: 'жильё' },
+  { key: 'concierge', href: `${base}/app/concierge`, active: isActive('/app/concierge'), icon: ICONS.message, label: 'консьерж' },
 ];
+
+const profileHref = `${base}/app/profile`;
+const profileActive = isActive('/app/profile', '/app/trip', '/trip');
 ---
 <nav class="tabbar" aria-label={isRu ? 'нижняя навигация' : 'bottom navigation'}>
-  {TABS.map((t) => {
-    const active = path.includes(t.match);
-    return (
-      <a
-        class={`tabbar__item${active ? ' is-active' : ''}`}
-        href={t.href}
-        data-tab={t.key}
-        aria-current={active ? 'page' : undefined}
-      >
-        <svg class="tabbar__icon" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={t.icon} />
-        <span class="tabbar__label">{t.label}</span>
-      </a>
-    );
-  })}
+  {TABS.map((t) => (
+    <a
+      class={`tabbar__item${t.active ? ' is-active' : ''}`}
+      href={t.href}
+      data-tab={t.key}
+      aria-current={t.active ? 'page' : undefined}
+    >
+      <svg class="tabbar__icon" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={t.icon} />
+      <span class="tabbar__label">{t.label}</span>
+    </a>
+  ))}
+  <a
+    class={`tabbar__item tabbar__item--avatar${profileActive ? ' is-active' : ''}`}
+    href={profileHref}
+    data-tab="profile"
+    aria-current={profileActive ? 'page' : undefined}
+    aria-label="профиль"
+  >
+    <span class="tabbar__avatar" aria-hidden="true">
+      <span class="tabbar__avatar__hole"></span>
+    </span>
+    <span class="tabbar__label">профиль</span>
+  </a>
 </nav>

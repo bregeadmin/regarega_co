@@ -23,6 +23,22 @@ body.app-shell{
 body.app-shell *{ box-sizing:border-box; }
 body.app-shell a{ color:inherit; text-decoration:none; }
 
+/* Same base reset for the full-bleed app-shell variant (layouts/AppFull.astro) — shared
+   here so every AppFull screen (now/concierge/profile) gets it just by importing this
+   file, instead of each page duplicating its own copy. */
+body.app-full{
+  margin:0;
+  background:var(--bg);
+  color:var(--ink);
+  font-family:"Bricolage Grotesque","Helvetica Neue",sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+body.app-full *{ box-sizing:border-box; }
+body.app-full a{ color:inherit; text-decoration:none; }
+
+/* ---------- shared header: город pill + right-side icon ----------
+   Visual source of truth: now.astro's inline <header class="now-topbar"> — every screen
+   that renders <AppHeader /> (see components/AppHeader.astro) gets this exact look. */
 .app-header{
   position:sticky;
   top:0;
@@ -32,27 +48,36 @@ body.app-shell a{ color:inherit; text-decoration:none; }
   padding-top:env(safe-area-inset-top);
 }
 .app-header__inner{
-  height:48px;
   display:flex;
   align-items:center;
   justify-content:space-between;
-  padding:0 16px;
+  padding:10px 15px;
 }
-.app-header__city{
+.app-header__citypill{
   display:inline-flex;
   align-items:center;
   gap:6px;
-  font-family:"JetBrains Mono", monospace;
+  background:#F1ECDF;
+  border:none;
+  border-radius:999px;
+  padding:6px 12px;
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+.app-header__pin{ width:14px; height:14px; flex:none; display:block; color:var(--accent); }
+.app-header__citylabel{
+  font-family:"Bricolage Grotesque", sans-serif;
   font-size:13px;
   font-weight:500;
   color:var(--ink);
   text-transform:lowercase;
 }
-.app-header__pin{
-  width:7px;
-  height:7px;
-  flex:none;
-  border-radius:50%;
-  background:var(--accent);
+.app-header__chevron{ width:14px; height:14px; flex:none; display:block; color:var(--ink-soft); }
+.app-header__action{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:32px; height:32px;
+  color:var(--ink-soft);
 }
-.app-header__right{ flex:none; }
+.app-header__actionicon{ width:19px; height:19px; display:block; }

@@ -1,19 +1,8 @@
 /* Native app "now" home screen — approved layout (2026-07-22): city-pill + search header,
    compact real-photo moment hero, guide-category chips, 2 real place picks, 2 real cheapest
-   apartments, and a flat LABELED bottom bar (гид / жильё / консьерж / профиль — profile tab
-   is the dot-punch photo avatar). Self-contained on top of the :root tokens from
-   app-shell.css (imported once by now.astro alongside this file) — this file only styles
-   body.app-full and .now-*. */
-
-body.app-full{
-  margin:0;
-  background:var(--bg);
-  color:var(--ink);
-  font-family:"Bricolage Grotesque","Helvetica Neue",sans-serif;
-  -webkit-font-smoothing:antialiased;
-}
-body.app-full *{ box-sizing:border-box; }
-body.app-full a{ color:inherit; text-decoration:none; }
+   apartments, and the shared <TabBar /> (гид / жильё / консьерж / профиль). The body.app-full
+   base reset and the bottom-bar styles now live in app-shell.css / tabbar.css respectively
+   (shared across every app screen) — this file only styles this screen's own .now-*. */
 
 .now-screen{ padding-bottom:calc(72px + env(safe-area-inset-bottom)); }
 
@@ -214,48 +203,4 @@ body.app-full a{ color:inherit; text-decoration:none; }
   overflow:hidden;
   text-overflow:ellipsis;
   white-space:nowrap;
-}
-
-/* ---------- bottom bar: 4 LABELED tabs, profile = dot-punch avatar ---------- */
-.now-tabbar{
-  position:fixed;
-  left:0; right:0; bottom:0;
-  z-index:80;
-  display:flex;
-  border-top:.5px solid var(--line);
-  padding:8px 6px calc(11px + env(safe-area-inset-bottom));
-  background:var(--bg);
-}
-.now-tab{
-  flex:1 1 0;
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  justify-content:center;
-  gap:3px;
-  color:#8a857c;
-}
-.now-tab__icon{ width:23px; height:23px; display:block; }
-.now-tab__label{
-  font-family:"Bricolage Grotesque", sans-serif;
-  font-size:11px;
-  line-height:1;
-}
-.now-tab.is-active{ color:var(--accent); }
-
-.now-avatar{
-  position:relative;
-  width:24px; height:24px;
-  border-radius:50%;
-  overflow:hidden;
-  display:block;
-  background:#a56b3f;
-}
-.now-avatar img{ width:100%; height:100%; object-fit:cover; display:block; }
-.now-avatar__hole{
-  position:absolute;
-  right:0; bottom:0;
-  width:8px; height:8px;
-  border-radius:50%;
-  background:var(--bg);
 }

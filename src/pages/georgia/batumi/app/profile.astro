@@ -1,0 +1,86 @@
+---
+// Native app "profile" screen — the cabinet. Visual stub: chips/city rows/settings rows
+// aren't wired up yet, but the shell is real — same app-shell chrome as every other native
+// screen: shared <AppHeader /> (city pill + right icon) and shared <TabBar /> with
+// "профиль" active by URL match. The hero is the BIG version of the tab bar's dot-punch
+// avatar technique (see src/components/TabBar.astro / styles/tabbar.css .tabbar__avatar).
+// No Supabase queries — nothing here is real user data yet. RU mirror:
+// src/pages/ru/georgia/batumi/app/profile.astro (identical copy — same reasoning as
+// app/concierge.astro: this screen's content is Russian-first regardless of URL prefix).
+import AppFull from '../../../../layouts/AppFull.astro';
+import '../../../../styles/app-shell.css';
+import '../../../../styles/app-profile.css';
+import AppHeader from '../../../../components/AppHeader.astro';
+import TabBar from '../../../../components/TabBar.astro';
+
+const ICONS = {
+  check: '<path d="M5 12l5 5l10 -10" />',
+  pin: '<path d="M9 11a3 3 0 1 0 6 0a3 3 0 0 0 -6 0" /><path d="M17.657 16.657l-4.243 4.243a2 2 0 0 1 -2.827 0l-4.244 -4.243a8 8 0 1 1 11.314 0z" />',
+  chevron: '<path d="M9 6l6 6l-6 6" />',
+};
+---
+<AppFull lang="ru" title="профиль — rega rega" description="твой кабинет rega rega — вкус, города и настройки.">
+  <AppHeader lang="ru" />
+  <main class="pf-screen">
+    <h1 class="sr-only">профиль</h1>
+
+    <div class="pf-hero">
+      <span class="pf-avatar" aria-hidden="true">
+        <span class="pf-avatar__hole"></span>
+      </span>
+      <p class="pf-name">гость</p>
+      <p class="pf-since">с нами с 2026</p>
+    </div>
+
+    <section class="pf-section" aria-label="твой вкус">
+      <h2 class="pf-section__title">твой вкус</h2>
+      <div class="pf-chips">
+        <span class="pf-chip">море</span>
+        <span class="pf-chip">спешелти-кофе</span>
+        <span class="pf-chip">тихо</span>
+        <span class="pf-chip">компанией</span>
+      </div>
+    </section>
+
+    <section class="pf-section" aria-label="твои города">
+      <h2 class="pf-section__title">твои города</h2>
+      <div class="pf-city">
+        <svg class="pf-city__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={ICONS.check} />
+        <span class="pf-city__label">батуми · был</span>
+      </div>
+      <div class="pf-city pf-city--accent">
+        <svg class="pf-city__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={ICONS.pin} />
+        <span class="pf-city__label">тбилиси — под твой вкус готово</span>
+      </div>
+    </section>
+
+    <section class="pf-section" aria-label="настройки">
+      <h2 class="pf-section__title">настройки</h2>
+      <div class="pf-list">
+        <div class="pf-row">
+          <span class="pf-row__label">язык</span>
+          <span class="pf-row__right">
+            <span class="pf-row__value">RU</span>
+            <svg class="pf-row__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={ICONS.chevron} />
+          </span>
+        </div>
+        <div class="pf-row">
+          <span class="pf-row__label">уведомления</span>
+          <span class="pf-row__right">
+            <svg class="pf-row__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={ICONS.chevron} />
+          </span>
+        </div>
+        <div class="pf-row">
+          <span class="pf-row__label">войти / выйти</span>
+          <span class="pf-row__right">
+            <svg class="pf-row__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={ICONS.chevron} />
+          </span>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Same routing rule as app/now.astro: lang="en" because this screen sits at the
+       non-ru URL prefix, so жильё/консьерж point at their non-ru siblings. -->
+  <TabBar lang="en" />
+</AppFull>

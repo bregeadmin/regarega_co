@@ -1,4 +1,8 @@
-/* Mobile app-shell bottom tab bar. Hidden ≥720px — the existing <header class="topbar"> covers wide screens. */
+/* Mobile app-shell bottom tab bar — 4 labeled tabs (гид/жильё/консьерж/профиль).
+   Hidden ≥720px — the existing <header class="topbar"> covers wide screens.
+   Visual source of truth: now.astro's inline .now-tabbar/.now-tab/.now-avatar (see
+   src/pages/georgia/batumi/app/now.astro) — same spacing, type and dot-punch avatar,
+   just reused here as the one shared component (src/components/TabBar.astro). */
 .tabbar{
   position:fixed;
   left:0;right:0;bottom:0;
@@ -7,7 +11,7 @@
   width:100%;
   background:var(--bg);
   border-top:.5px solid var(--line);
-  padding-bottom:env(safe-area-inset-bottom);
+  padding:8px 6px calc(11px + env(safe-area-inset-bottom));
 }
 .tabbar__item{
   flex:1 1 0;
@@ -16,24 +20,40 @@
   align-items:center;
   justify-content:center;
   gap:3px;
-  padding:8px 4px 7px;
-  color:var(--faint, #9b9a94);
+  color:#8a857c;
   text-decoration:none;
 }
 .tabbar__icon{
-  width:22px;
-  height:22px;
+  width:23px;
+  height:23px;
   flex:none;
+  display:block;
 }
 .tabbar__label{
-  font-family:"JetBrains Mono", monospace;
+  font-family:"Bricolage Grotesque", sans-serif;
   font-size:11px;
   line-height:1;
-  letter-spacing:.02em;
 }
 .tabbar__item.is-active{
   color:var(--accent);
-  font-weight:500;
+}
+
+/* профиль: dot-punch avatar (small circle warm + a cream "hole" bottom-right corner) in
+   place of a stroke icon — same technique as the large avatar on the profile screen. */
+.tabbar__avatar{
+  position:relative;
+  width:23px; height:23px;
+  border-radius:50%;
+  overflow:hidden;
+  display:block;
+  background:#a56b3f;
+}
+.tabbar__avatar__hole{
+  position:absolute;
+  right:0; bottom:0;
+  width:8px; height:8px;
+  border-radius:50%;
+  background:var(--bg);
 }
 
 body.has-tabbar{ padding-bottom:64px; }

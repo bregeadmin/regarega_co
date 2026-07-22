@@ -1,0 +1,34 @@
+---
+// Shared native-app header — город pill (map-pin + city + chevron) and a right-side
+// search-icon action. Visual source of truth: the "now" screen's inline header
+// (src/pages/georgia/batumi/app/now.astro's <header class="now-topbar">) — same pill
+// shape, same icon set. now.astro keeps its own inline copy (it's the approved reference
+// and isn't touched by this component); every other app screen (guide/stays/map via
+// layouts/App.astro, plus concierge and profile) renders THIS component so the header
+// looks identical everywhere. Styles live in styles/app-shell.css (.app-header*),
+// already imported by every screen that can render this.
+export interface Props { lang?: 'en' | 'ru' }
+const { lang = 'en' } = Astro.props;
+const cityLabel = lang === 'ru' ? 'батуми' : 'batumi';
+const searchLabel = lang === 'ru' ? 'поиск' : 'search';
+
+// Real Tabler-icons "outline" path data (viewBox 0 0 24 24) — copied verbatim from
+// now.astro so the glyphs render pixel-identical.
+const ICONS = {
+  mapPin: '<path d="M9 11a3 3 0 1 0 6 0a3 3 0 0 0 -6 0" /><path d="M17.657 16.657l-4.243 4.243a2 2 0 0 1 -2.827 0l-4.244 -4.243a8 8 0 1 1 11.314 0z" />',
+  chevronDown: '<path d="M6 9l6 6l6 -6" />',
+  search: '<path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0" /><path d="M21 21l-6 -6" />',
+};
+---
+<header class="app-header">
+  <div class="app-header__inner">
+    <button class="app-header__citypill" type="button">
+      <svg class="app-header__pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={ICONS.mapPin} />
+      <span class="app-header__citylabel">{cityLabel}</span>
+      <svg class="app-header__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={ICONS.chevronDown} />
+    </button>
+    <a class="app-header__action" href="#" aria-label={searchLabel}>
+      <svg class="app-header__actionicon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={ICONS.search} />
+    </a>
+  </div>
+</header>
