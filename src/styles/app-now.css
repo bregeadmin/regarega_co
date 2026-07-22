@@ -1,0 +1,210 @@
+/* Native app "now" home screen — cinematic moment-hero + curated picks + stay hook + flat
+   bottom bar. Self-contained on top of the :root tokens from app-shell.css (imported once
+   by now.astro alongside this file) — this file only styles body.app-full and .now-*. */
+
+body.app-full{
+  margin:0;
+  background:var(--bg);
+  color:var(--ink);
+  font-family:"Bricolage Grotesque","Helvetica Neue",sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+body.app-full *{ box-sizing:border-box; }
+body.app-full a{ color:inherit; text-decoration:none; }
+
+.now-screen{ padding-bottom:92px; }
+
+/* ---------- hero ---------- */
+.now-hero{
+  position:relative;
+  height:52vh;
+  min-height:320px;
+  max-height:520px;
+  width:100%;
+  overflow:hidden;
+  background-size:cover;
+  background-position:center;
+  background-color:#2b2320;
+}
+.now-hero::before{
+  /* legibility fade so the cream top-bar text reads over a bright sky */
+  content:"";
+  position:absolute; inset:0 0 auto 0; height:36%;
+  background:linear-gradient(to bottom, rgba(10,7,4,.38), rgba(10,7,4,0));
+  pointer-events:none;
+}
+.now-hero::after{
+  /* long fade into the caption block, on top of the flat scrim below */
+  content:"";
+  position:absolute; inset:auto 0 0 0; height:62%;
+  background:linear-gradient(to bottom, rgba(18,10,4,0), rgba(18,10,4,.55));
+  pointer-events:none;
+}
+
+.now-hero__topbar{
+  position:absolute;
+  top:0; left:0; right:0;
+  z-index:2;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:calc(16px + env(safe-area-inset-top)) 18px 16px;
+}
+.now-hero__brand{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  font-size:14px;
+  font-weight:500;
+  color:#FAF7F0;
+  text-transform:lowercase;
+  letter-spacing:.01em;
+}
+.now-hero__mark{ width:16px; height:16px; flex:none; display:block; }
+.now-hero__time{
+  font-family:"JetBrains Mono", monospace;
+  font-size:13px;
+  color:#FAF7F0;
+  letter-spacing:.02em;
+  font-variant-numeric:tabular-nums;
+}
+
+.now-hero__bottom{
+  position:absolute;
+  left:0; right:0; bottom:0;
+  z-index:2;
+  padding:22px 18px 24px;
+  background:rgba(18,10,4,.46);
+}
+.now-hero__seal{
+  display:inline-flex;
+  align-items:center;
+  gap:5px;
+  border:.5px solid rgba(250,247,240,.4);
+  border-radius:999px;
+  padding:4px 9px;
+  margin-bottom:14px;
+}
+.now-hero__seal-dot{ width:10px; height:10px; flex:none; display:block; }
+.now-hero__seal-label{
+  font-family:"JetBrains Mono", monospace;
+  font-size:10px;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:#f0e4d0;
+}
+.now-hero__overline{
+  margin:0 0 8px;
+  font-family:"JetBrains Mono", monospace;
+  font-size:11px;
+  letter-spacing:.18em;
+  text-transform:uppercase;
+  color:#e9d3b4;
+}
+.now-hero__headline{
+  margin:0 0 8px;
+  font-family:"Bricolage Grotesque", sans-serif;
+  font-size:32px;
+  font-weight:500;
+  line-height:1.04;
+  letter-spacing:-.01em;
+  text-transform:lowercase;
+  color:#FAF7F0;
+}
+.now-hero__sub{
+  margin:0;
+  font-size:13px;
+  line-height:1.4;
+  color:#e4d3ba;
+}
+
+/* ---------- "ещё сейчас" ---------- */
+.now-section{ padding:20px 18px 6px; }
+.now-section__label{
+  margin:0 0 14px;
+  font-size:13px;
+  font-weight:500;
+  color:var(--ink);
+  text-transform:lowercase;
+}
+.now-places{ display:flex; flex-direction:column; }
+.now-place{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:12px 0;
+}
+.now-place + .now-place{ border-top:.5px solid var(--line); }
+.now-place__photo{
+  width:52px; height:52px; flex:none;
+  border-radius:12px;
+  overflow:hidden;
+  background:var(--paper);
+}
+.now-place__photo img{ width:100%; height:100%; object-fit:cover; display:block; }
+.now-place__body{ flex:1 1 auto; min-width:0; }
+.now-place__name{
+  margin:0 0 2px;
+  font-size:15px;
+  font-weight:500;
+  color:var(--ink);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.now-place__meta{
+  margin:0;
+  font-size:12px;
+  color:var(--ink-soft);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.now-place__dot{ width:8px; height:8px; flex:none; display:block; }
+
+/* ---------- stay hook ---------- */
+.now-stay{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  margin:8px 18px 0;
+  padding:18px 0;
+  border-top:.5px solid var(--line);
+}
+.now-stay__icon{ width:20px; height:20px; flex:none; color:var(--accent); }
+.now-stay__text{ flex:1 1 auto; font-size:14px; color:var(--ink); line-height:1.35; }
+.now-stay__muted{ color:var(--ink-soft); }
+.now-stay__arrow{ flex:none; color:var(--accent); font-size:16px; }
+
+/* ---------- bottom bar ---------- */
+.now-tabbar{
+  position:fixed;
+  left:0; right:0; bottom:0;
+  z-index:80;
+  display:flex;
+  justify-content:space-around;
+  align-items:center;
+  background:var(--bg);
+  border-top:.5px solid var(--line);
+  padding:13px 24px calc(20px + env(safe-area-inset-bottom));
+}
+.now-tab{ display:flex; align-items:center; justify-content:center; color:#bdb7ab; }
+.now-tab__icon{ width:25px; height:25px; display:block; }
+.now-tab.is-active{ color:var(--accent); }
+
+.now-avatar{
+  position:relative;
+  width:33px; height:33px;
+  border-radius:50%;
+  overflow:hidden;
+  display:block;
+  background:var(--paper);
+}
+.now-avatar img{ width:100%; height:100%; object-fit:cover; display:block; }
+.now-avatar__hole{
+  position:absolute;
+  right:1px; bottom:1px;
+  width:11px; height:11px;
+  border-radius:50%;
+  background:var(--bg);
+}

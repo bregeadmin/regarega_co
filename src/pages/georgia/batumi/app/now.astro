@@ -1,0 +1,156 @@
+---
+// Native app "Сейчас" (Now) home screen — the flagship first screen of the app.
+// Cinematic moment-hero (real photo) + 2 real curated place picks + a real stay hook +
+// a flat bottom bar whose profile tab is a dot-punch photo avatar. Edge-to-edge: own
+// full-bleed layout (AppFull), no site topbar/hamburger/footer, no app-header/TabBar.
+// Build-time data — same guide_places / apartments_public queries the other app
+// screens use (see app/guide.astro, app/stays.astro), just narrowed to 2 picks + 1 stay.
+import AppFull from '../../../../layouts/AppFull.astro';
+import '../../../../styles/app-shell.css';
+import '../../../../styles/app-now.css';
+import { supabase, applyNames, type Apartment } from '../../../../lib/supabase';
+import { catLabel } from '../../../../lib/guideCats';
+import { priceSym } from '../../../../lib/price';
+
+const BASE = '/georgia/batumi';
+
+// --- guide places: same table/columns as app/guide.astro, 2 with a real photo ---
+const { data: gp } = await supabase
+  .from('guide_places')
+  .select('slug,title,name,category,photos,image,address')
+  .eq('status', 'published');
+const photoOf = (p: any) => (p.photos && p.photos[0]) || p.image || '';
+const areaOf = (p: any) => {
+  const a = String(p.address || '').trim();
+  if (!a) return '';
+  const cleaned = a.replace(/,?\s*Batumi[^,]*,?\s*Georgia\s*$/i, '').replace(/,\s*Georgia\s*$/i, '').trim();
+  const first = (cleaned.split(',')[0] || '').trim();
+  if (!first) return '';
+  return first.length > 26 ? first.slice(0, 26).replace(/\s+\S*$/, '') + '…' : first;
+};
+const places = ((gp || []) as any[]).filter((p) => photoOf(p)).slice(0, 2);
+
+// --- apartments: same table/columns as app/stays.astro, cheapest with a real photo ---
+const { data: apts } = await supabase
+  .from('apartments_public')
+  .select('id,slug,title,neighborhood,bedrooms,max_guests,price_from,price_currency,photos')
+  .order('price_from', { ascending: true });
+const apartments = ((apts as Apartment[]) || []).map(applyNames).filter((a) => a.photos && a.photos[0]);
+const stay = apartments[0] || null;
+
+// hero: golden-hour Batumi street (public/img/hero-batumi.jpg) — fall back to the first
+// place's photo if it's ever missing.
+const heroPhoto = '/img/hero-batumi.jpg';
+
+// avatar stand-in: no real user photo yet — use a real curated-place photo as the stand-in
+// the spec calls for.
+const avatarPhoto = (places[1] && photoOf(places[1])) || (stay && stay.photos[0]) || '';
+
+const REGA_MARK = 'M 50,50 m -50,0 a 50,50 0 1,1 100,0 a 50,50 0 1,1 -100,0 z M 64,64 m -12,0 a 12,12 0 1,1 24,0 a 12,12 0 1,1 -24,0 z';
+---
+<AppFull lang="ru" title="сейчас — rega rega" description="батуми прямо сейчас — момент, пара мест по стандарту rega и где остановиться рядом.">
+  <main class="now-screen">
+    <section class="now-hero" style={`background-image:url(${heroPhoto})`}>
+      <div class="now-hero__topbar">
+        <span class="now-hero__brand">
+          <svg class="now-hero__mark" viewBox="0 0 100 100" aria-hidden="true"><path fill-rule="evenodd" fill="#FAF7F0" d={REGA_MARK} /></svg>
+          батуми
+        </span>
+        <span class="now-hero__time" id="nowTime">--:--</span>
+      </div>
+      <div class="now-hero__bottom">
+        <span class="now-hero__seal">
+          <svg class="now-hero__seal-dot" viewBox="0 0 100 100" aria-hidden="true"><path fill-rule="evenodd" fill="#FF5E1A" d={REGA_MARK} /></svg>
+          <span class="now-hero__seal-label">rega standard</span>
+        </span>
+        <p class="now-hero__overline" id="nowOverline">вечер в батуми</p>
+        <h1 class="now-hero__headline" id="nowHeadline">куда пойти вечером.</h1>
+        <p class="now-hero__sub" id="nowSub">бар с винилом рядом</p>
+      </div>
+    </section>
+
+    <section class="now-section">
+      <p class="now-section__label">ещё сейчас</p>
+      <div class="now-places">
+        {places.map((p) => {
+          const photo = photoOf(p);
+          const area = areaOf(p);
+          const name = p.title || p.name;
+          return (
+            <a class="now-place" href={`${BASE}/guide/${p.slug}`}>
+              <div class="now-place__photo">{photo && <img src={photo} alt="" loading="lazy" />}</div>
+              <div class="now-place__body">
+                <p class="now-place__name">{name}</p>
+                <p class="now-place__meta">{catLabel(p.category, 'ru')}{area ? ` · ${area}` : ''}</p>
+              </div>
+              <svg class="now-place__dot" viewBox="0 0 100 100" aria-hidden="true"><path fill-rule="evenodd" fill="#FF5E1A" d={REGA_MARK} /></svg>
+            </a>
+          );
+        })}
+      </div>
+    </section>
+
+    {stay && (
+      <a class="now-stay" href={`${BASE}/app/stays/${stay.slug}`}>
+        <svg class="now-stay__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+          <path d="M5 9a2 2 0 1 0 4 0a2 2 0 1 0 -4 0" /><path d="M22 17v-3h-20" /><path d="M2 8v9" /><path d="M12 14h10v-2a3 3 0 0 0 -3 -3h-7v5" />
+        </svg>
+        <span class="now-stay__text">жить в этом районе — <span class="now-stay__muted">от {priceSym(stay.price_currency)}{stay.price_from}</span></span>
+        <span class="now-stay__arrow" aria-hidden="true">→</span>
+      </a>
+    )}
+  </main>
+
+  <nav class="now-tabbar" aria-label="навигация">
+    <a class="now-tab is-active" href={`${BASE}/app/now`} aria-current="page">
+      <svg class="now-tab__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <circle cx="12" cy="12" r="4" />
+        <path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41 -1.41M17.66 6.34l1.41 -1.41" />
+      </svg>
+    </a>
+    <a class="now-tab" href="/georgia/batumi/trip">
+      <svg class="now-tab__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M3 7m0 2a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v9a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2z" />
+        <path d="M8 7v-2a2 2 0 0 1 2 -2h4a2 2 0 0 1 2 2v2" />
+        <path d="M3 13a20 20 0 0 0 18 0" />
+      </svg>
+    </a>
+    <a class="now-tab" href="#">
+      <svg class="now-tab__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+        <path d="M3 20l1.3 -3.9c-2.324 -3.437 -1.426 -7.872 2.1 -10.374c3.526 -2.501 8.59 -2.296 11.845 .48c3.255 2.777 3.695 7.266 1.029 10.501c-2.666 3.235 -7.615 4.215 -11.574 2.293l-4.7 1" />
+      </svg>
+    </a>
+    <a class="now-tab now-tab--avatar" href="#" aria-label="профиль">
+      <span class="now-avatar">
+        {avatarPhoto && <img src={avatarPhoto} alt="" />}
+        <span class="now-avatar__hole" aria-hidden="true"></span>
+      </span>
+    </a>
+  </nav>
+
+  <script is:inline>
+    (function () {
+      var d = new Date();
+      var hh = String(d.getHours()).padStart(2, '0');
+      var mm = String(d.getMinutes()).padStart(2, '0');
+      var timeEl = document.getElementById('nowTime');
+      if (timeEl) timeEl.textContent = hh + ':' + mm;
+
+      var MOMENTS = [
+        { from: 5, to: 11, overline: 'утро в батуми', headline: 'начни с кофе.', sub: 'nova coffee рядом, спешелти' },
+        { from: 11, to: 16, overline: 'день', headline: 'пообедай и поработай.', sub: 'по стандарту rega' },
+        { from: 16, to: 20, overline: 'закат скоро', headline: 'иди на набережную.', sub: 'по пути — wine bar' },
+      ];
+      var hour = d.getHours();
+      var m = MOMENTS.find(function (x) { return hour >= x.from && hour < x.to; });
+      if (!m) m = { overline: 'вечер в батуми', headline: 'куда пойти вечером.', sub: 'бар с винилом рядом' };
+
+      var ov = document.getElementById('nowOverline');
+      var hl = document.getElementById('nowHeadline');
+      var sb = document.getElementById('nowSub');
+      if (ov) ov.textContent = m.overline;
+      if (hl) hl.textContent = m.headline;
+      if (sb) sb.textContent = m.sub;
+    })();
+  </script>
+</AppFull>
