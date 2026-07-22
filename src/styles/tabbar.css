@@ -38,6 +38,13 @@
 
 body.has-tabbar{ padding-bottom:64px; }
 
+/* Страница квартиры: главное действие там — бронь (панель «забронировать» прибита к низу,
+   z 70). Таб-бар уступает ей место, как у Airbnb на карточке объекта. */
+@media (max-width:719.98px){
+  body:has(.apt-book-bar) .tabbar{ display:none; }
+  body.has-tabbar:has(.apt-book-bar){ padding-bottom:0; }
+}
+
 /* Safe-area iPhone (чёлка/островок): в Capacitor-обёртке и установленном PWA контент
    уходит под статус-бар — опускаем шапку и знак на высоту выреза (env=0 в обычном браузере).
    Требует viewport-fit=cover в <meta viewport> (добавлен в лейаутах). */

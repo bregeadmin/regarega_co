@@ -22,7 +22,7 @@ const ICONS = {
 // don't both light up on /stays; swap both to '/map' once a real map route ships.
 const TABS = [
   { key: 'guide', href: `${base}/guide`, match: '/guide', icon: ICONS.compass, label: isRu ? 'гид' : 'guide' },
-  { key: 'map', href: `${base}/stays`, match: '/map', icon: ICONS.map2, label: isRu ? 'карта' : 'map' },
+  { key: 'map', href: `${base}/stays#map`, match: '/map', icon: ICONS.map2, label: isRu ? 'карта' : 'map' },
   { key: 'stays', href: `${base}/stays`, match: '/stays', icon: ICONS.bed, label: isRu ? 'жильё' : 'stays' },
   { key: 'trip', href: `${base}/trip`, match: '/trip', icon: ICONS.route, label: isRu ? 'поездка' : 'trip' },
 ];
@@ -34,6 +34,7 @@ const TABS = [
       <a
         class={`tabbar__item${active ? ' is-active' : ''}`}
         href={t.href}
+        data-tab={t.key}
         aria-current={active ? 'page' : undefined}
       >
         <svg class="tabbar__icon" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={t.icon} />
@@ -42,3 +43,24 @@ const TABS = [
     );
   })}
 </nav>
+<script is:inline>
+// Вкладка «карта» = /stays#map: включаем карточный режим страницы жилья (кнопка #viewMap)
+// и переносим подсветку на «карту» (сервер по URL этого не видит — hash не доходит).
+(function () {
+  function apply() {
+    var isMap = location.hash === '#map';
+    var bM = document.getElementById('viewMap'), bL = document.getElementById('viewList');
+    if (isMap && bM) bM.click();
+    else if (!isMap && bL && document.body.classList.contains('stays-map-open')) bL.click();
+    var tM = document.querySelector('.tabbar__item[data-tab="map"]');
+    var tS = document.querySelector('.tabbar__item[data-tab="stays"]');
+    if (tM && tS && (tS.classList.contains('is-active') || tM.classList.contains('is-active'))) {
+      tM.classList.toggle('is-active', isMap);
+      tS.classList.toggle('is-active', !isMap);
+    }
+  }
+  window.addEventListener('hashchange', apply);
+  if (document.readyState !== 'loading') apply();
+  else document.addEventListener('DOMContentLoaded', apply);
+})();
+</script>
