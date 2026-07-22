@@ -1,0 +1,135 @@
+/* Native app apartment DETAIL screen — gallery, title, facts, description, amenities,
+   plus the reused booking widget (apt.css: .apt-book / .apt-book-bar / .cal-pop /
+   .guest-pop). Self-contained like app-guide.css/app-map.css (never pulls in site
+   chrome). Local tokens below exist only because apt.css's booking-widget rules were
+   authored for the site's Site.astro layout, which sets --page/--line-strong/--bg-2
+   globally (shell.css + the page's accent prop) — App.astro doesn't, so we set them
+   here to the native app's own orange accent instead of the site's per-page color. */
+:root{
+  --page: var(--accent);
+  --page-deep: var(--accent-deep);
+  --line-strong:#E0DACE;
+  --bg-2:#F1ECDF;
+}
+
+.napt-page{ padding-bottom:32px; }
+
+/* ---------- gallery ---------- */
+.napt-gallery{ position:relative; background:var(--bg-2); }
+.napt-gallery__scroll{
+  display:flex;
+  overflow-x:auto;
+  scroll-snap-type:x mandatory;
+  -webkit-overflow-scrolling:touch;
+  scrollbar-width:none;
+}
+.napt-gallery__scroll::-webkit-scrollbar{ display:none; }
+.napt-gallery__slide{
+  flex:0 0 100%;
+  scroll-snap-align:start;
+  aspect-ratio:4/3;
+  background:var(--bg-2);
+}
+.napt-gallery__slide img{ width:100%; height:100%; object-fit:cover; display:block; }
+
+.napt-back{
+  position:absolute;
+  top:12px; left:12px;
+  z-index:5;
+  width:38px; height:38px;
+  border-radius:50%;
+  background:rgba(250,247,240,.9);
+  backdrop-filter:blur(6px);
+  -webkit-backdrop-filter:blur(6px);
+  display:flex; align-items:center; justify-content:center;
+  color:var(--ink);
+  box-shadow:0 3px 10px rgba(10,9,8,.18);
+}
+
+.napt-gallery__count{
+  position:absolute;
+  right:12px; bottom:12px;
+  z-index:5;
+  padding:5px 10px;
+  border-radius:999px;
+  background:rgba(10,9,8,.58);
+  color:#FAF7F0;
+  font-family:"JetBrains Mono", monospace;
+  font-size:10.5px;
+  letter-spacing:.06em;
+  font-weight:600;
+}
+
+/* ---------- head ---------- */
+.napt-head{ padding:18px 16px 4px; }
+.napt-title{
+  font-family:"Bricolage Grotesque", sans-serif;
+  font-weight:700;
+  font-size:23px;
+  letter-spacing:-.02em;
+  line-height:1.15;
+  text-transform:lowercase;
+  color:var(--ink);
+  margin:0 0 8px;
+}
+.napt-meta{
+  font-family:"JetBrains Mono", monospace;
+  font-size:11px;
+  letter-spacing:.06em;
+  text-transform:uppercase;
+  color:var(--ink-soft);
+  font-weight:500;
+  display:flex;
+  flex-wrap:wrap;
+  gap:6px 10px;
+  margin:0;
+}
+.napt-meta b{ color:var(--ink); font-weight:600; }
+.napt-meta .sep{ opacity:.4; }
+
+/* ---------- sections (about / amenities) ---------- */
+.napt-section{ padding:22px 16px 0; }
+.napt-label{
+  display:block;
+  font-family:"JetBrains Mono", monospace;
+  font-size:10.5px;
+  letter-spacing:.18em;
+  text-transform:uppercase;
+  color:var(--ink-soft);
+  font-weight:600;
+  margin-bottom:10px;
+}
+.napt-about p{ font-size:14.5px; line-height:1.6; color:var(--ink-soft); margin:0 0 10px; }
+.napt-about p b{ color:var(--ink); font-weight:600; }
+.napt-about .ab-head{
+  font-family:"Bricolage Grotesque", sans-serif;
+  font-weight:700;
+  font-size:14px;
+  color:var(--ink);
+  text-transform:lowercase;
+  margin:14px 0 6px;
+}
+
+.napt-amenities{ display:grid; grid-template-columns:1fr 1fr; gap:8px 10px; }
+.napt-amenities .am{
+  display:flex;
+  align-items:center;
+  gap:8px;
+  padding:9px 10px;
+  background:var(--paper);
+  border:.5px solid var(--line);
+  border-radius:10px;
+  font-size:12.5px;
+  color:var(--ink);
+  line-height:1.3;
+}
+.napt-amenities .am .ic{ color:var(--accent); flex:none; font-weight:700; }
+
+/* ---------- booking widget: reused from apt.css, re-laid-out as an inline
+   card instead of a sticky desktop sidebar ---------- */
+.napt-section .apt-book{
+  position:static;
+  margin:0;
+  box-shadow:none;
+  border:1px solid var(--line);
+}

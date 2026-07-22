@@ -1,0 +1,38 @@
+---
+// Native app "stays" screen — clean vertical list of apartments (no search bar,
+// no breadcrumbs, no list/map toggle: map is its own tab, see app/map.astro).
+// Same apartments_public query + applyNames + priceFrom helpers as the site's
+// /stays page (src/pages/georgia/batumi/stays.astro) — just without its chrome.
+// Tapping a card goes to the native detail screen (app/stays/[slug].astro),
+// not the site's /stays/[slug] page.
+import App from '../../../../layouts/App.astro';
+import '../../../../styles/app-stays.css';
+import { supabase, applyNames, type Apartment } from '../../../../lib/supabase';
+import { priceFrom } from '../../../../lib/price';
+
+const LANG = 'en' as const;
+const BASE = '/georgia/batumi';
+
+const { data } = await supabase
+  .from('apartments_public')
+  .select('id,slug,title,neighborhood,bedrooms,max_guests,price_from,price_currency,photos')
+  .order('price_from', { ascending: true });
+const apartments = ((data as Apartment[]) || []).map(applyNames);
+const ph = (a: Apartment) => (a.photos && a.photos[0]) || `https://picsum.photos/seed/${a.slug}/900/700`;
+---
+<App lang={LANG} title="stays — rega rega" description="checked apartments in batumi — pick one, book direct.">
+  <div class="stay-list__count">{apartments.length} apartments</div>
+  <div class="stay-list">
+    {apartments.map((a) => (
+      <a class="stay-card" href={`${BASE}/app/stays/${a.slug}`}>
+        <div class="stay-card__photo"><img src={ph(a)} alt={a.title} loading="lazy" /></div>
+        <div class="stay-card__body">
+          <h3 class="stay-card__name">{a.title}</h3>
+          <p class="stay-card__meta">{a.bedrooms === 0 ? 'studio' : `${a.bedrooms ?? 1} bed`} · {a.max_guests ?? 2} guests{a.neighborhood ? ` · ${a.neighborhood}` : ''}</p>
+          <p class="stay-card__price">{priceFrom(a, LANG)}</p>
+        </div>
+      </a>
+    ))}
+    {apartments.length === 0 && <p class="stay-list__empty">no apartments yet</p>}
+  </div>
+</App>

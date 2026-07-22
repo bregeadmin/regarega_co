@@ -1,0 +1,40 @@
+---
+// Native app "stays" screen (RU) — mirrors app/stays.astro (EN). See that file
+// for the reuse notes; this one uses title_ru + RU plural forms, matching the
+// conventions in src/pages/ru/georgia/batumi/stays.astro.
+import App from '../../../../../layouts/App.astro';
+import '../../../../../styles/app-stays.css';
+import { supabase, applyNames, type Apartment } from '../../../../../lib/supabase';
+import { priceFrom } from '../../../../../lib/price';
+
+const LANG = 'ru' as const;
+const BASE = '/ru/georgia/batumi';
+
+const { data } = await supabase
+  .from('apartments_public')
+  .select('id,slug,title,title_ru,neighborhood,bedrooms,max_guests,price_from,price_currency,photos')
+  .order('price_from', { ascending: true });
+const apartments = ((data as Apartment[]) || []).map(applyNames);
+const ph = (a: Apartment) => (a.photos && a.photos[0]) || `https://picsum.photos/seed/${a.slug}/900/700`;
+
+const plural = (n: number, one: string, few: string, many: string) => { const m = n % 100, d = n % 10; if (m >= 11 && m <= 14) return many; if (d === 1) return one; if (d >= 2 && d <= 4) return few; return many; };
+const bedsW = (n: number) => plural(n, 'спальня', 'спальни', 'спален');
+const guestsW = (n: number) => plural(n, 'гость', 'гостя', 'гостей');
+const aptsW = plural(apartments.length, 'квартира', 'квартиры', 'квартир');
+---
+<App lang={LANG} title="жильё — rega rega" description="проверенные квартиры в батуми — выбери и забронируй напрямую.">
+  <div class="stay-list__count">{apartments.length} {aptsW}</div>
+  <div class="stay-list">
+    {apartments.map((a) => (
+      <a class="stay-card" href={`${BASE}/app/stays/${a.slug}`}>
+        <div class="stay-card__photo"><img src={ph(a)} alt={a.title_ru || a.title} loading="lazy" /></div>
+        <div class="stay-card__body">
+          <h3 class="stay-card__name">{a.title_ru || a.title}</h3>
+          <p class="stay-card__meta">{a.bedrooms === 0 ? 'студия' : `${a.bedrooms ?? 1} ${bedsW(a.bedrooms ?? 1)}`} · {a.max_guests ?? 2} {guestsW(a.max_guests ?? 2)}{a.neighborhood ? ` · ${a.neighborhood}` : ''}</p>
+          <p class="stay-card__price">{priceFrom(a, LANG)}</p>
+        </div>
+      </a>
+    ))}
+    {apartments.length === 0 && <p class="stay-list__empty">квартир пока нет</p>}
+  </div>
+</App>
