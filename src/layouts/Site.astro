@@ -81,6 +81,11 @@ const ogImage = new URL(image, Astro.site).href;
       window.__rrClearOp = function(){ try{ sessionStorage.removeItem('rr_op'); }catch(e){} window.__rrOp=''; window.__rrOpId=''; };
     })();
   </script>
+  <script is:inline>
+    // the app's bottom nav only belongs inside the app (Capacitor wrapper / installed PWA),
+    // not on the website in a normal browser — tabbar.css keys off html.in-app
+    if (window.Capacitor || window.navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches)) document.documentElement.classList.add('in-app');
+  </script>
 </head>
 <body class="has-tabbar" style={`--page:${accent};--page-deep:${accentDeep}`}>
 <a class="skip-link" href="#main">skip to content</a>
@@ -364,6 +369,6 @@ window.__rrBuildStory = async function (d) {
 <link rel="stylesheet" href="/rega-install.css" />
 <script is:inline src="/rega-install.js"></script>
 <script is:inline src="/rega-enhance.js"></script>
-<TabBar lang="en" />
+<TabBar lang="en" site />
 </body>
 </html>

@@ -7,11 +7,12 @@ import '../styles/tabbar.css';
 import AppHeader from '../components/AppHeader.astro';
 import TabBar from '../components/TabBar.astro';
 
-export interface Props { title?: string; description?: string; lang?: 'en' | 'ru' }
+export interface Props { title?: string; description?: string; lang?: 'en' | 'ru'; view?: 'map' | 'search' }
 const {
   title = 'rega rega',
   description = 'the batumi guide — rega rega app.',
   lang = 'en',
+  view,
 } = Astro.props;
 ---
 <!doctype html>
@@ -33,7 +34,7 @@ const {
   <script is:inline>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){});});}</script>
 </head>
 <body class="app-shell has-tabbar">
-  <AppHeader lang={lang} />
+  <AppHeader lang={lang} view={view} />
   <slot />
   <TabBar lang={lang} />
 </body>

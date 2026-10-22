@@ -1,0 +1,90 @@
+---
+// Native app "concierge" screen — AI concierge inbox stub, one component for both
+// languages (pages app/concierge.astro and ru/app/concierge.astro render it with `lang`).
+// Visual only (chips/prompt pill aren't wired up yet); establishes the on-brand shell for
+// the upcoming AI concierge so every bottom-nav tab resolves to a real screen.
+import AppFull from '../../layouts/AppFull.astro';
+import '../../styles/app-shell.css';
+import '../../styles/app-concierge.css';
+import AppHeader from '../AppHeader.astro';
+import TabBar from '../TabBar.astro';
+
+export interface Props { lang: 'en' | 'ru' }
+const { lang } = Astro.props;
+
+const T = lang === 'ru'
+  ? {
+      title: 'консьерж — rega rega',
+      desc: 'ии-консьерж батуми — спроси что угодно, собери вечер или найди место одним сообщением.',
+      h: 'консьерж',
+      sub: 'спроси rega — соберём вечер, найдём место или ответим на вопрос.',
+      prompt: 'спроси rega… собери вечер, найди кофейню',
+      quick: 'быстрые запросы',
+      chips: ['собери вечер', 'собери утро', 'что рядом', 'где поесть'],
+      inbox: 'твои переписки',
+      botName: 'rega · консьерж',
+      botSnippet: 'я тут, спроси что угодно',
+      newChat: 'новый чат',
+      newSnippet: 'пока пусто — начни с вопроса выше',
+    }
+  : {
+      title: 'concierge — rega rega',
+      desc: 'the batumi ai concierge — ask anything, plan an evening or find a place in one message.',
+      h: 'concierge',
+      sub: 'ask rega — we’ll plan the evening, find a place or answer a question.',
+      prompt: 'ask rega… plan my evening, find a café',
+      quick: 'quick asks',
+      chips: ['plan my evening', 'plan my morning', 'what’s nearby', 'where to eat'],
+      inbox: 'your chats',
+      botName: 'rega · concierge',
+      botSnippet: 'i’m here, ask me anything',
+      newChat: 'new chat',
+      newSnippet: 'nothing yet — start with a question above',
+    };
+
+const ICONS = {
+  sparkle: '<path d="M16 3l1.106 3.79a2 2 0 0 0 1.104 1.105l3.79 1.105l-3.79 1.106a2 2 0 0 0 -1.105 1.104l-1.105 3.79l-1.106 -3.79a2 2 0 0 0 -1.104 -1.105l-3.79 -1.105l3.79 -1.106a2 2 0 0 0 1.105 -1.104z" /><path d="M6 15l.673 2.303a1.5 1.5 0 0 0 1.024 1.024l2.303 .673l-2.303 .673a1.5 1.5 0 0 0 -1.024 1.024l-.673 2.303l-.673 -2.303a1.5 1.5 0 0 0 -1.024 -1.024l-2.303 -.673l2.303 -.673a1.5 1.5 0 0 0 1.024 -1.024z" />',
+  send: '<path d="M10 14l11 -11" /><path d="M21 3l-6.5 18a.55 .55 0 0 1 -1 0l-3.5 -7l-7 -3.5a.55 .55 0 0 1 0 -1l18 -6.5" />',
+};
+---
+<AppFull lang={lang} title={T.title} description={T.desc}>
+  <AppHeader lang={lang} />
+  <main class="cc-screen">
+    <h1 class="cc-title">{T.h}</h1>
+    <p class="cc-sub">{T.sub}</p>
+
+    <div class="cc-prompt">
+      <svg class="cc-prompt__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={ICONS.sparkle} />
+      <span class="cc-prompt__text">{T.prompt}</span>
+      <span class="cc-prompt__send" aria-hidden="true">
+        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" set:html={ICONS.send} />
+      </span>
+    </div>
+
+    <nav class="cc-chips" aria-label={T.quick}>
+      {T.chips.map((c) => <button class="cc-chip" type="button">{c}</button>)}
+    </nav>
+
+    <section class="cc-inbox" aria-label={T.inbox}>
+      <h2 class="cc-inbox__title">{T.inbox}</h2>
+      <div class="cc-row cc-row--pinned">
+        <span class="cc-row__avatar" aria-hidden="true">
+          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" set:html={ICONS.sparkle} />
+        </span>
+        <div class="cc-row__body">
+          <p class="cc-row__name">{T.botName}</p>
+          <p class="cc-row__snippet">{T.botSnippet}</p>
+        </div>
+      </div>
+      <div class="cc-row">
+        <span class="cc-row__avatar cc-row__avatar--empty" aria-hidden="true"></span>
+        <div class="cc-row__body">
+          <p class="cc-row__name">{T.newChat}</p>
+          <p class="cc-row__snippet">{T.newSnippet}</p>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <TabBar lang={lang} />
+</AppFull>

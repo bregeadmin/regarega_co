@@ -77,8 +77,13 @@ body.has-tabbar{ padding-bottom:64px; }
 /* Плашка «гид на телефон» (rega-install) прибита к bottom:12px и легла бы на таб-бар —
    поднимаем над ним и опускаем под него по слою (70 < 80), чтобы спрятанное состояние
    (translateY на at-hero-top) не выглядывало поверх бара. */
+/* The site layouts render the same bar (.tabbar--site) for when a site page is opened
+   inside the app; in a normal browser it stays hidden and the page gets no bottom gap. */
+html:not(.in-app) .tabbar--site{ display:none; }
+html:not(.in-app) body.has-tabbar:has(.tabbar--site){ padding-bottom:0; }
+
 @media (max-width:719.98px){
-  body.has-tabbar #rr-install{
+  html.in-app body.has-tabbar #rr-install{
     bottom:calc(64px + env(safe-area-inset-bottom) + 10px);
     z-index:70;
   }

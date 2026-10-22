@@ -1,0 +1,284 @@
+---
+// Native app "now" home screen — one component for both languages (pages
+// app/now.astro and ru/app/now.astro just render it with `lang`).
+// The hero is ONE confident pick for this moment: Batumi time → a moment (morning / lunch /
+// golden hour / evening / night) → guide places whose tags fit that moment AND are open now
+// (Google hours from guide_places.hours) → one place, rotated daily so it isn't always the
+// same. Two alternatives sit under it; below — the whole guide (chips filter it) and stays.
+// Data is build-time (static HTML); only the pick runs client-side, because it depends on
+// the clock.
+import AppFull from '../../layouts/AppFull.astro';
+import '../../styles/app-shell.css';
+import '../../styles/app-now.css';
+import AppHeader from '../AppHeader.astro';
+import TabBar from '../TabBar.astro';
+import { supabase, applyNames, type Apartment } from '../../lib/supabase';
+import { catLabel } from '../../lib/guideCats';
+import { priceSym } from '../../lib/price';
+
+export interface Props { lang: 'en' | 'ru' }
+const { lang } = Astro.props;
+const isRu = lang === 'ru';
+const BASE = isRu ? '/ru/georgia/batumi' : '/georgia/batumi';
+
+const T = isRu
+  ? {
+      title: 'сейчас — rega rega',
+      desc: 'батуми прямо сейчас — одно место под этот момент, весь гид и где остановиться.',
+      or: 'или',
+      guide: 'в гиде',
+      stays: 'где остановиться',
+      all: 'все →',
+      allChip: 'всё',
+      cats: 'категории',
+      studio: 'студия',
+      bedrooms: (n: number) => (n === 1 ? '1 спальня' : `${n} спальни`),
+    }
+  : {
+      title: 'now — rega rega',
+      desc: 'batumi right now — one place for this moment, the whole guide and where to stay.',
+      or: 'or',
+      guide: 'in the guide',
+      stays: 'where to stay',
+      all: 'all →',
+      allChip: 'all',
+      cats: 'categories',
+      studio: 'studio',
+      bedrooms: (n: number) => (n === 1 ? '1 bedroom' : `${n} bedrooms`),
+    };
+
+// --- guide places ---
+const { data: gp } = await supabase
+  .from('guide_places')
+  .select('slug,title,name,category,photos,image,address,hours,tags,rating,take_title,summary_ru')
+  .eq('status', 'published');
+const gpAll = (gp || []) as any[];
+
+const photoOf = (p: any) => (p.photos && p.photos[0]) || p.image || '';
+// no dedicated "area" column on guide_places — derive a short area label from the street address
+const areaOf = (p: any) => {
+  const a = String(p.address || '').trim();
+  if (!a) return '';
+  const cleaned = a.replace(/,?\s*Batumi[^,]*,?\s*Georgia\s*$/i, '').replace(/,\s*Georgia\s*$/i, '').trim();
+  const first = (cleaned.split(',')[0] || '').trim();
+  if (!first) return '';
+  return first.length > 26 ? first.slice(0, 26).replace(/\s+\S*$/, '') + '…' : first;
+};
+// one line on why this place: the editorial take (EN) / first clause of the RU summary
+const whyOf = (p: any) => {
+  const raw = isRu ? String(p.summary_ru || '').split('·')[0] : String(p.take_title || '');
+  return raw.replace(/\*+/g, '').replace(/\s+/g, ' ').trim();
+};
+
+const CAT_ORDER = ['eat-drink', 'wellness', 'move-around', 'work'];
+const cats = CAT_ORDER.filter((c) => gpAll.some((p) => p.category === c));
+const withPhoto = gpAll
+  .filter((p) => photoOf(p))
+  .sort((a, b) => (b.rating || 0) - (a.rating || 0));
+
+// what the client-side picker needs, nothing more
+const PICK_DATA = withPhoto.map((p) => ({
+  s: p.slug,
+  n: p.title || p.name,
+  c: catLabel(p.category, lang),
+  t: p.tags || [],
+  h: p.hours || [],
+  p: photoOf(p),
+  w: whyOf(p),
+}));
+
+// --- apartments: cheapest first, with a real photo ---
+const { data: apts } = await supabase
+  .from('apartments_public')
+  .select('id,slug,title,title_ru,neighborhood,bedrooms,max_guests,price_from,price_currency,photos')
+  .order('price_from', { ascending: true });
+const apartments = ((apts as Apartment[]) || [])
+  .map(applyNames)
+  .map((a: any) => ({ ...a, title: (isRu && a.title_ru) || a.title }))
+  .filter((a) => a.photos && a.photos[0])
+  .slice(0, 6);
+const bedroomLabel = (n: number | null | undefined) => (!n ? T.studio : T.bedrooms(n));
+---
+<AppFull lang={lang} title={T.title} description={T.desc}>
+  <script is:inline define:vars={{ LANG: lang }}>
+    // the app opens here: follow the language picked in the profile, else the phone's language
+    try {
+      var want = localStorage.getItem('rr_lang') || (/^ru/i.test(navigator.language || '') ? 'ru' : 'en');
+      if (want !== LANG) location.replace(want === 'ru' ? '/ru/georgia/batumi/app/now' : '/georgia/batumi/app/now');
+    } catch (e) {}
+  </script>
+  <AppHeader lang={lang} />
+  <main class="now-screen">
+    <a class="now-hero" id="nowHero" href={`${BASE}/app/guide`}>
+      <img class="now-hero__img" id="nowHeroImg" alt="" onload="this.classList.add('is-loaded')" />
+      <div class="now-hero__scrim">
+        <p class="now-hero__overline" id="nowOverline">rega standard</p>
+        <h1 class="now-hero__headline" id="nowHeadline"></h1>
+        <p class="now-hero__name" id="nowName"></p>
+        <p class="now-hero__why" id="nowWhy"></p>
+        <p class="now-hero__status" id="nowStatus" hidden></p>
+      </div>
+    </a>
+
+    <div class="now-alts" id="nowAlts" hidden>
+      <p class="now-alts__label">{T.or}</p>
+      <div class="now-alts__row" id="nowAltsRow"></div>
+    </div>
+
+    <section class="now-block">
+      <div class="now-block__head">
+        <h2 class="now-block__title">{T.guide}</h2>
+        <a class="now-block__all" href={`${BASE}/app/guide`}>{T.all}</a>
+      </div>
+      <nav class="now-chips" aria-label={T.cats}>
+        <button class="now-chip is-active" data-cat="all" type="button">{T.allChip}</button>
+        {cats.map((c) => (
+          <button class="now-chip" data-cat={c} type="button">{catLabel(c, lang)}</button>
+        ))}
+      </nav>
+      <div class="now-scroller" id="nowPlaces">
+        {withPhoto.map((p) => {
+          const area = areaOf(p);
+          return (
+            <a class="now-placecard" data-category={p.category} href={`${BASE}/guide/${p.slug}`}>
+              <div class="now-placecard__photo"><img src={photoOf(p)} alt="" loading="lazy" onload="this.classList.add('is-loaded')" /></div>
+              <p class="now-placecard__name">{p.title || p.name}</p>
+              <p class="now-placecard__meta">{catLabel(p.category, lang)}{area ? ` · ${area}` : ''}</p>
+            </a>
+          );
+        })}
+      </div>
+    </section>
+
+    <section class="now-block">
+      <div class="now-block__head">
+        <h2 class="now-block__title">{T.stays}</h2>
+        <a class="now-block__all" href={`${BASE}/app/stays`}>{T.all}</a>
+      </div>
+      <div class="now-scroller now-scroller--stays">
+        {apartments.map((a) => (
+          <a class="now-staycard" href={`${BASE}/app/stays/${a.slug}`}>
+            <div class="now-staycard__photo"><img src={a.photos[0]} alt="" loading="lazy" onload="this.classList.add('is-loaded')" /></div>
+            <div class="now-staycard__row">
+              <span class="now-staycard__name">{a.title}</span>
+              <span class="now-staycard__price">{priceSym(a.price_currency)}{a.price_from}</span>
+            </div>
+            <p class="now-staycard__meta">{bedroomLabel(a.bedrooms)}{a.neighborhood ? ` · ${a.neighborhood}` : ''}</p>
+          </a>
+        ))}
+      </div>
+    </section>
+  </main>
+
+  <TabBar lang={lang} />
+
+  <script is:inline define:vars={{ PLACES: PICK_DATA, LANG: lang, BASE }}>
+    (function () {
+      var RU = LANG === 'ru';
+      // moment of the day (Batumi time) → which guide tags fit it
+      var MOMENTS = [
+        { from: 0, to: 5, tags: ['Bars'], ru: ['ночь', 'ещё открыто.'], en: ['night', 'still open.'] },
+        { from: 5, to: 11, tags: ['Coffee', 'Cafes'], ru: ['утро', 'начни с кофе.'], en: ['morning', 'start with coffee.'] },
+        { from: 11, to: 16, tags: ['Restaurants', 'Cafes', 'Asian dining', 'Dining Around Batumi', 'Gastro shops'], ru: ['день', 'время обеда.'], en: ['afternoon', 'time for lunch.'] },
+        { from: 16, to: 20, tags: ['Cafes', 'Bars', 'Coffee', 'Restaurants'], ru: ['золотой час', 'успей до заката.'], en: ['golden hour', 'catch the light.'] },
+        { from: 20, to: 24, tags: ['Bars', 'Restaurants'], ru: ['вечер', 'куда пойти вечером.'], en: ['evening', 'where to tonight.'] },
+      ];
+      var DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      var now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Tbilisi' }));
+      var hour = now.getHours(), dow = now.getDay(), mins = hour * 60 + now.getMinutes();
+
+      // Google hours: "10:00 AM - 10:00 PM", "12:00 - 10:45 PM" (suffix only on the close), "Open 24 hours", "Closed"
+      function pt(s, fallback) {
+        var m = String(s).match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i); if (!m) return null;
+        var suf = m[3] || fallback; var h = +m[1];
+        if (suf) { h = h % 12; if (/pm/i.test(suf)) h += 12; }
+        return h * 60 + (+m[2]);
+      }
+      function ranges(str) {
+        if (!str || /closed/i.test(str)) return [];
+        if (/24/.test(str) && /hour/i.test(str)) return [{ o: 0, c: 1440, all: true }];
+        return str.split(',').map(function (r) {
+          var p = r.split(/[–—-]/); if (p.length < 2) return null;
+          var suf = (p[1].match(/(AM|PM)/i) || [])[1];
+          var o = pt(p[0], suf), c = pt(p[1]); if (o == null || c == null) return null;
+          if (c <= o) c += 1440; return { o: o, c: c };
+        }).filter(Boolean);
+      }
+      function dayStr(hours, d) {
+        for (var i = 0; i < hours.length; i++) { var l = hours[i], k = l.indexOf(':'); if (k > 0 && l.slice(0, k).trim() === DAYS[d]) return l.slice(k + 1).trim(); }
+        return '';
+      }
+      // → null (no hours known), false (closed), or { all } / { close: minutes-of-day }
+      function openNow(hours) {
+        if (!hours || !hours.length) return null;
+        var today = ranges(dayStr(hours, dow)), yest = ranges(dayStr(hours, (dow + 6) % 7));
+        for (var i = 0; i < today.length; i++) if (mins >= today[i].o && mins < today[i].c) return today[i].all ? { all: true } : { close: today[i].c % 1440 };
+        for (var j = 0; j < yest.length; j++) if (mins + 1440 >= yest[j].o && mins + 1440 < yest[j].c) return { close: yest[j].c % 1440 };
+        return false;
+      }
+      function hhmm(m) { return Math.floor(m / 60) + ':' + ('0' + (m % 60)).slice(-2); }
+      function statusText(o) {
+        if (!o) return '';
+        if (o.all) return RU ? 'открыто круглосуточно' : 'open 24 hours';
+        return (RU ? 'открыто до ' : 'open till ') + hhmm(o.close);
+      }
+
+      var m = MOMENTS.filter(function (x) { return hour >= x.from && hour < x.to; })[0];
+      var fits = function (p) { return p.t.some(function (t) { return m.tags.indexOf(t) >= 0; }); };
+      var scored = PLACES.map(function (p) { return { p: p, o: openNow(p.h) }; });
+      // best: fits the moment and is open; then fits with unknown hours; then anything open
+      var pool = scored.filter(function (x) { return fits(x.p) && x.o; });
+      if (pool.length < 3) pool = pool.concat(scored.filter(function (x) { return fits(x.p) && x.o === null; }));
+      if (pool.length < 3) pool = pool.concat(scored.filter(function (x) { return !fits(x.p) && x.o && pool.indexOf(x) < 0; }));
+      if (!pool.length) pool = scored;
+
+      // rotate daily so the pick changes but stays stable within a day + moment
+      var day = Math.floor(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) / 864e5);
+      var start = (day + MOMENTS.indexOf(m)) % pool.length;
+      var picks = pool.slice(start).concat(pool.slice(0, start)).slice(0, 3);
+
+      var words = RU ? m.ru : m.en;
+      var hero = picks[0];
+      var $ = function (id) { return document.getElementById(id); };
+      $('nowOverline').textContent = words[0] + ' · rega standard';
+      $('nowHeadline').textContent = words[1];
+      if (hero) {
+        $('nowHero').href = BASE + '/guide/' + hero.p.s;
+        $('nowHeroImg').src = hero.p.p;
+        $('nowName').textContent = hero.p.n;
+        $('nowWhy').textContent = hero.p.w;
+        var st = statusText(hero.o);
+        if (st) { $('nowStatus').textContent = st; $('nowStatus').hidden = false; }
+      }
+
+      var row = $('nowAltsRow');
+      picks.slice(1).forEach(function (x) {
+        var a = document.createElement('a');
+        a.className = 'now-alt';
+        a.href = BASE + '/guide/' + x.p.s;
+        var ph = document.createElement('span'); ph.className = 'now-alt__photo';
+        var img = document.createElement('img'); img.src = x.p.p; img.alt = ''; ph.appendChild(img);
+        var body = document.createElement('span'); body.className = 'now-alt__body';
+        var nm = document.createElement('span'); nm.className = 'now-alt__name'; nm.textContent = x.p.n;
+        var meta = document.createElement('span'); meta.className = 'now-alt__meta'; meta.textContent = statusText(x.o) || x.p.c;
+        body.appendChild(nm); body.appendChild(meta);
+        a.appendChild(ph); a.appendChild(body);
+        row.appendChild(a);
+      });
+      if (row.children.length) $('nowAlts').hidden = false;
+
+      // category chips filter the guide row
+      var chips = document.querySelectorAll('.now-chip');
+      var cards = document.querySelectorAll('#nowPlaces .now-placecard');
+      chips.forEach(function (chip) {
+        chip.addEventListener('click', function () {
+          chips.forEach(function (c) { c.classList.remove('is-active'); });
+          chip.classList.add('is-active');
+          var cat = chip.getAttribute('data-cat');
+          cards.forEach(function (c) { c.hidden = !(cat === 'all' || c.getAttribute('data-category') === cat); });
+          $('nowPlaces').scrollLeft = 0;
+        });
+      });
+    })();
+  </script>
+</AppFull>

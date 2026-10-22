@@ -1,0 +1,81 @@
+---
+// Native app "profile" screen — one component for both languages (pages app/profile.astro
+// and ru/app/profile.astro render it with `lang`). Shows only what is real today: the
+// dot-punch avatar, "my trip" when a booking token is saved on this device (set by the
+// trip screen as localStorage rr_trip_token), and a working language switch. Taste, cities,
+// sign-in and notifications come back once they actually exist — no placeholder data.
+import AppFull from '../../layouts/AppFull.astro';
+import '../../styles/app-shell.css';
+import '../../styles/app-profile.css';
+import AppHeader from '../AppHeader.astro';
+import TabBar from '../TabBar.astro';
+
+export interface Props { lang: 'en' | 'ru' }
+const { lang } = Astro.props;
+const isRu = lang === 'ru';
+const BASE = isRu ? '/ru/georgia/batumi' : '/georgia/batumi';
+const OTHER = isRu ? '/georgia/batumi/app/profile' : '/ru/georgia/batumi/app/profile';
+
+const T = isRu
+  ? {
+      title: 'профиль — rega rega', desc: 'твой профиль rega rega — поездка и настройки.',
+      h: 'профиль', guest: 'гость', trip: 'моя поездка', settings: 'настройки', lang: 'язык',
+      langValue: 'русский', soon: 'скоро здесь: вход, твой вкус и уведомления.',
+    }
+  : {
+      title: 'profile — rega rega', desc: 'your rega rega profile — trip and settings.',
+      h: 'profile', guest: 'guest', trip: 'my trip', settings: 'settings', lang: 'language',
+      langValue: 'english', soon: 'coming here soon: sign-in, your taste and notifications.',
+    };
+
+const ICONS = {
+  pin: '<path d="M9 11a3 3 0 1 0 6 0a3 3 0 0 0 -6 0" /><path d="M17.657 16.657l-4.243 4.243a2 2 0 0 1 -2.827 0l-4.244 -4.243a8 8 0 1 1 11.314 0z" />',
+  chevron: '<path d="M9 6l6 6l-6 6" />',
+};
+---
+<AppFull lang={lang} title={T.title} description={T.desc}>
+  <AppHeader lang={lang} />
+  <main class="pf-screen">
+    <h1 class="sr-only">{T.h}</h1>
+
+    <div class="pf-hero">
+      <span class="pf-avatar" aria-hidden="true">
+        <span class="pf-avatar__hole"></span>
+      </span>
+      <p class="pf-name">{T.guest}</p>
+    </div>
+
+    <section class="pf-section" id="pfTrip" hidden>
+      <a class="pf-city pf-city--accent" href={`${BASE}/trip`}>
+        <svg class="pf-city__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={ICONS.pin} />
+        <span class="pf-city__label">{T.trip}</span>
+      </a>
+    </section>
+
+    <section class="pf-section" aria-label={T.settings}>
+      <h2 class="pf-section__title">{T.settings}</h2>
+      <div class="pf-list">
+        <a class="pf-row" href={OTHER} id="pfLang" data-lang={isRu ? 'en' : 'ru'}>
+          <span class="pf-row__label">{T.lang}</span>
+          <span class="pf-row__right">
+            <span class="pf-row__value">{T.langValue}</span>
+            <svg class="pf-row__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={ICONS.chevron} />
+          </span>
+        </a>
+      </div>
+      <p class="pf-soon">{T.soon}</p>
+    </section>
+  </main>
+
+  <TabBar lang={lang} />
+
+  <script is:inline>
+    (function () {
+      try { if (localStorage.getItem('rr_trip_token')) document.getElementById('pfTrip').hidden = false; } catch (e) {}
+      // remember the choice so the app opens in this language next time (read by the now screen)
+      document.getElementById('pfLang').addEventListener('click', function () {
+        try { localStorage.setItem('rr_lang', this.getAttribute('data-lang')); } catch (e) {}
+      });
+    })();
+  </script>
+</AppFull>

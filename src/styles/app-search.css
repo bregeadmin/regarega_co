@@ -1,0 +1,99 @@
+/* Native app "search" screen (src/components/app/SearchScreen.astro). Sits inside
+   layouts/App.astro, so the :root tokens + body.app-shell reset come from app-shell.css. */
+
+.sr-screen{ padding:12px 15px calc(80px + env(safe-area-inset-bottom)); }
+
+.sr-field{
+  display:flex;
+  align-items:center;
+  gap:9px;
+  background:#F1ECDF;
+  border-radius:13px;
+  padding:0 12px;
+  height:46px;
+}
+.sr-field__icon{ width:18px; height:18px; flex:none; color:var(--ink-soft); }
+.sr-field__input{
+  flex:1;
+  min-width:0;
+  border:none;
+  background:transparent;
+  outline:none;
+  font-family:"Bricolage Grotesque", sans-serif;
+  font-size:16px; /* ≥16px keeps iOS from zooming into the field */
+  color:var(--ink);
+  -webkit-appearance:none;
+  appearance:none;
+}
+.sr-field__input::placeholder{ color:var(--faint); }
+.sr-field__input::-webkit-search-cancel-button{ display:none; }
+.sr-field__clear{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:28px; height:28px;
+  border:none;
+  background:transparent;
+  color:var(--ink-soft);
+  padding:0;
+  cursor:pointer;
+}
+.sr-field__clear[hidden]{ display:none; }
+
+.sr-label{
+  margin:22px 0 10px;
+  font-family:"JetBrains Mono", monospace;
+  font-size:9.5px;
+  letter-spacing:.16em;
+  text-transform:uppercase;
+  color:var(--ink-soft);
+}
+.sr-chips{ display:flex; flex-wrap:wrap; gap:7px; }
+.sr-chip{
+  font-family:"Bricolage Grotesque", sans-serif;
+  font-size:13px;
+  font-weight:500;
+  color:var(--ink);
+  background:var(--paper);
+  border:.5px solid var(--line);
+  border-radius:999px;
+  padding:8px 14px;
+  cursor:pointer;
+}
+
+.sr-list{ display:flex; flex-direction:column; }
+.sr-row{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:8px 0;
+  border-bottom:.5px solid var(--line);
+}
+.sr-row:last-child{ border-bottom:none; }
+.sr-row__photo{
+  width:52px; height:52px;
+  flex:none;
+  border-radius:10px;
+  overflow:hidden;
+  background:#EFE9DD;
+}
+.sr-row__photo--stay{ width:68px; }
+.sr-row__photo img{ width:100%; height:100%; object-fit:cover; display:block; }
+.sr-row__body{ min-width:0; display:flex; flex-direction:column; gap:3px; }
+.sr-row__name,
+.sr-row__meta{
+  font-family:"Bricolage Grotesque", sans-serif;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.sr-row__name{ font-size:14px; font-weight:500; color:var(--ink); }
+.sr-row__meta{ font-size:12px; color:var(--ink-soft); }
+
+.sr-none{
+  margin:28px 0 0;
+  font-family:"Bricolage Grotesque", sans-serif;
+  font-size:14px;
+  color:var(--ink-soft);
+  text-align:center;
+}

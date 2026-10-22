@@ -1,15 +1,14 @@
 ---
-// Shared bottom nav — 4 LABELED tabs (гид / жильё / консьерж / профиль), reused on every
-// native app screen. Visual + markup source of truth: the "now" screen's inline bottom bar
-// (src/pages/georgia/batumi/app/now.astro) — same icon set, same dot-punch avatar technique
-// for "профиль". Labels stay Russian regardless of `lang` (matches the now screen); `lang`
-// only decides which base path ("" vs "/ru") the other tabs' hrefs point at.
-// Mobile-only (hidden ≥720px via tabbar.css); the existing <header class="topbar"> covers
-// wide screens on the old (non-app) site pages, which don't render this component at all.
+// Shared bottom nav — 4 LABELED tabs (guide / stays / concierge / profile), reused on every
+// native app screen. `lang` picks both the labels and the base path ("" vs "/ru"), so a
+// screen never mixes languages and the tabs never jump between the EN and RU apps.
+// Mobile-only (hidden ≥720px via tabbar.css). `site` marks the copy rendered by the web
+// site layouts (Site/SiteRu): it stays hidden in a normal browser and only shows inside
+// the app wrapper / installed PWA (html.in-app, set by an inline script in those layouts).
 import '../styles/tabbar.css';
 
-export interface Props { lang?: 'en' | 'ru' }
-const { lang = 'en' } = Astro.props;
+export interface Props { lang?: 'en' | 'ru'; site?: boolean }
+const { lang = 'en', site = false } = Astro.props;
 const isRu = lang === 'ru';
 const base = isRu ? '/ru/georgia/batumi' : '/georgia/batumi';
 const path = Astro.url.pathname;
@@ -23,21 +22,20 @@ const ICONS = {
   message: '<path d="M3 20l1.3 -3.9c-2.324 -3.437 -1.426 -7.872 2.1 -10.374c3.526 -2.501 8.59 -2.296 11.845 .48c3.255 2.777 3.695 7.266 1.029 10.501c-2.666 3.235 -7.615 4.215 -11.574 2.293l-4.7 1" />',
 };
 
-// "гид" always opens the single "сейчас" home screen — it has no per-language mirror
-// (its content is Russian by design, same as this bar's labels), so its href never
-// changes with `lang`, unlike the other three tabs.
-const GUIDE_HOME = '/georgia/batumi/app/now';
+const L = isRu
+  ? { guide: 'гид', stays: 'жильё', concierge: 'консьерж', profile: 'профиль', nav: 'нижняя навигация' }
+  : { guide: 'guide', stays: 'stays', concierge: 'concierge', profile: 'profile', nav: 'bottom navigation' };
 
 const TABS = [
-  { key: 'guide', href: GUIDE_HOME, active: isActive('/app/now', '/app/guide', '/guide'), icon: ICONS.compass, label: 'гид' },
-  { key: 'stays', href: `${base}/app/stays`, active: isActive('/app/stays', '/stays'), icon: ICONS.bed, label: 'жильё' },
-  { key: 'concierge', href: `${base}/app/concierge`, active: isActive('/app/concierge'), icon: ICONS.message, label: 'консьерж' },
+  { key: 'guide', href: `${base}/app/now`, active: isActive('/app/now', '/app/guide', '/app/map', '/app/search', '/guide'), icon: ICONS.compass, label: L.guide },
+  { key: 'stays', href: `${base}/app/stays`, active: isActive('/app/stays', '/stays'), icon: ICONS.bed, label: L.stays },
+  { key: 'concierge', href: `${base}/app/concierge`, active: isActive('/app/concierge'), icon: ICONS.message, label: L.concierge },
 ];
 
 const profileHref = `${base}/app/profile`;
 const profileActive = isActive('/app/profile', '/app/trip', '/trip');
 ---
-<nav class="tabbar" aria-label={isRu ? 'нижняя навигация' : 'bottom navigation'}>
+<nav class={`tabbar${site ? ' tabbar--site' : ''}`} aria-label={L.nav}>
   {TABS.map((t) => (
     <a
       class={`tabbar__item${t.active ? ' is-active' : ''}`}
@@ -54,11 +52,11 @@ const profileActive = isActive('/app/profile', '/app/trip', '/trip');
     href={profileHref}
     data-tab="profile"
     aria-current={profileActive ? 'page' : undefined}
-    aria-label="профиль"
+    aria-label={L.profile}
   >
     <span class="tabbar__avatar" aria-hidden="true">
       <span class="tabbar__avatar__hole"></span>
     </span>
-    <span class="tabbar__label">профиль</span>
+    <span class="tabbar__label">{L.profile}</span>
   </a>
 </nav>

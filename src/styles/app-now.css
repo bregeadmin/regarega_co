@@ -1,88 +1,158 @@
-/* Native app "now" home screen — approved layout (2026-07-22): city-pill + search header,
-   compact real-photo moment hero, guide-category chips, 2 real place picks, 2 real cheapest
-   apartments, and the shared <TabBar /> (гид / жильё / консьерж / профиль). The body.app-full
-   base reset and the bottom-bar styles now live in app-shell.css / tabbar.css respectively
-   (shared across every app screen) — this file only styles this screen's own .now-*. */
+/* Native app "now" home screen (src/components/app/NowScreen.astro): one-pick moment hero,
+   two alternatives, the guide as a filterable horizontal row, and stays. Header and bottom
+   bar are the shared AppHeader / TabBar (styles in app-shell.css / tabbar.css). */
 
-.now-screen{ padding-bottom:calc(72px + env(safe-area-inset-bottom)); }
+.now-screen{ padding:12px 0 calc(76px + env(safe-area-inset-bottom)); }
 
-/* ---------- header: city pill + search ---------- */
-.now-topbar{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  padding:14px 15px 8px;
-  padding-top:calc(14px + env(safe-area-inset-top));
-}
-.now-citypill{
-  display:inline-flex;
-  align-items:center;
-  gap:6px;
-  background:#F1ECDF;
-  border:none;
-  border-radius:999px;
-  padding:6px 12px;
-  cursor:pointer;
-  -webkit-tap-highlight-color:transparent;
-}
-.now-citypill__pin{ width:14px; height:14px; flex:none; display:block; color:var(--accent); }
-.now-citypill__label{
-  font-family:"Bricolage Grotesque", sans-serif;
-  font-size:13px;
-  font-weight:500;
-  color:var(--ink);
-  text-transform:lowercase;
-}
-.now-citypill__chevron{ width:14px; height:14px; flex:none; display:block; color:var(--ink-soft); }
-.now-search{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  width:32px; height:32px;
-  color:var(--ink-soft);
-}
-.now-search__icon{ width:19px; height:19px; display:block; }
-
-/* ---------- compact moment hero ---------- */
+/* ---------- moment hero: one confident pick ---------- */
 .now-hero{
   position:relative;
-  margin:6px 15px 14px;
-  height:132px;
-  border-radius:15px;
+  display:block;
+  margin:0 15px 12px;
+  height:300px;
+  border-radius:16px;
   overflow:hidden;
-  background-size:cover;
-  background-position:center;
-  background-color:#2b2320;
+  background:#2b2320;
+  -webkit-tap-highlight-color:transparent;
 }
+.now-hero__img{
+  position:absolute; inset:0;
+  width:100%; height:100%;
+  object-fit:cover;
+  opacity:0;
+  transition:opacity .4s ease;
+}
+.now-hero__img.is-loaded{ opacity:1; }
 .now-hero__scrim{
   position:absolute;
   left:0; right:0; bottom:0;
-  background:rgba(18,10,4,.42);
-  padding:12px 14px 13px;
+  padding:60px 16px 16px;
+  background:linear-gradient(to bottom, rgba(18,10,4,0), rgba(18,10,4,.72) 45%);
 }
 .now-hero__overline{
-  margin:0 0 4px;
+  margin:0 0 6px;
   font-family:"JetBrains Mono", monospace;
-  font-size:9px;
+  font-size:9.5px;
   letter-spacing:.16em;
   text-transform:uppercase;
   color:#f0e4d0;
 }
 .now-hero__headline{
+  margin:0 0 12px;
+  font-family:"Bricolage Grotesque", sans-serif;
+  font-size:15px;
+  font-weight:500;
+  line-height:1.1;
+  text-transform:lowercase;
+  color:rgba(250,247,240,.8);
+}
+.now-hero__name{
   margin:0;
   font-family:"Bricolage Grotesque", sans-serif;
-  font-size:21px;
-  font-weight:500;
+  font-size:26px;
+  font-weight:600;
   line-height:1.05;
-  text-transform:lowercase;
+  letter-spacing:-.01em;
   color:#FAF7F0;
+}
+.now-hero__why{
+  margin:6px 0 0;
+  font-family:"Bricolage Grotesque", sans-serif;
+  font-size:13px;
+  line-height:1.3;
+  color:rgba(250,247,240,.85);
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+}
+.now-hero__why:empty{ display:none; }
+.now-hero__status{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  margin:10px 0 0;
+  font-family:"JetBrains Mono", monospace;
+  font-size:10px;
+  letter-spacing:.06em;
+  color:#FAF7F0;
+}
+.now-hero__status::before{
+  content:"";
+  width:6px; height:6px;
+  border-radius:50%;
+  background:#3BC47E;
+}
+
+/* ---------- two alternatives ---------- */
+.now-alts{ padding:0 15px 20px; }
+.now-alts__label{
+  margin:0 0 8px;
+  font-family:"JetBrains Mono", monospace;
+  font-size:9.5px;
+  letter-spacing:.16em;
+  text-transform:uppercase;
+  color:var(--ink-soft);
+}
+.now-alts__row{ display:flex; gap:10px; }
+.now-alt{
+  flex:1 1 0;
+  min-width:0;
+  display:flex;
+  align-items:center;
+  gap:9px;
+  padding:7px;
+  border:.5px solid var(--line);
+  border-radius:12px;
+  background:var(--paper);
+}
+.now-alt__photo{
+  width:44px; height:44px;
+  flex:none;
+  border-radius:8px;
+  overflow:hidden;
+  background:#EFE9DD;
+}
+.now-alt__photo img{ width:100%; height:100%; object-fit:cover; display:block; }
+.now-alt__body{ min-width:0; display:flex; flex-direction:column; gap:2px; }
+.now-alt__name,
+.now-alt__meta{
+  font-family:"Bricolage Grotesque", sans-serif;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.now-alt__name{ font-size:12.5px; font-weight:500; color:var(--ink); }
+.now-alt__meta{ font-size:11px; color:var(--ink-soft); }
+
+/* ---------- section header ---------- */
+.now-block{ padding:0 0 6px; }
+.now-block__head{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  padding:0 15px 10px;
+}
+.now-block__title{
+  margin:0;
+  font-family:"Bricolage Grotesque", sans-serif;
+  font-size:16px;
+  font-weight:600;
+  color:var(--ink);
+  text-transform:lowercase;
+}
+.now-block__all{
+  font-family:"Bricolage Grotesque", sans-serif;
+  font-size:12px;
+  font-weight:500;
+  color:var(--accent);
 }
 
 /* ---------- category chips ---------- */
 .now-chips{
   display:flex;
   gap:7px;
-  padding:0 15px 15px;
+  padding:0 15px 12px;
   overflow-x:auto;
   scrollbar-width:none;
   -webkit-overflow-scrolling:touch;
@@ -104,43 +174,31 @@
 }
 .now-chip.is-active{ background:var(--accent); color:#fff; }
 
-/* ---------- section header row (shared: места рядом / где остановиться) ---------- */
-.now-block{ padding:0 0 4px; }
-.now-block__head{
+/* ---------- horizontal rows: guide places + stays ---------- */
+.now-scroller{
   display:flex;
-  align-items:center;
-  justify-content:space-between;
-  padding:0 15px 10px;
+  gap:11px;
+  padding:0 15px 20px;
+  overflow-x:auto;
+  scroll-snap-type:x mandatory;
+  scroll-padding:0 15px;
+  scrollbar-width:none;
+  -webkit-overflow-scrolling:touch;
 }
-.now-block__title{
-  margin:0;
-  font-family:"Bricolage Grotesque", sans-serif;
-  font-size:14px;
-  font-weight:500;
-  color:var(--ink);
-  text-transform:lowercase;
-}
-.now-block__all{
-  font-family:"Bricolage Grotesque", sans-serif;
-  font-size:12px;
-  font-weight:500;
-  color:var(--accent);
-}
+.now-scroller::-webkit-scrollbar{ display:none; }
 
-/* ---------- места рядом: 2 real place cards ---------- */
-.now-cardrow{ display:flex; gap:11px; padding:0 15px 18px; }
-.now-placecard{ flex:1 1 0; min-width:0; display:block; }
+.now-placecard{ flex:none; width:150px; display:block; scroll-snap-align:start; }
+.now-placecard[hidden]{ display:none; }
 .now-placecard__photo{
-  height:80px;
+  height:112px;
   border-radius:11px;
   overflow:hidden;
-  background:var(--paper);
+  background:#EFE9DD;
 }
-.now-placecard__photo img{ width:100%; height:100%; object-fit:cover; display:block; }
 .now-placecard__name{
   margin:8px 0 2px;
   font-family:"Bricolage Grotesque", sans-serif;
-  font-size:12px;
+  font-size:12.5px;
   font-weight:500;
   color:var(--ink);
   white-space:nowrap;
@@ -157,19 +215,17 @@
   text-overflow:ellipsis;
 }
 
-/* ---------- где остановиться: 2 real apartment cards ---------- */
-.now-cardrow--stays{ padding-bottom:14px; }
 .now-staycard{
-  flex:1 1 0;
-  min-width:0;
+  flex:none;
+  width:200px;
   display:block;
+  scroll-snap-align:start;
   border:.5px solid var(--line);
   border-radius:11px;
   background:var(--paper);
   overflow:hidden;
 }
-.now-staycard__photo{ height:76px; background:var(--line); }
-.now-staycard__photo img{ width:100%; height:100%; object-fit:cover; display:block; }
+.now-staycard__photo{ height:120px; background:#EFE9DD; }
 .now-staycard__row{
   display:flex;
   align-items:center;
@@ -179,7 +235,7 @@
 }
 .now-staycard__name{
   font-family:"Bricolage Grotesque", sans-serif;
-  font-size:12px;
+  font-size:12.5px;
   font-weight:500;
   color:var(--ink);
   overflow:hidden;
@@ -190,7 +246,7 @@
 .now-staycard__price{
   flex:none;
   font-family:"Bricolage Grotesque", sans-serif;
-  font-size:12px;
+  font-size:12.5px;
   font-weight:500;
   color:var(--ink);
 }
@@ -204,3 +260,15 @@
   text-overflow:ellipsis;
   white-space:nowrap;
 }
+
+/* photos fade in over a warm placeholder instead of popping in on a blank tile */
+.now-placecard__photo img,
+.now-staycard__photo img{
+  width:100%; height:100%;
+  object-fit:cover;
+  display:block;
+  opacity:0;
+  transition:opacity .3s ease;
+}
+.now-placecard__photo img.is-loaded,
+.now-staycard__photo img.is-loaded{ opacity:1; }

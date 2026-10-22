@@ -1,0 +1,144 @@
+---
+// Native app "search" screen — one component for both languages (pages app/search.astro
+// and ru/app/search.astro render it with `lang`). Opened by the search icon in AppHeader.
+// Searches guide places and apartments as you type, fully client-side over build-time data
+// (52 + 13 rows — small enough to ship inline). Each row carries an EN+RU haystack (names,
+// category, tags + their Russian words, summary, area) so "кофе" and "coffee" both work.
+import App from '../../layouts/App.astro';
+import '../../styles/app-search.css';
+import { supabase, applyNames, type Apartment } from '../../lib/supabase';
+import { GUIDE_CATS, catLabel } from '../../lib/guideCats';
+import { priceSym } from '../../lib/price';
+
+export interface Props { lang: 'en' | 'ru' }
+const { lang } = Astro.props;
+const isRu = lang === 'ru';
+const BASE = isRu ? '/ru/georgia/batumi' : '/georgia/batumi';
+
+const T = isRu
+  ? {
+      title: 'поиск — rega rega', desc: 'поиск по гиду и квартирам батуми.',
+      ph: 'место, кухня, район, квартира', clear: 'очистить', try: 'попробуй',
+      places: 'места', stays: 'жильё', none: 'ничего не нашли — попробуй другое слово.',
+      suggest: ['кофе', 'бары', 'спа', 'коворкинг', 'такси', 'море'],
+    }
+  : {
+      title: 'search — rega rega', desc: 'search the batumi guide and apartments.',
+      ph: 'place, food, area, apartment', clear: 'clear', try: 'try',
+      places: 'places', stays: 'stays', none: 'nothing found — try another word.',
+      suggest: ['coffee', 'bars', 'spa', 'coworking', 'taxi', 'sea'],
+    };
+
+// guide tags are English; give each its Russian words so RU queries match too
+const TAG_RU: Record<string, string> = {
+  'Coffee': 'кофе кофейня', 'Cafes': 'кафе', 'Restaurants': 'ресторан рестораны еда поесть',
+  'SPA': 'спа', 'Bathhouses': 'баня бани', 'Massage': 'массаж', 'Bars': 'бар бары выпить',
+  'Fitness': 'фитнес спорт зал', 'Gastro shops': 'гастрономия магазин вино',
+  'Taxi Apps': 'такси', 'Transfers': 'трансфер аэропорт', 'Car Rental': 'аренда авто машина',
+  'Coworking': 'коворкинг работа ноутбук', 'Dining Around Batumi': 'еда за городом',
+  'Asian dining': 'азиатская кухня', 'Scooters & Bikes': 'самокат велосипед',
+  'Car Sharing': 'каршеринг',
+};
+
+const { data: gp } = await supabase
+  .from('guide_places')
+  .select('slug,title,name,category,photos,image,address,tags,take_title,summary,summary_ru')
+  .eq('status', 'published');
+const places = ((gp || []) as any[]).map((p) => {
+  const tags: string[] = p.tags || [];
+  const cat = GUIDE_CATS[p.category]?.label;
+  return {
+    k: 'p',
+    n: p.title || p.name,
+    m: catLabel(p.category, lang),
+    p: (p.photos && p.photos[0]) || p.image || '',
+    u: `${BASE}/guide/${p.slug}`,
+    h: [p.title, p.name, cat?.en, cat?.ru, ...tags, ...tags.map((t) => TAG_RU[t] || ''),
+        p.take_title, p.summary, p.summary_ru, p.address].filter(Boolean).join(' ').toLowerCase(),
+  };
+});
+
+const { data: apts } = await supabase
+  .from('apartments_public')
+  .select('id,slug,title,title_ru,neighborhood,bedrooms,max_guests,price_from,price_currency,photos')
+  .order('price_from', { ascending: true });
+const stays = ((apts as Apartment[]) || []).map(applyNames).map((a: any) => ({
+  k: 's',
+  n: (isRu && a.title_ru) || a.title,
+  m: `${priceSym(a.price_currency)}${a.price_from}${isRu ? ' / ночь' : ' / night'}${a.neighborhood ? ` · ${a.neighborhood}` : ''}`,
+  p: (a.photos && a.photos[0]) || '',
+  u: `${BASE}/app/stays/${a.slug}`,
+  h: [a.title, a.title_ru, a.neighborhood, 'apartment flat stay studio квартира жильё студия апартаменты',
+      a.bedrooms ? `${a.bedrooms} bedroom спальня` : 'studio студия'].filter(Boolean).join(' ').toLowerCase(),
+}));
+---
+<App lang={lang} view="search" title={T.title} description={T.desc}>
+  <main class="sr-screen">
+    <label class="sr-field">
+      <svg class="sr-field__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0" /><path d="M21 21l-6 -6" /></svg>
+      <input class="sr-field__input" id="srInput" type="search" placeholder={T.ph} autocomplete="off" enterkeyhint="search" autofocus />
+      <button class="sr-field__clear" id="srClear" type="button" aria-label={T.clear} hidden>
+        <svg viewBox="0 0 24 24" width="16" height="16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6l-12 12" /><path d="M6 6l12 12" /></svg>
+      </button>
+    </label>
+
+    <div class="sr-suggest" id="srSuggest">
+      <p class="sr-label">{T.try}</p>
+      <div class="sr-chips">
+        {T.suggest.map((s) => <button class="sr-chip" type="button" data-q={s}>{s}</button>)}
+      </div>
+    </div>
+
+    <section class="sr-group" id="srPlaces" hidden>
+      <p class="sr-label">{T.places}</p>
+      <div class="sr-list" id="srPlacesList"></div>
+    </section>
+    <section class="sr-group" id="srStays" hidden>
+      <p class="sr-label">{T.stays}</p>
+      <div class="sr-list" id="srStaysList"></div>
+    </section>
+    <p class="sr-none" id="srNone" hidden>{T.none}</p>
+  </main>
+
+  <script is:inline define:vars={{ ROWS: places.concat(stays) }}>
+    (function () {
+      var input = document.getElementById('srInput');
+      var clear = document.getElementById('srClear');
+      var $ = function (id) { return document.getElementById(id); };
+
+      function row(r) {
+        var a = document.createElement('a'); a.className = 'sr-row'; a.href = r.u;
+        var ph = document.createElement('span'); ph.className = 'sr-row__photo' + (r.k === 's' ? ' sr-row__photo--stay' : '');
+        if (r.p) { var img = document.createElement('img'); img.src = r.p; img.alt = ''; img.loading = 'lazy'; ph.appendChild(img); }
+        var body = document.createElement('span'); body.className = 'sr-row__body';
+        var n = document.createElement('span'); n.className = 'sr-row__name'; n.textContent = r.n;
+        var m = document.createElement('span'); m.className = 'sr-row__meta'; m.textContent = r.m;
+        body.appendChild(n); body.appendChild(m); a.appendChild(ph); a.appendChild(body);
+        return a;
+      }
+
+      function run() {
+        var q = input.value.trim().toLowerCase();
+        clear.hidden = !q;
+        $('srSuggest').hidden = !!q;
+        var words = q.split(/\s+/).filter(Boolean);
+        var hits = q ? ROWS.filter(function (r) { return words.every(function (w) { return r.h.indexOf(w) >= 0 || r.n.toLowerCase().indexOf(w) >= 0; }); }) : [];
+        // name matches first
+        hits.sort(function (a, b) { return (b.n.toLowerCase().indexOf(q) >= 0) - (a.n.toLowerCase().indexOf(q) >= 0); });
+        var p = hits.filter(function (r) { return r.k === 'p'; }), s = hits.filter(function (r) { return r.k === 's'; });
+        $('srPlacesList').replaceChildren.apply($('srPlacesList'), p.map(row));
+        $('srStaysList').replaceChildren.apply($('srStaysList'), s.map(row));
+        $('srPlaces').hidden = !p.length;
+        $('srStays').hidden = !s.length;
+        $('srNone').hidden = !q || hits.length > 0;
+      }
+
+      input.addEventListener('input', run);
+      clear.addEventListener('click', function () { input.value = ''; run(); input.focus(); });
+      document.querySelectorAll('.sr-chip').forEach(function (c) {
+        c.addEventListener('click', function () { input.value = c.getAttribute('data-q'); run(); });
+      });
+      run();
+    })();
+  </script>
+</App>
