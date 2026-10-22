@@ -69,8 +69,9 @@ const stays = ((apts as Apartment[]) || []).map(applyNames).map((a: any) => ({
   m: `${priceSym(a.price_currency)}${a.price_from}${isRu ? ' / ночь' : ' / night'}${a.neighborhood ? ` · ${a.neighborhood}` : ''}`,
   p: thumb(a.photos && a.photos[0], 320),
   u: `${BASE}/app/stays/${a.slug}`,
-  h: [a.title, a.title_ru, a.neighborhood, 'apartment flat stay studio квартира жильё студия апартаменты',
-      a.bedrooms ? `${a.bedrooms} bedroom спальня` : 'studio студия'].filter(Boolean).join(' ').toLowerCase(),
+  // no bedroom words here: "спальня" would answer every "спа" query
+  h: [a.title, a.title_ru, a.neighborhood, 'apartment flat stay квартира жильё апартаменты',
+      a.bedrooms ? '' : 'studio студия'].filter(Boolean).join(' ').toLowerCase(),
 }));
 ---
 <App lang={lang} view="search" title={T.title} description={T.desc}>
@@ -123,7 +124,11 @@ const stays = ((apts as Apartment[]) || []).map(applyNames).map((a: any) => ({
         clear.hidden = !q;
         $('srSuggest').hidden = !!q;
         var words = q.split(/\s+/).filter(Boolean);
-        var hits = q ? ROWS.filter(function (r) { return words.every(function (w) { return r.h.indexOf(w) >= 0 || r.n.toLowerCase().indexOf(w) >= 0; }); }) : [];
+        // every query word must START a word in the row (so "бар" finds bars, not "бархат")
+        var hits = q ? ROWS.filter(function (r) {
+          var hay = ' ' + (r.n + ' ' + r.h).toLowerCase().replace(/[^0-9a-zа-яё]+/gi, ' ');
+          return words.every(function (w) { return hay.indexOf(' ' + w) >= 0; });
+        }) : [];
         // name matches first
         hits.sort(function (a, b) { return (b.n.toLowerCase().indexOf(q) >= 0) - (a.n.toLowerCase().indexOf(q) >= 0); });
         var p = hits.filter(function (r) { return r.k === 'p'; }), s = hits.filter(function (r) { return r.k === 's'; });
