@@ -1,0 +1,309 @@
+---
+// Native app place screen — one component for both languages (pages app/place/[slug].astro
+// and ru/app/place/[slug].astro render it; data comes from lib/appPlace.ts).
+// Order: swipeable photos (back + share over them) → category · area, name, open-now →
+// the editorial take (EN only; RU has no take column yet) → body → hours (today marked) →
+// how to find it → stays nearby → more in this category. ONE primary action, pinned to the
+// bottom: directions. Calling is the only secondary action there. The tab bar steps aside
+// on this screen (tabbar.css), same as on an apartment page.
+import AppFull from '../../layouts/AppFull.astro';
+import '../../styles/app-shell.css';
+import '../../styles/app-place.css';
+import TabBar from '../TabBar.astro';
+import { GUIDE_CATS, catLabel } from '../../lib/guideCats';
+import { priceSym } from '../../lib/price';
+import { thumb } from '../../lib/thumb';
+import type { NearbyApt } from '../../lib/appPlace';
+
+export interface Props { lang: 'en' | 'ru'; p: any; nearby: NearbyApt[]; related: any[] }
+const { lang, p, nearby, related } = Astro.props;
+const isRu = lang === 'ru';
+const BASE = isRu ? '/ru/georgia/batumi' : '/georgia/batumi';
+
+const T = isRu
+  ? {
+      back: 'назад', share: 'поделиться', copied: 'ссылка скопирована', photo: 'фото',
+      hours: 'часы', find: 'как найти', nearby: 'жильё рядом', more: 'ещё здесь же',
+      directions: 'маршрут', call: 'позвонить', price: 'примерно, за визит', phone: 'телефон',
+      site: 'сайт', ig: 'инстаграм', closed: 'выходной', allDay: 'круглосуточно',
+      days: ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'], away: 'от места', studio: 'студия',
+      bedrooms: (n: number) => (n === 1 ? '1 спальня' : `${n} спальни`), night: 'ночь',
+    }
+  : {
+      back: 'back', share: 'share', copied: 'link copied', photo: 'photo',
+      hours: 'hours', find: 'how to find it', nearby: 'stay nearby', more: 'more like this',
+      directions: 'directions', call: 'call', price: 'approx. per visit', phone: 'phone',
+      site: 'website', ig: 'instagram', closed: 'closed', allDay: 'open 24 hours',
+      days: ['mon', 'tue', 'wed', 'thu', 'fri', 'sat', 'sun'], away: 'away', studio: 'studio',
+      bedrooms: (n: number) => (n === 1 ? '1 bedroom' : `${n} bedrooms`), night: 'night',
+    };
+
+const name = p.title || p.name;
+const cat = GUIDE_CATS[p.category];
+const photos: string[] = (p.photos && p.photos.length) ? p.photos : (p.image ? [p.image] : []);
+
+// no dedicated "area" column — derive a short area label from the street address
+const areaOf = (x: any) => {
+  const a = String(x.address || '').trim();
+  if (!a) return '';
+  const cleaned = a.replace(/,?\s*Batumi[^,]*,?\s*Georgia\s*$/i, '').replace(/,\s*Georgia\s*$/i, '').trim();
+  return (cleaned.split(',')[0] || '').trim();
+};
+
+// --- text: markdown-ish body (**bold**, *italic*, "* "/"•" lists, short "Label:" lines) ---
+const esc = (s: string) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const md = (raw: string) => esc(raw).replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>').replace(/\*([^*]+)\*/g, '<em>$1</em>');
+const takeHtml = !isRu && p.take_title ? md(p.take_title) : '';
+const bodySrc = String((isRu ? p.body_ru : '') || p.body || (isRu ? p.summary_ru : '') || p.summary || '');
+const bodyOut: string[] = [];
+let list: string[] = [];
+const flush = () => { if (list.length) { bodyOut.push('<ul>' + list.map((x) => '<li>' + md(x) + '</li>').join('') + '</ul>'); list = []; } };
+bodySrc.split('\n').forEach((raw) => {
+  const l = raw.trim();
+  if (!l) { flush(); return; }
+  if (l[0] === '•' || /^\*\s/.test(l)) { const it = l.replace(/^[•*]\s*/, '').trim(); if (it) list.push(it); return; }
+  flush();
+  bodyOut.push(/:$/.test(l) && l.length < 42 ? '<p class="pl-body__label">' + md(l) + '</p>' : '<p>' + md(l) + '</p>');
+});
+flush();
+const bodyHtml = bodyOut.join('');
+
+// --- hours: Google weekday text → 24h, consecutive equal days grouped ---
+const to24 = (t: string, fallback?: string) => {
+  const m = t.match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i); if (!m) return null;
+  const suf = m[3] || fallback; let h = +m[1];
+  if (suf) { h = h % 12; if (/pm/i.test(suf)) h += 12; }
+  return String(h).padStart(2, '0') + ':' + m[2];
+};
+const fmtDay = (rest: string) => {
+  if (!rest) return '';
+  if (/closed/i.test(rest)) return T.closed;
+  if (/24/.test(rest) && /hour/i.test(rest)) return T.allDay;
+  return rest.split(',').map((r) => {
+    const parts = r.split(/[–—-]/).map((s) => s.trim());
+    if (parts.length < 2) return r.trim();
+    const suf = (parts[1].match(/(AM|PM)/i) || [])[1];
+    const a = to24(parts[0], suf), b = to24(parts[1]);
+    return a && b ? a + '–' + b : r.trim();
+  }).join(', ');
+};
+const DAYFULL = ['monday', 'tuesday', 'wednesday', 'thursday', 'friday', 'saturday', 'sunday'];
+const hmap: Record<string, string> = {};
+(Array.isArray(p.hours) ? p.hours : []).forEach((line: string) => {
+  const i = line.indexOf(':'); if (i < 0) return;
+  hmap[line.slice(0, i).trim().toLowerCase()] = fmtDay(line.slice(i + 1).trim());
+});
+const groups: { v: string; start: number; end: number }[] = [];
+DAYFULL.map((d) => hmap[d] || '').forEach((v, idx) => {
+  const last = groups[groups.length - 1];
+  if (last && last.v === v) last.end = idx; else groups.push({ v, start: idx, end: idx });
+});
+const hourRows = groups.filter((g) => g.v).map((g) => ({
+  label: g.start === g.end ? T.days[g.start] : `${T.days[g.start]}–${T.days[g.end]}`,
+  days: Array.from({ length: g.end - g.start + 1 }, (_, k) => g.start + k).join(','),
+  v: g.v,
+}));
+
+const mapsUrl = p.gmaps_url || (p.lat != null ? `https://www.google.com/maps/dir/?api=1&destination=${p.lat},${p.lng}` : '');
+const isIg = /instagram\.com/i.test(p.website || '');
+const tel = p.phone ? 'tel:' + String(p.phone).replace(/[^\d+]/g, '') : '';
+const shareUrl = `https://regarega.co${BASE}/guide/${p.slug}`;
+const km = (d: number) => (d < 1 ? `${Math.round(d * 1000 / 10) * 10} ${isRu ? 'м' : 'm'}` : `${d.toFixed(1)} ${isRu ? 'км' : 'km'}`);
+const aptTitle = (a: any) => (isRu && a.title_ru) || a.title;
+
+const ICONS = {
+  back: '<path d="M15 6l-6 6l6 6" />',
+  share: '<path d="M12 4v11" /><path d="M8 8l4 -4l4 4" /><path d="M6 12v6a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2v-6" />',
+  clock: '<path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" /><path d="M12 7v5l3 3" />',
+  pin: '<path d="M9 11a3 3 0 1 0 6 0a3 3 0 0 0 -6 0" /><path d="M17.657 16.657l-4.243 4.243a2 2 0 0 1 -2.827 0l-4.244 -4.243a8 8 0 1 1 11.314 0z" />',
+  coin: '<path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" /><path d="M14.8 9a2 2 0 0 0 -1.8 -1h-2a2 2 0 1 0 0 4h2a2 2 0 1 1 0 4h-2a2 2 0 0 1 -1.8 -1" /><path d="M12 7v10" />',
+  phone: '<path d="M5 4h4l2 5l-2.5 1.5a11 11 0 0 0 5 5l1.5 -2.5l5 2v4a2 2 0 0 1 -2 2a16 16 0 0 1 -15 -15a2 2 0 0 1 2 -2" />',
+  link: '<path d="M9 15l6 -6" /><path d="M11 6l.463 -.536a5 5 0 0 1 7.071 7.072l-.534 .464" /><path d="M13 18l-.397 .534a5.068 5.068 0 0 1 -7.127 0a4.972 4.972 0 0 1 0 -7.071l.524 -.463" />',
+  chevron: '<path d="M9 6l6 6l-6 6" />',
+  route: '<path d="M3 19a2 2 0 1 0 4 0a2 2 0 0 0 -4 0" /><path d="M19 7a2 2 0 1 0 0 -4a2 2 0 0 0 0 4z" /><path d="M11 19h5.5a3.5 3.5 0 0 0 0 -7h-8a3.5 3.5 0 0 1 0 -7h4.5" />',
+};
+const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+---
+<AppFull lang={lang} title={`${name} — rega rega`} description={(isRu ? p.summary_ru : p.take_title || p.summary) ? String(isRu ? p.summary_ru : p.take_title || p.summary).replace(/\*+/g, '').slice(0, 160) : name}>
+  <main class="pl-screen">
+    <div class="pl-gallery">
+      <div class="pl-gallery__track" id="plTrack">
+        {photos.length ? photos.map((src, i) => (
+          <div class="pl-gallery__slide">
+            <img src={thumb(src, 828)} alt={i === 0 ? name : ''} loading={i === 0 ? 'eager' : 'lazy'} onload="this.classList.add('is-loaded')" />
+          </div>
+        )) : <div class="pl-gallery__slide pl-gallery__slide--empty"></div>}
+      </div>
+      {photos.length > 1 && <span class="pl-gallery__count" id="plCount" aria-live="polite">1 / {photos.length}</span>}
+      <div class="pl-topbar">
+        <a class="pl-round" id="plBack" href={`${BASE}/app/guide`} aria-label={T.back} set:html={svg(ICONS.back)} />
+        <button class="pl-round" id="plShare" type="button" aria-label={T.share} set:html={svg(ICONS.share)} />
+      </div>
+    </div>
+
+    <div class="pl-sheet">
+      <p class="pl-kicker">
+        <span class="pl-kicker__dot" style={`background:${cat?.color || '#3A4868'}`}></span>
+        {catLabel(p.category, lang)}{areaOf(p) ? ` · ${areaOf(p)}` : ''}
+      </p>
+      <h1 class="pl-name">{name}</h1>
+      <p class="pl-status" id="plStatus" hidden></p>
+
+      {takeHtml && <p class="pl-take" set:html={takeHtml} />}
+      {bodyHtml && <div class="pl-body" set:html={bodyHtml} />}
+
+      {hourRows.length > 0 && (
+        <section class="pl-section">
+          <h2 class="pl-section__title"><Fragment set:html={svg(ICONS.clock, 'pl-section__icon')} />{T.hours}</h2>
+          <ul class="pl-hours">
+            {hourRows.map((r) => (
+              <li data-days={r.days}><span>{r.label}</span><b>{r.v}</b></li>
+            ))}
+          </ul>
+        </section>
+      )}
+
+      <section class="pl-section">
+        <h2 class="pl-section__title"><Fragment set:html={svg(ICONS.pin, 'pl-section__icon')} />{T.find}</h2>
+        <div class="pl-rows">
+          {p.address && (
+            <a class="pl-row" href={mapsUrl || undefined} target="_blank" rel="noopener">
+              <Fragment set:html={svg(ICONS.pin, 'pl-row__icon')} />
+              <span class="pl-row__text">{p.address}</span>
+              {mapsUrl && <Fragment set:html={svg(ICONS.chevron, 'pl-row__chev')} />}
+            </a>
+          )}
+          {p.price && (
+            <div class="pl-row">
+              <Fragment set:html={svg(ICONS.coin, 'pl-row__icon')} />
+              <span class="pl-row__text">{p.price}<small>{T.price}</small></span>
+            </div>
+          )}
+          {tel && (
+            <a class="pl-row" href={tel}>
+              <Fragment set:html={svg(ICONS.phone, 'pl-row__icon')} />
+              <span class="pl-row__text">{p.phone}</span>
+              <Fragment set:html={svg(ICONS.chevron, 'pl-row__chev')} />
+            </a>
+          )}
+          {p.website && (
+            <a class="pl-row" href={p.website} target="_blank" rel="noopener">
+              <Fragment set:html={svg(ICONS.link, 'pl-row__icon')} />
+              <span class="pl-row__text">{isIg ? T.ig : T.site}</span>
+              <Fragment set:html={svg(ICONS.chevron, 'pl-row__chev')} />
+            </a>
+          )}
+        </div>
+      </section>
+
+      {nearby.length > 0 && (
+        <section class="pl-section">
+          <h2 class="pl-section__title">{T.nearby}</h2>
+          <div class="pl-scroller">
+            {nearby.map((a) => (
+              <a class="pl-stay" href={`${BASE}/app/stays/${a.slug}`}>
+                <div class="pl-stay__photo">{a.photos && a.photos[0] && <img src={thumb(a.photos[0], 480)} alt="" loading="lazy" onload="this.classList.add('is-loaded')" />}</div>
+                <div class="pl-stay__row">
+                  <span class="pl-stay__name">{aptTitle(a)}</span>
+                  {a.price_from && <span class="pl-stay__price">{priceSym(a.price_currency)}{a.price_from}</span>}
+                </div>
+                <p class="pl-stay__meta">{km(a.d)} {T.away} · {a.bedrooms ? T.bedrooms(a.bedrooms) : T.studio}</p>
+              </a>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {related.length > 0 && (
+        <section class="pl-section">
+          <h2 class="pl-section__title">{T.more}</h2>
+          <div class="pl-scroller">
+            {related.map((r) => (
+              <a class="pl-more" href={`${BASE}/app/place/${r.slug}`}>
+                <div class="pl-more__photo"><img src={thumb((r.photos && r.photos[0]) || r.image, 320)} alt="" loading="lazy" onload="this.classList.add('is-loaded')" /></div>
+                <p class="pl-more__name">{r.title || r.name}</p>
+                <p class="pl-more__meta">{areaOf(r)}</p>
+              </a>
+            ))}
+          </div>
+        </section>
+      )}
+    </div>
+  </main>
+
+  {(mapsUrl || tel) && (
+    <div class="pl-actionbar">
+      {mapsUrl && (
+        <a class="pl-primary" href={mapsUrl} target="_blank" rel="noopener">
+          <Fragment set:html={svg(ICONS.route, 'pl-primary__icon')} />{T.directions}
+        </a>
+      )}
+      {tel && <a class="pl-secondary" href={tel} aria-label={T.call} set:html={svg(ICONS.phone)} />}
+    </div>
+  )}
+  <p class="pl-toast" id="plToast" role="status" aria-live="polite" hidden>{T.copied}</p>
+
+  <TabBar lang={lang} />
+
+  <script is:inline define:vars={{ HOURS: p.hours || [], RU: isRu, SHARE: shareUrl, NAME: name }}>
+    (function () {
+      var $ = function (id) { return document.getElementById(id); };
+
+      // back: return to wherever the user came from inside the app; deep links fall back to the guide
+      $('plBack').addEventListener('click', function (e) {
+        if (history.length > 1 && document.referrer && new URL(document.referrer).origin === location.origin) { e.preventDefault(); history.back(); }
+      });
+
+      // share the public site page, not the app preview address
+      $('plShare').addEventListener('click', function () {
+        if (navigator.share) { navigator.share({ title: NAME, url: SHARE }).catch(function () {}); return; }
+        var t = $('plToast');
+        (navigator.clipboard ? navigator.clipboard.writeText(SHARE) : Promise.reject()).then(function () {
+          t.hidden = false; setTimeout(function () { t.hidden = true; }, 2200);
+        }).catch(function () {});
+      });
+
+      // gallery counter
+      var track = $('plTrack'), count = $('plCount');
+      if (track && count) {
+        var n = track.children.length;
+        track.addEventListener('scroll', function () {
+          count.textContent = (Math.round(track.scrollLeft / track.clientWidth) + 1) + ' / ' + n;
+        }, { passive: true });
+      }
+
+      // open now / opens at — Batumi time, Google weekday hours
+      var DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
+      var now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Tbilisi' }));
+      var dow = now.getDay(), mins = now.getHours() * 60 + now.getMinutes();
+      function pt(s, fb) { var m = String(s).match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i); if (!m) return null; var suf = m[3] || fb, h = +m[1]; if (suf) { h = h % 12; if (/pm/i.test(suf)) h += 12; } return h * 60 + (+m[2]); }
+      function ranges(str) {
+        if (!str || /closed/i.test(str)) return [];
+        if (/24/.test(str) && /hour/i.test(str)) return [{ o: 0, c: 1440, all: true }];
+        return str.split(',').map(function (r) {
+          var p = r.split(/[–—-]/); if (p.length < 2) return null;
+          var suf = (p[1].match(/(AM|PM)/i) || [])[1], o = pt(p[0], suf), c = pt(p[1]);
+          if (o == null || c == null) return null; if (c <= o) c += 1440; return { o: o, c: c };
+        }).filter(Boolean);
+      }
+      function day(d) { for (var i = 0; i < HOURS.length; i++) { var l = HOURS[i], k = l.indexOf(':'); if (k > 0 && l.slice(0, k).trim() === DAYS[d]) return ranges(l.slice(k + 1).trim()); } return []; }
+      function hhmm(m) { m = m % 1440; return ('0' + Math.floor(m / 60)).slice(-2) + ':' + ('0' + (m % 60)).slice(-2); }
+      if (HOURS.length) {
+        var st = $('plStatus'), text = '', open = false, today = day(dow), yest = day((dow + 6) % 7);
+        for (var i = 0; i < today.length && !text; i++) if (mins >= today[i].o && mins < today[i].c) { open = true; text = today[i].all ? (RU ? 'открыто круглосуточно' : 'open 24 hours') : (RU ? 'открыто · до ' : 'open · till ') + hhmm(today[i].c); }
+        for (var j = 0; j < yest.length && !text; j++) if (mins + 1440 >= yest[j].o && mins + 1440 < yest[j].c) { open = true; text = (RU ? 'открыто · до ' : 'open · till ') + hhmm(yest[j].c); }
+        if (!text) {
+          var later = today.filter(function (r) { return r.o > mins; })[0];
+          if (later) text = (RU ? 'закрыто · откроется в ' : 'closed · opens at ') + hhmm(later.o);
+          else { for (var k = 1; k <= 7 && !text; k++) { var nx = day((dow + k) % 7)[0]; if (nx) text = (RU ? 'закрыто · откроется ' : 'closed · opens ') + (k === 1 ? (RU ? 'завтра в ' : 'tomorrow at ') : '') + hhmm(nx.o); } }
+        }
+        if (text) { st.textContent = text; st.classList.toggle('is-open', open); st.hidden = false; }
+        // mark today's row (rows are mon..sun = 0..6; JS getDay is sun = 0)
+        var idx = (dow + 6) % 7;
+        document.querySelectorAll('.pl-hours li').forEach(function (li) {
+          if (li.getAttribute('data-days').split(',').indexOf(String(idx)) >= 0) li.classList.add('is-today');
+        });
+      }
+    })();
+  </script>
+</AppFull>

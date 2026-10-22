@@ -1,0 +1,9 @@
+---
+// Native app place screen — EN. The screen itself is src/components/app/PlaceScreen.astro.
+import PlaceScreen from '../../../../../components/app/PlaceScreen.astro';
+import { placePaths } from '../../../../../lib/appPlace';
+
+export const getStaticPaths = placePaths;
+const { p, nearby, related } = Astro.props;
+---
+<PlaceScreen lang="en" p={p} nearby={nearby} related={related} />

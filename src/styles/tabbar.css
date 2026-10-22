@@ -61,7 +61,8 @@ body.has-tabbar{ padding-bottom:64px; }
 /* Страница квартиры: главное действие там — бронь (панель «забронировать» прибита к низу,
    z 70). Таб-бар уступает ей место, как у Airbnb на карточке объекта. */
 @media (max-width:719.98px){
-  body:has(.apt-book-bar) .tabbar{ display:none; }
+  body:has(.apt-book-bar) .tabbar,
+  body:has(.pl-actionbar) .tabbar{ display:none; }
   body.has-tabbar:has(.apt-book-bar){ padding-bottom:0; }
 }
 

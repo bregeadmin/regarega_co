@@ -61,7 +61,7 @@ const placeItems = places
       lat: p.lat,
       lng: p.lng,
       photo: (p.photos && p.photos[0]) || p.image || '',
-      href: `${BASE}/guide/${p.slug}`,
+      href: `${BASE}/app/place/${p.slug}`,
       sub: catLabel(p.category, LANG) + (area ? ` · ${area}` : ''),
       cta: 'смотреть',
       color: '#0A0908',

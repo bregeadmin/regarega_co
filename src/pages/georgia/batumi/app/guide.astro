@@ -64,7 +64,7 @@ const newsPhoto = news ? (news.image || (news.photos && news.photos[0]) || '') :
       const photo = photoOf(p);
       const area = areaOf(p);
       return (
-        <a class="place-tile" data-category={p.category} href={`${BASE}/guide/${p.slug}`}>
+        <a class="place-tile" data-category={p.category} href={`${BASE}/app/place/${p.slug}`}>
           <div class="place-tile__photo">
             {photo && <img src={thumb(photo, 480)} alt="" loading="lazy" onload="this.classList.add('is-loaded')" />}
           </div>

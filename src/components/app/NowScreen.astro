@@ -148,7 +148,7 @@ const bedroomLabel = (n: number | null | undefined) => (!n ? T.studio : T.bedroo
         {withPhoto.map((p) => {
           const area = areaOf(p);
           return (
-            <a class="now-placecard" data-category={p.category} href={`${BASE}/guide/${p.slug}`}>
+            <a class="now-placecard" data-category={p.category} href={`${BASE}/app/place/${p.slug}`}>
               <div class="now-placecard__photo"><img src={thumb(photoOf(p), 320)} alt="" loading="lazy" onload="this.classList.add('is-loaded')" /></div>
               <p class="now-placecard__name">{p.title || p.name}</p>
               <p class="now-placecard__meta">{catLabel(p.category, lang)}{area ? ` · ${area}` : ''}</p>
@@ -251,7 +251,7 @@ const bedroomLabel = (n: number | null | undefined) => (!n ? T.studio : T.bedroo
       $('nowOverline').textContent = words[0] + ' · rega standard';
       $('nowHeadline').textContent = words[1];
       if (hero) {
-        $('nowHero').href = BASE + '/guide/' + hero.p.s;
+        $('nowHero').href = BASE + '/app/place/' + hero.p.s;
         $('nowHeroImg').src = hero.p.p;
         $('nowName').textContent = hero.p.n;
         $('nowWhy').textContent = hero.p.w;
@@ -263,7 +263,7 @@ const bedroomLabel = (n: number | null | undefined) => (!n ? T.studio : T.bedroo
       picks.slice(1).forEach(function (x) {
         var a = document.createElement('a');
         a.className = 'now-alt';
-        a.href = BASE + '/guide/' + x.p.s;
+        a.href = BASE + '/app/place/' + x.p.s;
         var ph = document.createElement('span'); ph.className = 'now-alt__photo';
         var img = document.createElement('img'); img.src = x.p.q; img.alt = ''; ph.appendChild(img);
         var body = document.createElement('span'); body.className = 'now-alt__body';

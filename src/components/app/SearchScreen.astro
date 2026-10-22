@@ -53,7 +53,7 @@ const places = ((gp || []) as any[]).map((p) => {
     n: p.title || p.name,
     m: catLabel(p.category, lang),
     p: thumb((p.photos && p.photos[0]) || p.image, 320),
-    u: `${BASE}/guide/${p.slug}`,
+    u: `${BASE}/app/place/${p.slug}`,
     h: [p.title, p.name, cat?.en, cat?.ru, ...tags, ...tags.map((t) => TAG_RU[t] || ''),
         p.take_title, p.summary, p.summary_ru, p.address].filter(Boolean).join(' ').toLowerCase(),
   };
