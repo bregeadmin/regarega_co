@@ -6,6 +6,7 @@ import App from '../../../../layouts/App.astro';
 import '../../../../styles/app-guide.css';
 import { supabase } from '../../../../lib/supabase';
 import { catLabel } from '../../../../lib/guideCats';
+import { thumb } from '../../../../lib/thumb';
 
 const LANG = 'en' as const;
 const BASE = '/georgia/batumi';
@@ -52,7 +53,7 @@ const newsPhoto = news ? (news.image || (news.photos && news.photos[0]) || '') :
   <div class="place-grid" id="placeGrid">
     {news && (
       <a class="news-tile" href={`${BASE}/guide/news/${news.slug}`}>
-        {newsPhoto && <div class="news-tile__photo"><img src={newsPhoto} alt="" loading="lazy" onload="this.classList.add('is-loaded')" /></div>}
+        {newsPhoto && <div class="news-tile__photo"><img src={thumb(newsPhoto, 320)} alt="" loading="lazy" onload="this.classList.add('is-loaded')" /></div>}
         <div class="news-tile__body">
           <span class="news-tile__kicker">news</span>
           <h3 class="news-tile__title" set:html={mdEm(String(news.headline || news.title || ''))} />
@@ -65,7 +66,7 @@ const newsPhoto = news ? (news.image || (news.photos && news.photos[0]) || '') :
       return (
         <a class="place-tile" data-category={p.category} href={`${BASE}/guide/${p.slug}`}>
           <div class="place-tile__photo">
-            {photo && <img src={photo} alt="" loading="lazy" onload="this.classList.add('is-loaded')" />}
+            {photo && <img src={thumb(photo, 480)} alt="" loading="lazy" onload="this.classList.add('is-loaded')" />}
           </div>
           <div class="place-tile__body">
             <h3 class="place-tile__name">{p.title || p.name}</h3>

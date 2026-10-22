@@ -9,6 +9,7 @@ import '../../styles/app-search.css';
 import { supabase, applyNames, type Apartment } from '../../lib/supabase';
 import { GUIDE_CATS, catLabel } from '../../lib/guideCats';
 import { priceSym } from '../../lib/price';
+import { thumb } from '../../lib/thumb';
 
 export interface Props { lang: 'en' | 'ru' }
 const { lang } = Astro.props;
@@ -51,7 +52,7 @@ const places = ((gp || []) as any[]).map((p) => {
     k: 'p',
     n: p.title || p.name,
     m: catLabel(p.category, lang),
-    p: (p.photos && p.photos[0]) || p.image || '',
+    p: thumb((p.photos && p.photos[0]) || p.image, 320),
     u: `${BASE}/guide/${p.slug}`,
     h: [p.title, p.name, cat?.en, cat?.ru, ...tags, ...tags.map((t) => TAG_RU[t] || ''),
         p.take_title, p.summary, p.summary_ru, p.address].filter(Boolean).join(' ').toLowerCase(),
@@ -66,7 +67,7 @@ const stays = ((apts as Apartment[]) || []).map(applyNames).map((a: any) => ({
   k: 's',
   n: (isRu && a.title_ru) || a.title,
   m: `${priceSym(a.price_currency)}${a.price_from}${isRu ? ' / ночь' : ' / night'}${a.neighborhood ? ` · ${a.neighborhood}` : ''}`,
-  p: (a.photos && a.photos[0]) || '',
+  p: thumb(a.photos && a.photos[0], 320),
   u: `${BASE}/app/stays/${a.slug}`,
   h: [a.title, a.title_ru, a.neighborhood, 'apartment flat stay studio квартира жильё студия апартаменты',
       a.bedrooms ? `${a.bedrooms} bedroom спальня` : 'studio студия'].filter(Boolean).join(' ').toLowerCase(),

@@ -15,6 +15,7 @@ import TabBar from '../TabBar.astro';
 import { supabase, applyNames, type Apartment } from '../../lib/supabase';
 import { catLabel } from '../../lib/guideCats';
 import { priceSym } from '../../lib/price';
+import { thumb } from '../../lib/thumb';
 
 export interface Props { lang: 'en' | 'ru' }
 const { lang } = Astro.props;
@@ -50,7 +51,7 @@ const T = isRu
 // --- guide places ---
 const { data: gp } = await supabase
   .from('guide_places')
-  .select('slug,title,name,category,photos,image,address,hours,tags,rating,take_title,summary_ru')
+  .select('slug,title,name,category,photos,image,address,hours,tags,rating,take_title,body_ru')
   .eq('status', 'published');
 const gpAll = (gp || []) as any[];
 
@@ -66,15 +67,21 @@ const areaOf = (p: any) => {
 };
 // one line on why this place: the editorial take (EN) / first clause of the RU summary
 const whyOf = (p: any) => {
-  const raw = isRu ? String(p.summary_ru || '').split('·')[0] : String(p.take_title || '');
-  return raw.replace(/\*+/g, '').replace(/\s+/g, ' ').trim();
+  // (RU has no take yet — summary_ru often starts with hours, so use the body's first sentence)
+  let raw = isRu ? String(p.body_ru || '').split(/(?<=[.!?])\s|\n/)[0] : String(p.take_title || '');
+  // "garage wines — это винный бар…" → "винный бар…" (the name is already the headline)
+  const name = String(p.title || p.name || '').toLowerCase().split(/\s+/)[0];
+  if (isRu && name && raw.toLowerCase().startsWith(name) && raw.includes(' — ')) raw = raw.slice(raw.indexOf(' — ') + 3).replace(/^это\s+/i, '');
+  const clean = raw.replace(/\*+/g, '').replace(/\s+/g, ' ').replace(/[.]$/, '').trim();
+  return clean.length > 120 ? clean.slice(0, 120).replace(/\s+\S*$/, '') + '…' : clean;
 };
 
 const CAT_ORDER = ['eat-drink', 'wellness', 'move-around', 'work'];
 const cats = CAT_ORDER.filter((c) => gpAll.some((p) => p.category === c));
+// guide row order: category order first (food before transport), then rating
 const withPhoto = gpAll
   .filter((p) => photoOf(p))
-  .sort((a, b) => (b.rating || 0) - (a.rating || 0));
+  .sort((a, b) => (CAT_ORDER.indexOf(a.category) - CAT_ORDER.indexOf(b.category)) || ((b.rating || 0) - (a.rating || 0)));
 
 // what the client-side picker needs, nothing more
 const PICK_DATA = withPhoto.map((p) => ({
@@ -83,7 +90,8 @@ const PICK_DATA = withPhoto.map((p) => ({
   c: catLabel(p.category, lang),
   t: p.tags || [],
   h: p.hours || [],
-  p: photoOf(p),
+  p: thumb(photoOf(p), 828),
+  q: thumb(photoOf(p), 320),
   w: whyOf(p),
 }));
 
@@ -141,7 +149,7 @@ const bedroomLabel = (n: number | null | undefined) => (!n ? T.studio : T.bedroo
           const area = areaOf(p);
           return (
             <a class="now-placecard" data-category={p.category} href={`${BASE}/guide/${p.slug}`}>
-              <div class="now-placecard__photo"><img src={photoOf(p)} alt="" loading="lazy" onload="this.classList.add('is-loaded')" /></div>
+              <div class="now-placecard__photo"><img src={thumb(photoOf(p), 320)} alt="" loading="lazy" onload="this.classList.add('is-loaded')" /></div>
               <p class="now-placecard__name">{p.title || p.name}</p>
               <p class="now-placecard__meta">{catLabel(p.category, lang)}{area ? ` · ${area}` : ''}</p>
             </a>
@@ -158,7 +166,7 @@ const bedroomLabel = (n: number | null | undefined) => (!n ? T.studio : T.bedroo
       <div class="now-scroller now-scroller--stays">
         {apartments.map((a) => (
           <a class="now-staycard" href={`${BASE}/app/stays/${a.slug}`}>
-            <div class="now-staycard__photo"><img src={a.photos[0]} alt="" loading="lazy" onload="this.classList.add('is-loaded')" /></div>
+            <div class="now-staycard__photo"><img src={thumb(a.photos[0], 480)} alt="" loading="lazy" onload="this.classList.add('is-loaded')" /></div>
             <div class="now-staycard__row">
               <span class="now-staycard__name">{a.title}</span>
               <span class="now-staycard__price">{priceSym(a.price_currency)}{a.price_from}</span>
@@ -216,7 +224,7 @@ const bedroomLabel = (n: number | null | undefined) => (!n ? T.studio : T.bedroo
         for (var j = 0; j < yest.length; j++) if (mins + 1440 >= yest[j].o && mins + 1440 < yest[j].c) return { close: yest[j].c % 1440 };
         return false;
       }
-      function hhmm(m) { return Math.floor(m / 60) + ':' + ('0' + (m % 60)).slice(-2); }
+      function hhmm(m) { return ('0' + Math.floor(m / 60)).slice(-2) + ':' + ('0' + (m % 60)).slice(-2); }
       function statusText(o) {
         if (!o) return '';
         if (o.all) return RU ? 'открыто круглосуточно' : 'open 24 hours';
@@ -257,7 +265,7 @@ const bedroomLabel = (n: number | null | undefined) => (!n ? T.studio : T.bedroo
         a.className = 'now-alt';
         a.href = BASE + '/guide/' + x.p.s;
         var ph = document.createElement('span'); ph.className = 'now-alt__photo';
-        var img = document.createElement('img'); img.src = x.p.p; img.alt = ''; ph.appendChild(img);
+        var img = document.createElement('img'); img.src = x.p.q; img.alt = ''; ph.appendChild(img);
         var body = document.createElement('span'); body.className = 'now-alt__body';
         var nm = document.createElement('span'); nm.className = 'now-alt__name'; nm.textContent = x.p.n;
         var meta = document.createElement('span'); meta.className = 'now-alt__meta'; meta.textContent = statusText(x.o) || x.p.c;
