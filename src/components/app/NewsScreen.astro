@@ -20,8 +20,8 @@ const isRu = lang === 'ru';
 const BASE = isRu ? '/ru/georgia/batumi' : '/georgia/batumi';
 
 const T = isRu
-  ? { back: 'назад', share: 'поделиться', copied: 'ссылка скопирована', news: 'в городе', about: 'о каком месте', more: 'подробнее', tickets: 'билеты' }
-  : { back: 'back', share: 'share', copied: 'link copied', news: 'in town', about: 'the place', more: 'details', tickets: 'tickets' };
+  ? { back: 'назад', share: 'поделиться', copied: 'ссылка скопирована', news: 'в городе', about: 'место', aboutMany: 'места из гида', more: 'подробнее', tickets: 'билеты' }
+  : { back: 'back', share: 'share', copied: 'link copied', news: 'in town', about: 'the place', aboutMany: 'places in the guide', more: 'details', tickets: 'tickets' };
 
 const t = newsText(n, lang);
 const photos = newsPhotos(n);
@@ -61,7 +61,7 @@ const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fi
 
       {places.length > 0 && (
         <section class="pl-section">
-          <h2 class="pl-section__title">{T.about}</h2>
+          <h2 class="pl-section__title">{places.length > 1 ? T.aboutMany : T.about}</h2>
           <div class="nw-places">
             {places.map((p) => (
               <a class="nw-place" href={`${BASE}/app/place/${p.slug}`}>

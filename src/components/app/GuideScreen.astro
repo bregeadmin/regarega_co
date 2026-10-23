@@ -117,6 +117,7 @@ const mdEm = (raw: string) => esc(raw).replace(/\*([^*]+)\*/g, '<em>$1</em>').re
         chip.addEventListener('click', function () {
           chips.forEach(function (c) { c.classList.remove('is-active'); });
           chip.classList.add('is-active');
+          chip.scrollIntoView({ inline: 'nearest', block: 'nearest', behavior: 'smooth' });
           var cat = chip.getAttribute('data-cat');
           var visible = 0;
           news.forEach(function (n, i) { n.hidden = cat === 'news' ? false : !(cat === 'all' && i === 0); });
