@@ -1,0 +1,116 @@
+---
+// Native app news screen — one component for both languages (pages app/news/[slug].astro
+// and ru/app/news/[slug].astro; data from lib/appNews.ts). News here are mostly city events.
+// Order: photo shown whole (posters must not be cropped) with back + share over it — or,
+// with no photo, the same two buttons on a plain bar → date, title, the editorial headline,
+// body → the guide places it is about (open the app place screen) → more photos.
+// ONE primary action, pinned to the bottom: the source / tickets link, when there is one.
+import AppFull from '../../layouts/AppFull.astro';
+import '../../styles/app-shell.css';
+import '../../styles/app-place.css';
+import '../../styles/app-news.css';
+import TabBar from '../TabBar.astro';
+import { catLabel } from '../../lib/guideCats';
+import { thumb } from '../../lib/thumb';
+import { newsPhotos, newsText, newsDate } from '../../lib/appNews';
+
+export interface Props { lang: 'en' | 'ru'; n: any; places: any[] }
+const { lang, n, places } = Astro.props;
+const isRu = lang === 'ru';
+const BASE = isRu ? '/ru/georgia/batumi' : '/georgia/batumi';
+
+const T = isRu
+  ? { back: 'назад', share: 'поделиться', copied: 'ссылка скопирована', news: 'в городе', about: 'о каком месте', more: 'подробнее', tickets: 'билеты' }
+  : { back: 'back', share: 'share', copied: 'link copied', news: 'in town', about: 'the place', more: 'details', tickets: 'tickets' };
+
+const t = newsText(n, lang);
+const photos = newsPhotos(n);
+const esc = (s: string) => String(s || '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const md = (raw: string) => esc(raw).replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>').replace(/\*([^*]+)\*/g, '<em>$1</em>');
+const bodyHtml = String(t.body || t.descr).split(/\n+/).map((x) => x.trim()).filter(Boolean).map((x) => '<p>' + md(x) + '</p>').join('');
+const when = newsDate(n.date, lang);
+const url = String(n.url || '').trim();
+const ctaLabel = /tkt\.ge|ticket|biletebi/i.test(url) ? T.tickets : T.more;
+const shareUrl = `https://regarega.co${BASE}/guide/news/${n.slug}`;
+
+const ICONS = {
+  back: '<path d="M15 6l-6 6l6 6" />',
+  share: '<path d="M12 4v11" /><path d="M8 8l4 -4l4 4" /><path d="M6 12v6a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2v-6" />',
+  out: '<path d="M12 6h-6a2 2 0 0 0 -2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-6" /><path d="M11 13l9 -9" /><path d="M15 4h5v5" />',
+  chevron: '<path d="M9 6l6 6l-6 6" />',
+};
+const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+---
+<AppFull lang={lang} title={`${t.title} — rega rega`} description={String(t.descr).replace(/\*+/g, '').slice(0, 160)}>
+  <main class={`pl-screen nw-screen${photos.length ? '' : ' nw-screen--plain'}`}>
+    {photos.length > 0 ? (
+      <div class="nw-hero">
+        <img src={thumb(photos[0], 828)} alt="" onload="this.classList.add('is-loaded')" />
+      </div>
+    ) : null}
+    <div class="pl-topbar">
+      <a class="pl-round" id="plBack" href={`${BASE}/app/guide`} aria-label={T.back} set:html={svg(ICONS.back)} />
+      <button class="pl-round" id="plShare" type="button" aria-label={T.share} set:html={svg(ICONS.share)} />
+    </div>
+
+    <div class="pl-sheet">
+      <p class="pl-kicker"><span class="pl-kicker__dot" style="background:var(--accent)"></span>{T.news}{when ? ` · ${when}` : ''}</p>
+      <h1 class="pl-name">{t.title}</h1>
+      {t.headline && <p class="pl-take" set:html={md(t.headline)} />}
+      {bodyHtml && <div class="pl-body" set:html={bodyHtml} />}
+
+      {places.length > 0 && (
+        <section class="pl-section">
+          <h2 class="pl-section__title">{T.about}</h2>
+          <div class="nw-places">
+            {places.map((p) => (
+              <a class="nw-place" href={`${BASE}/app/place/${p.slug}`}>
+                <span class="nw-place__photo">{((p.photos && p.photos[0]) || p.image) && <img src={thumb((p.photos && p.photos[0]) || p.image, 320)} alt="" loading="lazy" onload="this.classList.add('is-loaded')" />}</span>
+                <span class="nw-place__body">
+                  <span class="nw-place__name">{p.title || p.name}</span>
+                  <span class="nw-place__meta">{catLabel(p.category, lang)}</span>
+                </span>
+                <Fragment set:html={svg(ICONS.chevron, 'pl-row__chev')} />
+              </a>
+            ))}
+          </div>
+        </section>
+      )}
+
+      {photos.length > 1 && (
+        <section class="pl-section nw-more">
+          {photos.slice(1, 7).map((src) => (
+            <img src={thumb(src, 828)} alt="" loading="lazy" onload="this.classList.add('is-loaded')" />
+          ))}
+        </section>
+      )}
+    </div>
+  </main>
+
+  {url && (
+    <div class="pl-actionbar">
+      <a class="pl-primary" href={url} target="_blank" rel="noopener">
+        <Fragment set:html={svg(ICONS.out, 'pl-primary__icon')} />{ctaLabel}
+      </a>
+    </div>
+  )}
+  <p class="pl-toast" id="plToast" role="status" aria-live="polite" hidden>{T.copied}</p>
+
+  <TabBar lang={lang} />
+
+  <script is:inline define:vars={{ SHARE: shareUrl, NAME: t.title }}>
+    (function () {
+      var $ = function (id) { return document.getElementById(id); };
+      $('plBack').addEventListener('click', function (e) {
+        if (history.length > 1 && document.referrer && new URL(document.referrer).origin === location.origin) { e.preventDefault(); history.back(); }
+      });
+      $('plShare').addEventListener('click', function () {
+        if (navigator.share) { navigator.share({ title: NAME, url: SHARE }).catch(function () {}); return; }
+        var t = $('plToast');
+        (navigator.clipboard ? navigator.clipboard.writeText(SHARE) : Promise.reject()).then(function () {
+          t.hidden = false; setTimeout(function () { t.hidden = true; }, 2200);
+        }).catch(function () {});
+      });
+    })();
+  </script>
+</AppFull>

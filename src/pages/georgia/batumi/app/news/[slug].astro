@@ -1,0 +1,9 @@
+---
+// Native app news screen — EN. The screen itself is src/components/app/NewsScreen.astro.
+import NewsScreen from '../../../../../components/app/NewsScreen.astro';
+import { newsPaths } from '../../../../../lib/appNews';
+
+export const getStaticPaths = newsPaths;
+const { n, places } = Astro.props;
+---
+<NewsScreen lang="en" n={n} places={places} />

@@ -16,6 +16,7 @@ import { supabase, applyNames, type Apartment } from '../../lib/supabase';
 import { catLabel } from '../../lib/guideCats';
 import { priceSym } from '../../lib/price';
 import { thumb } from '../../lib/thumb';
+import { loadNews, newsPhotos, newsText, newsDate, newsDay } from '../../lib/appNews';
 
 export interface Props { lang: 'en' | 'ru' }
 const { lang } = Astro.props;
@@ -27,6 +28,7 @@ const T = isRu
       title: 'сейчас — rega rega',
       desc: 'батуми прямо сейчас — одно место под этот момент, весь гид и где остановиться.',
       or: 'или',
+      town: 'в городе',
       guide: 'в гиде',
       stays: 'где остановиться',
       all: 'все →',
@@ -39,6 +41,7 @@ const T = isRu
       title: 'now — rega rega',
       desc: 'batumi right now — one place for this moment, the whole guide and where to stay.',
       or: 'or',
+      town: 'in town',
       guide: 'in the guide',
       stays: 'where to stay',
       all: 'all →',
@@ -105,6 +108,11 @@ const apartments = ((apts as Apartment[]) || [])
   .map((a: any) => ({ ...a, title: (isRu && a.title_ru) || a.title }))
   .filter((a) => a.photos && a.photos[0])
   .slice(0, 6);
+// city events: rendered all, the client keeps only upcoming ones (today in Batumi or later)
+const news = await loadNews();
+const esc = (x: string) => x.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const mdEm = (raw: string) => esc(raw).replace(/\*([^*]+)\*/g, '<em>$1</em>').replace(/\*/g, '');
+
 const bedroomLabel = (n: number | null | undefined) => (!n ? T.studio : T.bedrooms(n));
 ---
 <AppFull lang={lang} title={T.title} description={T.desc}>
@@ -152,6 +160,25 @@ const bedroomLabel = (n: number | null | undefined) => (!n ? T.studio : T.bedroo
               <div class="now-placecard__photo"><img src={thumb(photoOf(p), 320)} alt="" loading="lazy" onload="this.classList.add('is-loaded')" /></div>
               <p class="now-placecard__name">{p.title || p.name}</p>
               <p class="now-placecard__meta">{catLabel(p.category, lang)}{area ? ` · ${area}` : ''}</p>
+            </a>
+          );
+        })}
+      </div>
+    </section>
+
+    <section class="now-block" id="nowTown" hidden>
+      <div class="now-block__head">
+        <h2 class="now-block__title">{T.town}</h2>
+      </div>
+      <div class="now-scroller" id="nowTownRow">
+        {news.map((n) => {
+          const t = newsText(n, lang);
+          const photo = newsPhotos(n)[0];
+          return (
+            <a class={`now-event${photo ? '' : ' now-event--plain'}`} data-day={newsDay(n.date)} href={`${BASE}/app/news/${n.slug}`} hidden>
+              {photo && <div class="now-event__photo"><img src={thumb(photo, 480)} alt="" loading="lazy" onload="this.classList.add('is-loaded')" /></div>}
+              <p class="now-event__when">{newsDate(n.date, lang)}</p>
+              <p class="now-event__title" set:html={mdEm(String(t.title))} />
             </a>
           );
         })}
@@ -274,6 +301,16 @@ const bedroomLabel = (n: number | null | undefined) => (!n ? T.studio : T.bedroo
         row.appendChild(a);
       });
       if (row.children.length) $('nowAlts').hidden = false;
+
+      // in town: upcoming events only, soonest first, at most 6
+      var today = now.getFullYear() + '-' + ('0' + (now.getMonth() + 1)).slice(-2) + '-' + ('0' + now.getDate()).slice(-2);
+      var townRow = $('nowTownRow');
+      var events = [].slice.call(townRow.querySelectorAll('.now-event'))
+        .filter(function (e) { return e.dataset.day >= today; })
+        .sort(function (a, b) { return a.dataset.day < b.dataset.day ? -1 : 1; })
+        .slice(0, 6);
+      events.forEach(function (e) { townRow.appendChild(e); e.hidden = false; });
+      if (events.length) $('nowTown').hidden = false;
 
       // category chips filter the guide row
       var chips = document.querySelectorAll('.now-chip');

@@ -1,0 +1,135 @@
+---
+// Native app "guide" screen — one component for both languages (pages app/guide.astro and
+// ru/app/guide.astro render it with `lang`). All published places as a 2-column grid with
+// category chips, plus the city's news as part of the same guide (content is a filter
+// inside the guide, not its own tab): "all" shows one news card on top — the nearest
+// upcoming event, else the latest — and the "news" chip shows every item, upcoming first.
+// "Upcoming" depends on today, so that choice runs client-side.
+import App from '../../layouts/App.astro';
+import '../../styles/app-guide.css';
+import { supabase } from '../../lib/supabase';
+import { catLabel } from '../../lib/guideCats';
+import { thumb } from '../../lib/thumb';
+import { loadNews, newsPhotos, newsText, newsDate, newsDay } from '../../lib/appNews';
+
+export interface Props { lang: 'en' | 'ru' }
+const { lang } = Astro.props;
+const isRu = lang === 'ru';
+const BASE = isRu ? '/ru/georgia/batumi' : '/georgia/batumi';
+
+const T = isRu
+  ? {
+      title: 'гид — rega rega',
+      desc: 'кафе, велнес, места для работы и как передвигаться по батуми — места, которые мы бы посоветовали другу.',
+      cats: 'категории', all: 'всё', news: 'новости', empty: 'здесь пока пусто',
+    }
+  : {
+      title: 'the guide — rega rega',
+      desc: "cafés, wellness, work spots and how to get around batumi — places we'd hand to a friend.",
+      cats: 'categories', all: 'all', news: 'news', empty: 'nothing here yet',
+    };
+
+const { data: gp } = await supabase
+  .from('guide_places')
+  .select('slug,title,name,category,photos,image,address')
+  .eq('status', 'published');
+const places = (gp || []) as any[];
+const news = await loadNews();
+
+// category chips: only worlds that actually have published places
+const CAT_ORDER = ['eat-drink', 'wellness', 'move-around', 'work'];
+const cats = CAT_ORDER.filter((c) => places.some((p) => p.category === c));
+
+const photoOf = (p: any) => (p.photos && p.photos[0]) || p.image || '';
+// no dedicated "area" column on guide_places — derive a short area label from the street address
+const areaOf = (p: any) => {
+  const a = String(p.address || '').trim();
+  if (!a) return '';
+  const cleaned = a.replace(/,?\s*Batumi[^,]*,?\s*Georgia\s*$/i, '').replace(/,\s*Georgia\s*$/i, '').trim();
+  const first = (cleaned.split(',')[0] || '').trim();
+  if (!first) return '';
+  return first.length > 26 ? first.slice(0, 26).replace(/\s+\S*$/, '') + '…' : first;
+};
+// news headlines mark emphasis as *word* — render it as <em>
+const esc = (x: string) => x.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const mdEm = (raw: string) => esc(raw).replace(/\*([^*]+)\*/g, '<em>$1</em>').replace(/\*/g, '');
+---
+<App lang={lang} title={T.title} description={T.desc}>
+  <nav class="chip-row" aria-label={T.cats}>
+    <button class="chip is-active" data-cat="all" type="button">{T.all}</button>
+    {cats.map((c) => (
+      <button class="chip" data-cat={c} type="button">{catLabel(c, lang)}</button>
+    ))}
+    {news.length > 0 && <button class="chip" data-cat="news" type="button">{T.news}</button>}
+  </nav>
+
+  <div class="place-grid" id="placeGrid">
+    {news.map((n) => {
+      const t = newsText(n, lang);
+      const photo = newsPhotos(n)[0];
+      const when = newsDate(n.date, lang);
+      return (
+        <a class="news-tile" data-day={newsDay(n.date)} href={`${BASE}/app/news/${n.slug}`} hidden>
+          {photo && <div class="news-tile__photo"><img src={thumb(photo, 320)} alt="" loading="lazy" onload="this.classList.add('is-loaded')" /></div>}
+          <div class="news-tile__body">
+            <span class="news-tile__kicker">{T.news}{when ? ` · ${when}` : ''}</span>
+            <h3 class="news-tile__title" set:html={mdEm(String(t.headline || t.title))} />
+          </div>
+        </a>
+      );
+    })}
+    {places.map((p) => {
+      const photo = photoOf(p);
+      const area = areaOf(p);
+      return (
+        <a class="place-tile" data-category={p.category} href={`${BASE}/app/place/${p.slug}`}>
+          <div class="place-tile__photo">
+            {photo && <img src={thumb(photo, 480)} alt="" loading="lazy" onload="this.classList.add('is-loaded')" />}
+          </div>
+          <div class="place-tile__body">
+            <h3 class="place-tile__name">{p.title || p.name}</h3>
+            <p class="place-tile__meta">{catLabel(p.category, lang)}{area ? ` · ${area}` : ''}</p>
+          </div>
+        </a>
+      );
+    })}
+    <p class="place-grid__empty" id="placeGridEmpty" hidden>{T.empty}</p>
+  </div>
+
+  <script is:inline>
+    (function () {
+      var grid = document.getElementById('placeGrid');
+      var chips = document.querySelectorAll('.chip-row .chip');
+      var tiles = document.querySelectorAll('.place-grid .place-tile');
+      var empty = document.getElementById('placeGridEmpty');
+
+      // news order: upcoming (soonest first), then past (latest first) — by Batumi date
+      var today = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Tbilisi' }));
+      var t = today.getFullYear() + '-' + ('0' + (today.getMonth() + 1)).slice(-2) + '-' + ('0' + today.getDate()).slice(-2);
+      var news = [].slice.call(grid.querySelectorAll('.news-tile'));
+      var up = news.filter(function (n) { return n.dataset.day >= t; }).sort(function (a, b) { return a.dataset.day < b.dataset.day ? -1 : 1; });
+      var past = news.filter(function (n) { return n.dataset.day < t; }).sort(function (a, b) { return a.dataset.day < b.dataset.day ? 1 : -1; });
+      news = up.concat(past);
+      news.slice().reverse().forEach(function (n) { grid.insertBefore(n, grid.firstChild); });
+      if (news[0]) news[0].hidden = false;
+
+      chips.forEach(function (chip) {
+        chip.addEventListener('click', function () {
+          chips.forEach(function (c) { c.classList.remove('is-active'); });
+          chip.classList.add('is-active');
+          var cat = chip.getAttribute('data-cat');
+          var visible = 0;
+          news.forEach(function (n, i) { n.hidden = cat === 'news' ? false : !(cat === 'all' && i === 0); });
+          tiles.forEach(function (tl) {
+            var match = cat === 'all' || tl.getAttribute('data-category') === cat;
+            tl.classList.toggle('is-hidden', !match);
+            if (match) visible++;
+          });
+          if (cat === 'news') visible = news.length;
+          if (empty) empty.hidden = visible !== 0;
+          window.scrollTo(0, 0);
+        });
+      });
+    })();
+  </script>
+</App>

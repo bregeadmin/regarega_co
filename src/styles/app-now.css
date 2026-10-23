@@ -272,3 +272,42 @@
 }
 .now-placecard__photo img.is-loaded,
 .now-staycard__photo img.is-loaded{ opacity:1; }
+
+/* ---------- in town: upcoming city events ---------- */
+.now-event{
+  flex:none;
+  width:200px;
+  scroll-snap-align:start;
+  display:flex;
+  flex-direction:column;
+  border-radius:12px;
+  overflow:hidden;
+  background:var(--paper);
+  border:.5px solid var(--line);
+}
+.now-event[hidden]{ display:none; }
+.now-event--plain{ background:var(--accent-soft); border-color:transparent; justify-content:flex-end; min-height:150px; }
+.now-event__photo{ height:110px; background:#EFE9DD; }
+.now-event__photo img{ width:100%; height:100%; object-fit:cover; display:block; opacity:0; transition:opacity .3s ease; }
+.now-event__photo img.is-loaded{ opacity:1; }
+.now-event__when{
+  margin:10px 11px 3px;
+  font-family:"JetBrains Mono", monospace;
+  font-size:10px;
+  letter-spacing:.12em;
+  text-transform:uppercase;
+  color:var(--accent-deep);
+}
+.now-event__title{
+  margin:0 11px 11px;
+  font-family:"Bricolage Grotesque", sans-serif;
+  font-size:14px;
+  font-weight:600;
+  line-height:1.2;
+  color:var(--ink);
+  display:-webkit-box;
+  -webkit-line-clamp:3;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+}
+.now-event__title em{ font-style:italic; }
