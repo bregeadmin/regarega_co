@@ -1,90 +1,263 @@
 ---
-// Native app "concierge" screen — AI concierge inbox stub, one component for both
-// languages (pages app/concierge.astro and ru/app/concierge.astro render it with `lang`).
-// Visual only (chips/prompt pill aren't wired up yet); establishes the on-brand shell for
-// the upcoming AI concierge so every bottom-nav tab resolves to a real screen.
+// Native app "concierge" screen — one component for both languages (pages app/concierge.astro
+// and ru/app/concierge.astro render it with `lang`). v1 is for guests with a booking on this
+// phone (booking mode, see TripFlag.astro): a chat with the Supabase Edge Function `concierge`
+// (rega-os-v2/supabase/functions/concierge), which checks the booking token, knows the
+// apartment, codes, wifi and the whole guide, and recommends only guide places. Replies mark
+// places/events as [[place:slug]] / [[news:slug]] — rendered here as tappable cards from the
+// build-time guide data below. The conversation lives on the phone (localStorage rr_cc).
+// Without a booking: an honest intro with the way to add one.
 import AppFull from '../../layouts/AppFull.astro';
 import '../../styles/app-shell.css';
 import '../../styles/app-concierge.css';
 import AppHeader from '../AppHeader.astro';
 import TabBar from '../TabBar.astro';
+import { supabase } from '../../lib/supabase';
+import { catLabel } from '../../lib/guideCats';
+import { thumb } from '../../lib/thumb';
+import { loadNews, newsPhotos, newsText, newsDate } from '../../lib/appNews';
 
 export interface Props { lang: 'en' | 'ru' }
 const { lang } = Astro.props;
+const isRu = lang === 'ru';
+const BASE = isRu ? '/ru/georgia/batumi' : '/georgia/batumi';
 
-const T = lang === 'ru'
+const T = isRu
   ? {
       title: 'консьерж — rega rega',
-      desc: 'ии-консьерж батуми — спроси что угодно, собери вечер или найди место одним сообщением.',
+      desc: 'консьерж rega для гостей с бронью — коды, wifi и куда пойти рядом с квартирой.',
       h: 'консьерж',
-      sub: 'спроси rega — соберём вечер, найдём место или ответим на вопрос.',
-      prompt: 'спроси rega… собери вечер, найди кофейню',
-      quick: 'быстрые запросы',
-      chips: ['собери вечер', 'собери утро', 'что рядом', 'где поесть'],
-      inbox: 'твои переписки',
-      botName: 'rega · консьерж',
-      botSnippet: 'я тут, спроси что угодно',
-      newChat: 'новый чат',
-      newSnippet: 'пока пусто — начни с вопроса выше',
+      offH: 'консьерж знает твою поездку',
+      offP: 'он отвечает гостям с бронью: как попасть в квартиру, пароль от wifi, где поесть рядом — и только из гида rega.',
+      offCta: 'у меня есть бронь', offAlt: 'а пока — гид',
+      note: 'ии-консьерж: советует только места из гида. то, что решает хозяин, — к хозяину.',
+      chips: ['как попасть в квартиру', 'где позавтракать рядом', 'что сегодня в городе', 'куда сходить вечером', 'что сделать при выезде'],
+      field: 'спроси консьержа', send: 'отправить', clear: 'новый разговор',
+      err: 'не получилось ответить. попробуй ещё раз.', retry: 'повторить',
+      limit: 'на сегодня вопросы закончились — завтра снова.',
+      gone: 'бронь больше не активна — консьерж для неё закрыт.',
     }
   : {
       title: 'concierge — rega rega',
-      desc: 'the batumi ai concierge — ask anything, plan an evening or find a place in one message.',
+      desc: 'the rega concierge for guests with a booking — codes, wifi and where to go near your apartment.',
       h: 'concierge',
-      sub: 'ask rega — we’ll plan the evening, find a place or answer a question.',
-      prompt: 'ask rega… plan my evening, find a café',
-      quick: 'quick asks',
-      chips: ['plan my evening', 'plan my morning', 'what’s nearby', 'where to eat'],
-      inbox: 'your chats',
-      botName: 'rega · concierge',
-      botSnippet: 'i’m here, ask me anything',
-      newChat: 'new chat',
-      newSnippet: 'nothing yet — start with a question above',
+      offH: 'the concierge knows your trip',
+      offP: 'it answers guests with a booking: getting in, the wifi password, where to eat nearby — only from the rega guide.',
+      offCta: 'i have a booking', offAlt: 'meanwhile — the guide',
+      note: 'ai concierge: recommends only places from the guide. things your host decides go to your host.',
+      chips: ['how do i get in', 'breakfast nearby', "what's on in town today", 'where to go tonight', 'what to do at checkout'],
+      field: 'ask the concierge', send: 'send', clear: 'new chat',
+      err: "couldn't answer. try again.", retry: 'retry',
+      limit: "that's all the questions for today — back tomorrow.",
+      gone: 'this booking is no longer active — the concierge is closed for it.',
     };
+
+// what a [[place:slug]] / [[news:slug]] card needs
+const { data: gp } = await supabase
+  .from('guide_places')
+  .select('slug,title,name,category,photos,image,lat,lng')
+  .eq('status', 'published');
+const PLACES: Record<string, any> = {};
+for (const p of (gp || []) as any[]) {
+  const photo = (p.photos && p.photos[0]) || p.image || '';
+  PLACES[p.slug] = { n: p.title || p.name, c: catLabel(p.category, lang), p: photo ? thumb(photo, 320) : '', la: p.lat, lo: p.lng };
+}
+const NEWS: Record<string, any> = {};
+for (const n of await loadNews()) {
+  const photo = newsPhotos(n)[0];
+  NEWS[n.slug] = { n: String(newsText(n, lang).title).replace(/\*+/g, ''), c: newsDate(n.date, lang), p: photo ? thumb(photo, 320) : '' };
+}
 
 const ICONS = {
   sparkle: '<path d="M16 3l1.106 3.79a2 2 0 0 0 1.104 1.105l3.79 1.105l-3.79 1.106a2 2 0 0 0 -1.105 1.104l-1.105 3.79l-1.106 -3.79a2 2 0 0 0 -1.104 -1.105l-3.79 -1.105l3.79 -1.106a2 2 0 0 0 1.105 -1.104z" /><path d="M6 15l.673 2.303a1.5 1.5 0 0 0 1.024 1.024l2.303 .673l-2.303 .673a1.5 1.5 0 0 0 -1.024 1.024l-.673 2.303l-.673 -2.303a1.5 1.5 0 0 0 -1.024 -1.024l-2.303 -.673l2.303 -.673a1.5 1.5 0 0 0 1.024 -1.024z" />',
-  send: '<path d="M10 14l11 -11" /><path d="M21 3l-6.5 18a.55 .55 0 0 1 -1 0l-3.5 -7l-7 -3.5a.55 .55 0 0 1 0 -1l18 -6.5" />',
+  send: '<path d="M12 5l0 14" /><path d="M18 11l-6 -6" /><path d="M6 11l6 -6" />',
 };
+const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
 ---
 <AppFull lang={lang} title={T.title} description={T.desc}>
   <AppHeader lang={lang} />
   <main class="cc-screen">
-    <h1 class="cc-title">{T.h}</h1>
-    <p class="cc-sub">{T.sub}</p>
+    <!-- no booking on this phone: what the concierge is and the way in -->
+    <section class="cc-off">
+      <Fragment set:html={svg(ICONS.sparkle, 'cc-off__icon')} />
+      <h1 class="cc-off__h">{T.offH}</h1>
+      <p class="cc-off__p">{T.offP}</p>
+      <a class="cc-off__cta" href={`${BASE}/app/trip`}>{T.offCta}</a>
+      <a class="cc-off__alt" href={`${BASE}/app/now`}>{T.offAlt}</a>
+    </section>
 
-    <div class="cc-prompt">
-      <svg class="cc-prompt__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={ICONS.sparkle} />
-      <span class="cc-prompt__text">{T.prompt}</span>
-      <span class="cc-prompt__send" aria-hidden="true">
-        <svg viewBox="0 0 24 24" width="15" height="15" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" set:html={ICONS.send} />
-      </span>
-    </div>
-
-    <nav class="cc-chips" aria-label={T.quick}>
-      {T.chips.map((c) => <button class="cc-chip" type="button">{c}</button>)}
-    </nav>
-
-    <section class="cc-inbox" aria-label={T.inbox}>
-      <h2 class="cc-inbox__title">{T.inbox}</h2>
-      <div class="cc-row cc-row--pinned">
-        <span class="cc-row__avatar" aria-hidden="true">
-          <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" set:html={ICONS.sparkle} />
-        </span>
-        <div class="cc-row__body">
-          <p class="cc-row__name">{T.botName}</p>
-          <p class="cc-row__snippet">{T.botSnippet}</p>
-        </div>
+    <!-- the chat (booking mode) -->
+    <section class="cc-chat" aria-label={T.h}>
+      <div class="cc-head">
+        <span class="cc-head__who"><Fragment set:html={svg(ICONS.sparkle, 'cc-head__icon')} /><span id="ccWho">{T.h}</span></span>
+        <button class="cc-head__clear" id="ccClear" type="button" hidden>{T.clear}</button>
       </div>
-      <div class="cc-row">
-        <span class="cc-row__avatar cc-row__avatar--empty" aria-hidden="true"></span>
-        <div class="cc-row__body">
-          <p class="cc-row__name">{T.newChat}</p>
-          <p class="cc-row__snippet">{T.newSnippet}</p>
-        </div>
+      <div class="cc-log" id="ccLog" aria-live="polite">
+        <div class="cc-msg cc-msg--bot"><p class="cc-bubble" id="ccHello"></p></div>
+        <p class="cc-note">{T.note}</p>
       </div>
+      <div class="cc-chips" id="ccChips">
+        {T.chips.map((c) => <button class="cc-chip" type="button">{c}</button>)}
+      </div>
+      <p class="cc-left" id="ccLeft" hidden></p>
     </section>
   </main>
 
+  <form class="cc-compose" id="ccForm" novalidate>
+    <textarea class="cc-compose__field" id="ccField" rows="1" maxlength="1500" placeholder={T.field} aria-label={T.field}></textarea>
+    <button class="cc-compose__send" id="ccSend" type="submit" aria-label={T.send} disabled set:html={svg(ICONS.send)} />
+  </form>
+
   <TabBar lang={lang} />
+
+  <script is:inline define:vars={{ LANG: lang, BASE, PLACES, NEWS, T: { err: T.err, retry: T.retry, limit: T.limit, gone: T.gone, h: T.h } }}>
+    (function () {
+      var RU = LANG === 'ru';
+      var FN = 'https://qkzinjawtumhjbezlyog.supabase.co/functions/v1/concierge';
+      var KEY = 'sb_publishable_R0NeSmTwX9qt0bxlHYj1AA_JIVRqsqU';
+      var $ = function (id) { return document.getElementById(id); };
+      var trip = window.rrTrip && window.rrTrip.active();
+      if (!trip || !trip.token) return; // intro state, set by CSS (html:not(.has-trip))
+
+      var name = String(trip.guest || '').trim().split(/\s+/)[0].toLowerCase();
+      $('ccHello').textContent = (RU ? (name ? 'привет, ' + name + '. ' : 'привет. ') + 'я знаю твою квартиру и весь гид rega — спрашивай.'
+                                     : (name ? 'hi, ' + name + '. ' : 'hi. ') + 'i know your apartment and the whole rega guide — ask away.');
+      $('ccWho').textContent = T.h + ' · ' + (trip.apt_title || trip.apt_name || '');
+
+      // conversation on this phone, per booking
+      var state = { token: trip.token, msgs: [] };
+      try {
+        var saved = JSON.parse(localStorage.getItem('rr_cc') || 'null');
+        if (saved && saved.token === trip.token && Array.isArray(saved.msgs)) state = saved;
+      } catch (e) {}
+      function persist() { try { localStorage.setItem('rr_cc', JSON.stringify(state)); } catch (e) {} }
+
+      function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+      function inline(s) { return esc(s).replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>').replace(/\*([^*\n]+)\*/g, '<em>$1</em>'); }
+
+      function card(kind, slug) {
+        var d = kind === 'place' ? PLACES[slug] : NEWS[slug];
+        if (!d) return null;
+        var a = document.createElement('a');
+        a.className = 'cc-card';
+        a.href = BASE + '/app/' + kind + '/' + slug;
+        var ph = document.createElement('span'); ph.className = 'cc-card__photo';
+        if (d.p) { var img = document.createElement('img'); img.src = d.p; img.alt = ''; img.loading = 'lazy'; img.onerror = function () { this.remove(); }; ph.appendChild(img); }
+        var body = document.createElement('span'); body.className = 'cc-card__body';
+        var nm = document.createElement('span'); nm.className = 'cc-card__name'; nm.textContent = d.n;
+        var walk = kind === 'place' && window.rrTrip ? window.rrTrip.from(d.la, d.lo, RU) : '';
+        var meta = document.createElement('span'); meta.className = 'cc-card__meta'; meta.textContent = walk ? d.c + ' · ' + walk : d.c;
+        body.appendChild(nm); body.appendChild(meta);
+        a.appendChild(ph); a.appendChild(body);
+        return a;
+      }
+
+      // bot text → paragraphs + cards (markers may sit on their own line or inline)
+      function renderBot(text) {
+        var wrap = document.createElement('div'); wrap.className = 'cc-msg cc-msg--bot';
+        var buf = [];
+        var flush = function () {
+          var t = buf.join('\n').trim(); buf = [];
+          if (!t) return;
+          var p = document.createElement('p'); p.className = 'cc-bubble';
+          p.innerHTML = inline(t).replace(/\n/g, '<br>');
+          wrap.appendChild(p);
+        };
+        String(text).split('\n').forEach(function (line) {
+          var re = /\[\[(place|news):([a-z0-9-]+)\]\]/gi, m, last = 0, rest = '';
+          var cards = [];
+          while ((m = re.exec(line))) { rest += line.slice(last, m.index); last = re.lastIndex; cards.push([m[1].toLowerCase(), m[2]]); }
+          rest += line.slice(last);
+          if (rest.trim() || !cards.length) buf.push(rest.replace(/\s+$/, ''));
+          if (cards.length) {
+            flush();
+            cards.forEach(function (c) { var el = card(c[0], c[1]); if (el) wrap.appendChild(el); });
+          }
+        });
+        flush();
+        return wrap;
+      }
+      function renderUser(text) {
+        var wrap = document.createElement('div'); wrap.className = 'cc-msg cc-msg--me';
+        var p = document.createElement('p'); p.className = 'cc-bubble'; p.textContent = text;
+        wrap.appendChild(p); return wrap;
+      }
+      function renderAll() {
+        var log = $('ccLog');
+        [].slice.call(log.querySelectorAll('.cc-msg:not(:first-child), .cc-status')).forEach(function (n) { n.remove(); });
+        state.msgs.forEach(function (m) { log.appendChild(m.role === 'user' ? renderUser(m.content) : renderBot(m.content)); });
+        $('ccChips').hidden = state.msgs.length > 0;
+        $('ccClear').hidden = state.msgs.length === 0;
+      }
+      function bottom() { requestAnimationFrame(function () { window.scrollTo(0, document.body.scrollHeight); }); }
+
+      function status(kind, text, retry) {
+        var s = document.createElement('div'); s.className = 'cc-status cc-status--' + kind;
+        if (kind === 'typing') { s.innerHTML = '<span></span><span></span><span></span>'; s.setAttribute('aria-label', '…'); }
+        else {
+          var p = document.createElement('p'); p.textContent = text; s.appendChild(p);
+          if (retry) { var b = document.createElement('button'); b.type = 'button'; b.className = 'cc-status__retry'; b.textContent = T.retry; b.onclick = function () { s.remove(); ask(); }; s.appendChild(b); }
+        }
+        $('ccLog').appendChild(s); bottom(); return s;
+      }
+
+      var busy = false;
+      function setBusy(b) { busy = b; $('ccSend').disabled = b || !$('ccField').value.trim(); $('ccField').readOnly = b; }
+
+      function ask() {
+        setBusy(true);
+        var typing = status('typing');
+        fetch(FN, {
+          method: 'POST',
+          headers: { apikey: KEY, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ token: state.token, lang: LANG, messages: state.msgs.slice(-16) }),
+        }).then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
+          .then(function (res) {
+            typing.remove();
+            if (res.ok && res.j.reply) {
+              state.msgs.push({ role: 'assistant', content: res.j.reply });
+              persist();
+              $('ccLog').appendChild(renderBot(res.j.reply));
+              if (typeof res.j.left === 'number' && res.j.left <= 5) { $('ccLeft').textContent = (RU ? 'осталось вопросов сегодня: ' : 'questions left today: ') + res.j.left; $('ccLeft').hidden = false; }
+              bottom();
+            } else if (res.j && res.j.error === 'limit') {
+              status('info', T.limit);
+            } else if (res.j && (res.j.error === 'no_booking' || res.j.error === 'expired')) {
+              status('info', T.gone);
+            } else throw new Error('fail');
+          })
+          .catch(function () { typing.remove(); status('err', T.err, true); })
+          .then(function () { setBusy(false); });
+      }
+
+      function send(text) {
+        text = String(text || '').trim();
+        if (!text || busy) return;
+        // a failed question stays the last user turn: replace it instead of stacking two
+        [].slice.call(document.querySelectorAll('.cc-status')).forEach(function (n) { n.remove(); });
+        if (state.msgs.length && state.msgs[state.msgs.length - 1].role === 'user') state.msgs.pop(), renderAll();
+        state.msgs.push({ role: 'user', content: text });
+        persist();
+        $('ccLog').appendChild(renderUser(text));
+        $('ccChips').hidden = true; $('ccClear').hidden = false;
+        $('ccField').value = ''; grow();
+        bottom();
+        ask();
+      }
+
+      var field = $('ccField');
+      function grow() { field.style.height = 'auto'; field.style.height = Math.min(field.scrollHeight, 120) + 'px'; $('ccSend').disabled = busy || !field.value.trim(); }
+      field.addEventListener('input', grow);
+      field.addEventListener('keydown', function (e) { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); send(field.value); } });
+      $('ccForm').addEventListener('submit', function (e) { e.preventDefault(); send(field.value); });
+      [].slice.call(document.querySelectorAll('.cc-chip')).forEach(function (c) { c.addEventListener('click', function () { send(c.textContent); }); });
+
+      $('ccClear').addEventListener('click', function () { state.msgs = []; persist(); renderAll(); $('ccLeft').hidden = true; window.scrollTo(0, 0); });
+
+      renderAll();
+      // an unanswered last question (app closed mid-answer) → ask again
+      if (state.msgs.length && state.msgs[state.msgs.length - 1].role === 'user') ask();
+      else if (state.msgs.length) bottom();
+    })();
+  </script>
 </AppFull>

@@ -371,3 +371,7 @@
   font-family:"Bricolage Grotesque", sans-serif;
   font-size:12.5px;
 }
+
+/* body.app-full a{color:inherit} (app-shell.css) outranks a bare class — scope the links */
+.tr-screen a.tr-link{ color:var(--accent-deep); }
+.tr-screen a.tr-empty__alt{ color:var(--ink-soft); }
