@@ -1,61 +1,13 @@
 /* Native app "concierge" screen (src/components/app/ConciergeScreen.astro). On top of the
    :root tokens + body.app-full reset from app-shell.css — this file only styles .cc-*.
-   Two states by booking mode: html:not(.has-trip) → intro (.cc-off), html.has-trip → chat. */
+   One chat for everyone; booking mode (html.has-trip) swaps the suggestions. */
 
 .cc-screen{ padding:4px 15px calc(150px + env(safe-area-inset-bottom)); }
 .cc-screen [hidden]{ display:none !important; }
 
-html:not(.has-trip) .cc-chat,
-html:not(.has-trip) .cc-compose{ display:none; }
-html.has-trip .cc-off{ display:none; }
-
-/* ---------- intro (no booking on this phone) ---------- */
-.cc-off{
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  text-align:center;
-  padding:46px 8px 0;
-}
-.cc-off__icon{ width:44px; height:44px; color:var(--accent); }
-.cc-off__h{
-  margin:16px 0 6px;
-  font-family:"Bricolage Grotesque", sans-serif;
-  font-size:21px;
-  font-weight:600;
-  line-height:1.15;
-  color:var(--ink);
-}
-.cc-off__p{
-  margin:0 0 22px;
-  max-width:310px;
-  font-family:"Bricolage Grotesque", sans-serif;
-  font-size:13.5px;
-  line-height:1.45;
-  color:var(--ink-soft);
-}
-.cc-off__cta{
-  display:inline-flex;
-  align-items:center;
-  height:46px;
-  padding:0 22px;
-  border-radius:12px;
-  background:var(--accent);
-  color:#fff;
-  font-family:"Bricolage Grotesque", sans-serif;
-  font-size:14.5px;
-  font-weight:600;
-  text-decoration:none;
-}
-.cc-off__alt{
-  margin-top:18px;
-  font-family:"Bricolage Grotesque", sans-serif;
-  font-size:13px;
-  font-weight:500;
-  color:var(--ink-soft);
-  text-decoration:underline;
-  text-underline-offset:3px;
-}
+html.has-trip .cc-chip--open,
+html:not(.has-trip) .cc-chip--trip,
+html.has-trip .cc-add{ display:none; }
 
 /* ---------- chat ---------- */
 .cc-head{
@@ -261,6 +213,14 @@ html.has-trip .cc-off{ display:none; }
 .cc-compose__send:disabled{ background:#E6DFD2; color:#fff; cursor:default; }
 @media (min-width:720px){ .cc-compose{ bottom:0; } }
 
-/* body.app-full a{color:inherit} (app-shell.css) outranks a bare class — scope the links */
-.cc-screen a.cc-off__cta{ color:#fff; }
-.cc-screen a.cc-off__alt{ color:var(--ink-soft); }
+/* body.app-full a{color:inherit} (app-shell.css) outranks a bare class — scope the link */
+.cc-screen a.cc-add{
+  display:block;
+  margin:0 0 4px 2px;
+  font-family:"Bricolage Grotesque", sans-serif;
+  font-size:12.5px;
+  line-height:1.4;
+  color:var(--accent-deep);
+  text-decoration:underline;
+  text-underline-offset:3px;
+}
