@@ -2,7 +2,8 @@
 // Native app "profile" screen — one component for both languages (pages app/profile.astro
 // and ru/app/profile.astro render it with `lang`). Shows only what is real today: the
 // dot-punch avatar, "my trip" when a booking token is saved on this device (set by the
-// trip screen as localStorage rr_trip_token), and a working language switch. Taste, cities,
+// trip screen as localStorage rr_trip_token) — else "I have a booking", the way in for a
+// guest whose host sent a link — and a working language switch. Taste, cities,
 // sign-in and notifications come back once they actually exist — no placeholder data.
 import AppFull from '../../layouts/AppFull.astro';
 import '../../styles/app-shell.css';
@@ -19,12 +20,12 @@ const OTHER = isRu ? '/georgia/batumi/app/profile' : '/ru/georgia/batumi/app/pro
 const T = isRu
   ? {
       title: 'профиль — rega rega', desc: 'твой профиль rega rega — поездка и настройки.',
-      h: 'профиль', guest: 'гость', trip: 'моя поездка', settings: 'настройки', lang: 'язык',
+      h: 'профиль', guest: 'гость', trip: 'моя поездка', haveBooking: 'у меня есть бронь', settings: 'настройки', lang: 'язык',
       langValue: 'русский', soon: 'скоро здесь: вход, твой вкус и уведомления.',
     }
   : {
       title: 'profile — rega rega', desc: 'your rega rega profile — trip and settings.',
-      h: 'profile', guest: 'guest', trip: 'my trip', settings: 'settings', lang: 'language',
+      h: 'profile', guest: 'guest', trip: 'my trip', haveBooking: 'i have a booking', settings: 'settings', lang: 'language',
       langValue: 'english', soon: 'coming here soon: sign-in, your taste and notifications.',
     };
 
@@ -45,10 +46,10 @@ const ICONS = {
       <p class="pf-name">{T.guest}</p>
     </div>
 
-    <section class="pf-section" id="pfTrip" hidden>
-      <a class="pf-city pf-city--accent" href={`${BASE}/trip`}>
+    <section class="pf-section">
+      <a class="pf-city" id="pfTrip" href={`${BASE}/app/trip`}>
         <svg class="pf-city__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={ICONS.pin} />
-        <span class="pf-city__label">{T.trip}</span>
+        <span class="pf-city__label" id="pfTripLabel">{T.haveBooking}</span>
       </a>
     </section>
 
@@ -69,9 +70,14 @@ const ICONS = {
 
   <TabBar lang={lang} />
 
-  <script is:inline>
+  <script is:inline define:vars={{ TRIP: T.trip }}>
     (function () {
-      try { if (localStorage.getItem('rr_trip_token')) document.getElementById('pfTrip').hidden = false; } catch (e) {}
+      try {
+        if (localStorage.getItem('rr_trip_token')) {
+          document.getElementById('pfTrip').classList.add('pf-city--accent');
+          document.getElementById('pfTripLabel').textContent = TRIP;
+        }
+      } catch (e) {}
       // remember the choice so the app opens in this language next time (read by the now screen)
       document.getElementById('pfLang').addEventListener('click', function () {
         try { localStorage.setItem('rr_lang', this.getAttribute('data-lang')); } catch (e) {}

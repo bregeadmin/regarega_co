@@ -94,3 +94,8 @@ html:not(.in-app) body.has-tabbar:has(.tabbar--site){ padding-bottom:0; }
   .tabbar{ display:none; }
   body.has-tabbar{ padding-bottom:0; }
 }
+
+/* Режим брони (html.has-trip, TripFlag.astro): вторая вкладка — «поездка» вместо «жильё». */
+.tabbar__item[data-tab="trip"]{ display:none; }
+html.has-trip .tabbar__item[data-tab="trip"]{ display:flex; }
+html.has-trip .tabbar__item[data-tab="stays"]{ display:none; }

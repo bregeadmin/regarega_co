@@ -1,0 +1,335 @@
+---
+// Native app "trip" screen — one component for both languages (pages app/trip.astro and
+// ru/app/trip.astro). Everything is per-device and per-booking, so it all runs client-side:
+// token from ?t= / the pasted host link / localStorage rr_trip_token → two anon RPCs that
+// already exist (guest_instruction: dates, steps, codes gated to ci-2…co+1, wifi, operator;
+// guest_guide: the apartment's slug + coordinates) + the apartment photo → cached as
+// localStorage rr_trip (works offline, and switches the whole app into booking mode —
+// see TripFlag.astro). States: empty (paste the link) · loading · the trip · link failed.
+import AppFull from '../../layouts/AppFull.astro';
+import '../../styles/app-shell.css';
+import '../../styles/app-trip.css';
+import AppHeader from '../AppHeader.astro';
+import TabBar from '../TabBar.astro';
+
+export interface Props { lang: 'en' | 'ru' }
+const { lang } = Astro.props;
+const isRu = lang === 'ru';
+const BASE = isRu ? '/ru/georgia/batumi' : '/georgia/batumi';
+
+const T = isRu
+  ? {
+      title: 'поездка — rega rega', desc: 'твоя бронь, коды и wifi — в одном месте.',
+      emptyH: 'твоя поездка появится здесь',
+      emptyP: 'открой ссылку на бронь из сообщения хозяина — или вставь её сюда.',
+      field: 'ссылка или код брони', open: 'открыть', stays: 'смотреть жильё',
+      bad: 'не нашли такую бронь — проверь ссылку из сообщения.',
+      offline: 'нет сети — нужна связь, чтобы открыть бронь.',
+      loading: 'открываем поездку…',
+      how: 'как попасть', wifi: 'wifi', net: 'сеть', pass: 'пароль', addr: 'адрес',
+      parking: 'парковка', out: 'при выезде', host: 'хозяин', full: 'полная инструкция с фото',
+      copy: 'нажми, чтобы скопировать', copied: 'скопировано', cached: 'сохранённая копия — нет сети',
+      forget: 'убрать поездку с этого телефона', forgetSure: 'точно убрать? нажми ещё раз',
+    }
+  : {
+      title: 'trip — rega rega', desc: 'your booking, codes and wifi — all in one place.',
+      emptyH: 'your trip will appear here',
+      emptyP: "open the booking link from your host's message — or paste it here.",
+      field: 'booking link or code', open: 'open', stays: 'see stays',
+      bad: "we couldn't find that booking — check the link from your message.",
+      offline: "you're offline — the booking needs a connection to open.",
+      loading: 'opening your trip…',
+      how: 'getting in', wifi: 'wifi', net: 'network', pass: 'password', addr: 'address',
+      parking: 'parking', out: 'when you leave', host: 'host', full: 'full guide with photos',
+      copy: 'tap to copy', copied: 'copied', cached: 'saved copy — no connection',
+      forget: 'remove this trip from this phone', forgetSure: 'sure? tap again',
+    };
+
+const ICONS = {
+  suitcase: '<path d="M3 9a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v9a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2z" /><path d="M8 7v-2a2 2 0 0 1 2 -2h4a2 2 0 0 1 2 2v2" /><path d="M12 12v.01" /><path d="M3 13a20 20 0 0 0 18 0" />',
+  pin: '<path d="M9 11a3 3 0 1 0 6 0a3 3 0 0 0 -6 0" /><path d="M17.657 16.657l-4.243 4.243a2 2 0 0 1 -2.827 0l-4.244 -4.243a8 8 0 1 1 11.314 0z" />',
+  out: '<path d="M12 6h-6a2 2 0 0 0 -2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-6" /><path d="M11 13l9 -9" /><path d="M15 4h5v5" />',
+  chevron: '<path d="M9 6l6 6l-6 6" />',
+};
+const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+---
+<AppFull lang={lang} title={T.title} description={T.desc}>
+  <AppHeader lang={lang} />
+  <main class="tr-screen">
+    <p class="tr-loading" id="trLoading">{T.loading}</p>
+
+    <!-- no booking on this phone yet -->
+    <section class="tr-empty" id="trEmpty" hidden>
+      <Fragment set:html={svg(ICONS.suitcase, 'tr-empty__icon')} />
+      <h1 class="tr-empty__h">{T.emptyH}</h1>
+      <p class="tr-empty__p">{T.emptyP}</p>
+      <form class="tr-add" id="trAdd" novalidate>
+        <input class="tr-add__field" id="trField" type="text" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder={T.field} aria-label={T.field} />
+        <button class="tr-add__btn" type="submit">{T.open}</button>
+      </form>
+      <p class="tr-add__err" id="trErr" role="alert" hidden></p>
+      <a class="tr-empty__alt" href={`${BASE}/app/stays`}>{T.stays}</a>
+    </section>
+
+    <!-- the trip -->
+    <div class="tr-trip" id="trTrip" hidden>
+      <section class="tr-hero">
+        <img class="tr-hero__img" id="trPhoto" alt="" hidden onload="this.classList.add('is-loaded')" />
+        <div class="tr-hero__scrim">
+          <p class="tr-hero__status" id="trStatus"></p>
+          <h1 class="tr-hero__name" id="trName"></h1>
+          <p class="tr-hero__dates" id="trDates"></p>
+        </div>
+      </section>
+      <p class="tr-hello" id="trHello" hidden></p>
+      <p class="tr-cached" id="trCached" hidden>{T.cached}</p>
+
+      <section class="tr-sec" id="trHowSec" hidden>
+        <h2 class="tr-sec__h">{T.how}</h2>
+        <ol class="tr-steps" id="trSteps"></ol>
+      </section>
+
+      <section class="tr-sec" id="trWifiSec" hidden>
+        <h2 class="tr-sec__h">{T.wifi}</h2>
+        <div class="tr-list">
+          <button class="tr-row tr-copy" type="button" id="trNet"><span class="tr-row__k">{T.net}</span><span class="tr-row__v" data-v></span></button>
+          <button class="tr-row tr-copy" type="button" id="trPass"><span class="tr-row__k">{T.pass}</span><span class="tr-row__v" data-v></span></button>
+        </div>
+      </section>
+
+      <section class="tr-sec" id="trAddrSec" hidden>
+        <h2 class="tr-sec__h">{T.addr}</h2>
+        <a class="tr-place" id="trAddr" target="_blank" rel="noopener">
+          <Fragment set:html={svg(ICONS.pin, 'tr-place__icon')} />
+          <span class="tr-place__text" id="trAddrText"></span>
+          <Fragment set:html={svg(ICONS.chevron, 'tr-place__chev')} />
+        </a>
+        <div class="tr-sub" id="trParkSec" hidden>
+          <p class="tr-sub__h">{T.parking}</p>
+          <ul class="tr-bullets" id="trPark"></ul>
+        </div>
+      </section>
+
+      <section class="tr-sec" id="trOutSec" hidden>
+        <h2 class="tr-sec__h">{T.out}</h2>
+        <p class="tr-text" id="trOut"></p>
+      </section>
+
+      <section class="tr-sec tr-foot">
+        <p class="tr-host" id="trHost" hidden></p>
+        <a class="tr-link" id="trFull" target="_blank" rel="noopener"><Fragment set:html={svg(ICONS.out, 'tr-link__icon')} />{T.full}</a>
+        <button class="tr-forget" id="trForget" type="button">{T.forget}</button>
+      </section>
+    </div>
+  </main>
+  <p class="tr-toast" id="trToast" role="status" aria-live="polite" hidden>{T.copied}</p>
+
+  <TabBar lang={lang} />
+
+  <script is:inline define:vars={{ LANG: lang, T }}>
+    (function () {
+      var RU = LANG === 'ru';
+      var SB = 'https://qkzinjawtumhjbezlyog.supabase.co';
+      var KEY = 'sb_publishable_R0NeSmTwX9qt0bxlHYj1AA_JIVRqsqU';
+      // the full guest page (photos per step, welcome coupons) — operator links point here too
+      var FULL = 'https://bre-instruction-deploy.vercel.app/?t=';
+      var UUID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
+      var $ = function (id) { return document.getElementById(id); };
+      var show = function (id) { ['trLoading', 'trEmpty', 'trTrip'].forEach(function (x) { $(x).hidden = x !== id; }); };
+
+      function rpc(name, token) {
+        return fetch(SB + '/rest/v1/rpc/' + name, {
+          method: 'POST',
+          headers: { apikey: KEY, 'Content-Type': 'application/json' },
+          body: JSON.stringify({ p_token: token }),
+        }).then(function (r) { if (!r.ok) throw new Error('rpc'); return r.json(); });
+      }
+
+      // booking + apartment (coords, photo) → one cached object
+      function load(token) {
+        return Promise.all([rpc('guest_instruction', token), rpc('guest_guide', token).catch(function () { return null; })])
+          .then(function (res) {
+            var gi = res[0], gg = res[1];
+            if (!gi) return null;
+            var apt = (gg && gg.apt) || {};
+            var trip = Object.assign({}, gi, { token: token, apt: { slug: apt.slug || '', lat: apt.lat, lng: apt.lng, photo: '' } });
+            if (!apt.slug) return trip;
+            return fetch(SB + '/rest/v1/apartments_public?select=photos&slug=eq.' + encodeURIComponent(apt.slug), { headers: { apikey: KEY } })
+              .then(function (r) { return r.ok ? r.json() : []; })
+              .then(function (rows) { trip.apt.photo = (rows[0] && rows[0].photos && rows[0].photos[0]) || ''; return trip; })
+              .catch(function () { return trip; });
+          });
+      }
+
+      function save(trip) {
+        try {
+          localStorage.setItem('rr_trip', JSON.stringify(trip));
+          localStorage.setItem('rr_trip_token', trip.token);
+        } catch (e) {}
+      }
+
+      // --- dates (all date-only, Batumi calendar) ---
+      function d(s) { var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(s || '')); return m ? new Date(+m[1], m[2] - 1, +m[3]) : null; }
+      var MON = RU ? ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря']
+                   : ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
+      function fmt(x) { return x ? x.getDate() + ' ' + MON[x.getMonth()] : ''; }
+      function plural(n, one, few, many) { var a = n % 10, b = n % 100; return a === 1 && b !== 11 ? one : a >= 2 && a <= 4 && (b < 10 || b >= 20) ? few : many; }
+      var now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Tbilisi' }));
+
+      function text(o, base) { return (o && (o[base + (RU ? '_ru' : '_en')] || o[RU ? 'ru' : 'en'] || o[base + (RU ? '_en' : '_ru')] || o[RU ? 'en' : 'ru'])) || ''; }
+      function strip(s) { return String(s || '').replace(/<br\s*\/?>/gi, ', ').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim(); }
+      function el(tag, cls, txt) { var e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; }
+      function photoUrl(src) { return /^https?:/.test(src) ? src : 'https://bre-instruction-deploy.vercel.app/' + String(src).replace(/^\//, ''); }
+
+      function render(t, cached) {
+        var ins = t.instructions || {};
+        var open = t.state === 'open';
+        var ci = d(t.ci), co = d(t.co);
+
+        $('trStatus').textContent = window.rrTrip.status(t, RU);
+        $('trName').textContent = t.apt_title || t.apt_name || (RU ? 'квартира' : 'apartment');
+        var nights = t.nights || (ci && co ? Math.round((co - ci) / 864e5) : 0);
+        var bits = [];
+        if (ci && co) bits.push(fmt(ci) + ' – ' + fmt(co));
+        if (nights) bits.push(RU ? nights + ' ' + plural(nights, 'ночь', 'ночи', 'ночей') : nights + (nights === 1 ? ' night' : ' nights'));
+        if (t.adults) bits.push(RU ? t.adults + ' ' + plural(t.adults, 'гость', 'гостя', 'гостей') : t.adults + (t.adults === 1 ? ' guest' : ' guests'));
+        $('trDates').textContent = bits.join(' · ');
+        if (t.apt && t.apt.photo) { $('trPhoto').src = t.apt.photo; $('trPhoto').hidden = false; }
+        var name = String(t.guest || '').trim().split(/\s+/)[0];
+        if (name) { $('trHello').textContent = (RU ? 'привет, ' : 'hi, ') + name.toLowerCase(); $('trHello').hidden = false; }
+        $('trCached').hidden = !cached;
+
+        // steps: text, code (value only inside the ci-2…co+1 window — the server blanks it otherwise), photos
+        var steps = ins.steps || [], list = $('trSteps');
+        list.innerHTML = '';
+        steps.forEach(function (s) {
+          var li = el('li', 'tr-step');
+          li.appendChild(el('p', 'tr-step__text', strip(text(s, ''))));
+          if (s.code) {
+            var c = s.code, label = strip(text(c, 'label'));
+            if (c.value != null && c.value !== '') {
+              var b = el('button', 'tr-code tr-copy'); b.type = 'button';
+              b.appendChild(el('span', 'tr-code__k', label));
+              var v = el('span', 'tr-code__v', String(c.value)); v.setAttribute('data-v', ''); b.appendChild(v);
+              b.appendChild(el('span', 'tr-code__hint', T.copy));
+              li.appendChild(b);
+            } else {
+              var lk = el('div', 'tr-code tr-code--locked');
+              lk.appendChild(el('span', 'tr-code__k', label));
+              lk.appendChild(el('span', 'tr-code__lock', (RU ? 'откроется ' : 'unlocks ') + fmt(d(t.unlock_date))));
+              li.appendChild(lk);
+            }
+            var how = strip(text(c, 'how'));
+            if (how) li.appendChild(el('p', 'tr-step__how', how));
+          }
+          var ph = (s.photos || []).filter(function (p) { return p && p.src; });
+          if (ph.length) {
+            var row = el('div', 'tr-step__photos');
+            ph.slice(0, 3).forEach(function (p) {
+              var a = el('a', 'tr-step__photo'); a.href = photoUrl(p.src); a.target = '_blank'; a.rel = 'noopener';
+              var img = el('img'); img.src = photoUrl(p.src); img.alt = strip(text(p, '')); img.loading = 'lazy';
+              if (p.fit === 'contain') img.style.objectFit = 'contain';
+              a.appendChild(img); row.appendChild(a);
+            });
+            li.appendChild(row);
+          }
+          list.appendChild(li);
+        });
+        $('trHowSec').hidden = !steps.length;
+
+        // wifi: shown in the same window as the codes
+        var w = t.wifi || {};
+        var net = w.net || w.name || w.ssid, pass = w.pass || w.password;
+        $('trWifiSec').hidden = !(open && (net || pass));
+        $('trNet').querySelector('[data-v]').textContent = net || '—';
+        $('trPass').querySelector('[data-v]').textContent = pass || '—';
+        $('trPass').hidden = !pass;
+
+        var addr = strip(text(ins, 'addr'));
+        var map = ins.map_url || (t.apt && t.apt.lat != null ? 'https://www.google.com/maps/dir/?api=1&destination=' + t.apt.lat + ',' + t.apt.lng : '');
+        $('trAddrSec').hidden = !(addr || map);
+        $('trAddrText').textContent = addr || (RU ? 'открыть на карте' : 'open in maps');
+        if (map) $('trAddr').href = map; else $('trAddr').removeAttribute('href');
+        var park = $('trPark'); park.innerHTML = '';
+        (ins.parking || []).forEach(function (p) { var x = strip(text(p, '')); if (x) park.appendChild(el('li', '', x)); });
+        $('trParkSec').hidden = !park.children.length;
+
+        var out = strip(text(ins, 'checkout_return'));
+        $('trOut').textContent = out;
+        $('trOutSec').hidden = !out;
+
+        var op = t.operator && t.operator.name;
+        $('trHost').textContent = op ? T.host + ': ' + op : '';
+        $('trHost').hidden = !op;
+        $('trFull').href = FULL + t.token;
+        show('trTrip');
+      }
+
+      function fail(msg) { show('trEmpty'); $('trErr').textContent = msg; $('trErr').hidden = false; }
+
+      function open(token, fromField) {
+        show('trLoading');
+        load(token).then(function (trip) {
+          if (!trip) {
+            if (!fromField) { try { localStorage.removeItem('rr_trip'); localStorage.removeItem('rr_trip_token'); } catch (e) {} }
+            return fail(T.bad);
+          }
+          save(trip);
+          // booking mode for this page too (TripFlag only ran at load)
+          var co = d(trip.co);
+          if (co && now < new Date(co.getFullYear(), co.getMonth(), co.getDate() + 1)) document.documentElement.classList.add('has-trip');
+          render(trip, false);
+        }).catch(function () {
+          var cached = null;
+          try { cached = JSON.parse(localStorage.getItem('rr_trip') || 'null'); } catch (e) {}
+          if (cached && cached.token === token) render(cached, true);
+          else fail(T.offline);
+        });
+      }
+
+      // token: ?t= in the link, else the one saved on this phone
+      var q = (new URLSearchParams(location.search).get('t') || '').match(UUID);
+      var saved = '';
+      try { saved = localStorage.getItem('rr_trip_token') || ''; } catch (e) {}
+      if (q) { open(q[0], false); if (history.replaceState) history.replaceState(null, '', location.pathname); }
+      else if (UUID.test(saved)) open(saved, false);
+      else show('trEmpty');
+
+      $('trAdd').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var m = $('trField').value.match(UUID);
+        if (!m) { $('trErr').textContent = T.bad; $('trErr').hidden = false; return; }
+        $('trErr').hidden = true;
+        $('trField').blur();
+        open(m[0], true);
+      });
+
+      // tap to copy: codes, wifi
+      document.addEventListener('click', function (e) {
+        var b = e.target.closest && e.target.closest('.tr-copy');
+        if (!b) return;
+        var v = b.querySelector('[data-v]');
+        if (!v || !navigator.clipboard) return;
+        navigator.clipboard.writeText(v.textContent).then(function () {
+          var t = $('trToast'); t.hidden = false; clearTimeout(t._h); t._h = setTimeout(function () { t.hidden = true; }, 1800);
+        }).catch(function () {});
+      });
+
+      // forget: two taps, no dialogs
+      $('trForget').addEventListener('click', function () {
+        var b = this;
+        if (!b.classList.contains('is-sure')) {
+          b.classList.add('is-sure'); b.textContent = T.forgetSure;
+          setTimeout(function () { b.classList.remove('is-sure'); b.textContent = T.forget; }, 4000);
+          return;
+        }
+        try { localStorage.removeItem('rr_trip'); localStorage.removeItem('rr_trip_token'); } catch (e) {}
+        document.documentElement.classList.remove('has-trip');
+        $('trField').value = '';
+        $('trErr').hidden = true;
+        show('trEmpty');
+        window.scrollTo(0, 0);
+      });
+    })();
+  </script>
+</AppFull>

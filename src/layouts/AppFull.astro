@@ -1,4 +1,5 @@
 ---
+import TripFlag from '../components/TripFlag.astro';
 // Full-bleed native app-shell layout: edge-to-edge screens that draw their OWN chrome
 // (hero top bar, bottom nav, etc). NO site topbar, NO hamburger, NO black footer, and
 // unlike layouts/App.astro also NO app-header / TabBar — the page owns 100% of the frame.
@@ -28,6 +29,7 @@ const {
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-title" content="Rega Rega" />
   <script is:inline>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){});});}</script>
+  <TripFlag />
 </head>
 <body class="app-full">
   <slot />

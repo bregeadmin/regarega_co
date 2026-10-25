@@ -1,0 +1,63 @@
+---
+// Booking mode switch, rendered in the <head> of every app / site layout so the screen
+// paints in the right mode with no flicker. A booking saved on this device (localStorage
+// rr_trip, written by the app trip screen) puts `has-trip` on <html> from the moment it is
+// added through checkout day (Batumi time); the day after checkout the app is back to the
+// normal mode and the trip stays only in the profile. Screens and the tab bar read the class.
+// Also defines window.rrTrip — the active trip (or null) and distance from its apartment door,
+// shared by the now / place screens.
+---
+<script is:inline>
+  try {
+    var rrT = JSON.parse(localStorage.getItem('rr_trip') || 'null');
+    var rrCo = rrT && /^(\d{4})-(\d{2})-(\d{2})/.exec(String(rrT.co || ''));
+    if (rrCo) {
+      var rrNow = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Tbilisi' }));
+      if (rrNow < new Date(+rrCo[1], +rrCo[2] - 1, +rrCo[3] + 1)) document.documentElement.classList.add('has-trip');
+    }
+  } catch (e) {}
+  window.rrTrip = {
+    // the saved trip while booking mode is on, else null
+    active: function () {
+      if (!document.documentElement.classList.contains('has-trip')) return null;
+      try { return JSON.parse(localStorage.getItem('rr_trip') || 'null'); } catch (e) { return null; }
+    },
+    // where the trip is today: "check-in in 5 days" / "you're here · checkout 28 november" / …
+    status: function (t, ru) {
+      var d = function (s) { var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(s || '')); return m ? new Date(+m[1], m[2] - 1, +m[3]) : null; };
+      var ci = d(t && t.ci), co = d(t && t.co);
+      if (!ci || !co) return '';
+      var MON = ru ? ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря']
+                   : ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
+      var n = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Tbilisi' }));
+      var today = new Date(n.getFullYear(), n.getMonth(), n.getDate());
+      var days = function (x) { return Math.round((x - today) / 864e5); };
+      var out = co.getDate() + ' ' + MON[co.getMonth()];
+      if (days(co) < 0) return ru ? 'поездка завершена' : 'trip completed';
+      if (days(co) === 0) return ru ? 'сегодня выезд' : 'checkout today';
+      if (days(ci) <= 0) return ru ? 'ты здесь · выезд ' + out : "you're here · checkout " + out;
+      if (days(ci) === 1) return ru ? 'заезд завтра' : 'check-in tomorrow';
+      var k = days(ci), a = k % 10, b = k % 100;
+      return ru ? 'заезд через ' + k + ' ' + (a === 1 && b !== 11 ? 'день' : a >= 2 && a <= 4 && (b < 10 || b >= 20) ? 'дня' : 'дней') : 'check-in in ' + k + ' days';
+    },
+    // walking minutes from the apartment door to a point (null when either has no coordinates)
+    minutes: function (lat, lng) {
+      var t = this.active(), a = t && t.apt;
+      if (!a || a.lat == null || a.lng == null || lat == null || lng == null || lat === '' || lng === '') return null;
+      var r = function (x) { return (x * Math.PI) / 180; };
+      var dLat = r(lat - a.lat), dLng = r(lng - a.lng);
+      var s = Math.pow(Math.sin(dLat / 2), 2) + Math.cos(r(a.lat)) * Math.cos(r(lat)) * Math.pow(Math.sin(dLng / 2), 2);
+      var km = 2 * 6371 * Math.asin(Math.sqrt(s));
+      return Math.max(1, Math.round((km * 1.25) / 4.8 * 60)); // streets aren't straight: ×1.25, 4.8 km/h
+    },
+    // "7 min walk" / "2.4 km" — '' when there's nothing to measure
+    from: function (lat, lng, ru) {
+      var min = this.minutes(lat, lng);
+      if (min == null) return '';
+      if (min <= 25) return ru ? min + ' мин пешком' : min + ' min walk';
+      var km = (min / 60) * 4.8 / 1.25;
+      var k = km < 10 ? km.toFixed(1) : String(Math.round(km));
+      return ru ? k.replace('.', ',') + ' км' : k + ' km';
+    },
+  };
+</script>

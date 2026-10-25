@@ -6,7 +6,8 @@
 // (Google hours from guide_places.hours) → one place, rotated daily so it isn't always the
 // same. Two alternatives sit under it; below — the whole guide (chips filter it) and stays.
 // Data is build-time (static HTML); only the pick runs client-side, because it depends on
-// the clock.
+// the clock. Booking mode (html.has-trip): a trip card on top, the pick and the guide row
+// lean to what's near the apartment and show the walk from its door, stays are hidden.
 import AppFull from '../../layouts/AppFull.astro';
 import '../../styles/app-shell.css';
 import '../../styles/app-now.css';
@@ -29,6 +30,7 @@ const T = isRu
       desc: 'батуми прямо сейчас — одно место под этот момент, весь гид и где остановиться.',
       or: 'или',
       town: 'в городе',
+      trip: 'твоя поездка',
       guide: 'в гиде',
       stays: 'где остановиться',
       all: 'все →',
@@ -42,6 +44,7 @@ const T = isRu
       desc: 'batumi right now — one place for this moment, the whole guide and where to stay.',
       or: 'or',
       town: 'in town',
+      trip: 'your trip',
       guide: 'in the guide',
       stays: 'where to stay',
       all: 'all →',
@@ -54,7 +57,7 @@ const T = isRu
 // --- guide places ---
 const { data: gp } = await supabase
   .from('guide_places')
-  .select('slug,title,name,category,photos,image,address,hours,tags,rating,take_title,body_ru')
+  .select('slug,title,name,category,photos,image,address,hours,tags,rating,take_title,body_ru,lat,lng')
   .eq('status', 'published');
 const gpAll = (gp || []) as any[];
 
@@ -96,6 +99,8 @@ const PICK_DATA = withPhoto.map((p) => ({
   p: thumb(photoOf(p), 828),
   q: thumb(photoOf(p), 320),
   w: whyOf(p),
+  la: p.lat,
+  lo: p.lng,
 }));
 
 // --- apartments: cheapest first, with a real photo ---
@@ -125,6 +130,16 @@ const bedroomLabel = (n: number | null | undefined) => (!n ? T.studio : T.bedroo
   </script>
   <AppHeader lang={lang} />
   <main class="now-screen">
+    <a class="now-trip" id="nowTrip" href={`${BASE}/app/trip`}>
+      <span class="now-trip__photo"><img id="nowTripImg" alt="" hidden /></span>
+      <span class="now-trip__body">
+        <span class="now-trip__kicker">{T.trip}</span>
+        <span class="now-trip__name" id="nowTripName"></span>
+        <span class="now-trip__status" id="nowTripStatus"></span>
+      </span>
+      <svg class="now-trip__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6l-6 6" /></svg>
+    </a>
+
     <a class="now-hero" id="nowHero" href={`${BASE}/app/guide`}>
       <img class="now-hero__img" id="nowHeroImg" alt="" onload="this.classList.add('is-loaded')" />
       <div class="now-hero__scrim">
@@ -156,10 +171,10 @@ const bedroomLabel = (n: number | null | undefined) => (!n ? T.studio : T.bedroo
         {withPhoto.map((p) => {
           const area = areaOf(p);
           return (
-            <a class="now-placecard" data-category={p.category} href={`${BASE}/app/place/${p.slug}`}>
+            <a class="now-placecard" data-category={p.category} data-lat={p.lat} data-lng={p.lng} href={`${BASE}/app/place/${p.slug}`}>
               <div class="now-placecard__photo"><img src={thumb(photoOf(p), 320)} alt="" loading="lazy" onload="this.classList.add('is-loaded')" /></div>
               <p class="now-placecard__name">{p.title || p.name}</p>
-              <p class="now-placecard__meta">{catLabel(p.category, lang)}{area ? ` · ${area}` : ''}</p>
+              <p class="now-placecard__meta" data-cat={catLabel(p.category, lang)}>{catLabel(p.category, lang)}{area ? ` · ${area}` : ''}</p>
             </a>
           );
         })}
@@ -185,7 +200,7 @@ const bedroomLabel = (n: number | null | undefined) => (!n ? T.studio : T.bedroo
       </div>
     </section>
 
-    <section class="now-block">
+    <section class="now-block now-stays">
       <div class="now-block__head">
         <h2 class="now-block__title">{T.stays}</h2>
         <a class="now-block__all" href={`${BASE}/app/stays`}>{T.all}</a>
@@ -218,6 +233,7 @@ const bedroomLabel = (n: number | null | undefined) => (!n ? T.studio : T.bedroo
         { from: 16, to: 20, tags: ['Cafes', 'Bars', 'Coffee', 'Restaurants'], ru: ['золотой час', 'успей до заката.'], en: ['golden hour', 'catch the light.'] },
         { from: 20, to: 24, tags: ['Bars', 'Restaurants'], ru: ['вечер', 'куда пойти вечером.'], en: ['evening', 'where to tonight.'] },
       ];
+      var $ = function (id) { return document.getElementById(id); };
       var DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
       var now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Tbilisi' }));
       var hour = now.getHours(), dow = now.getDay(), mins = hour * 60 + now.getMinutes();
@@ -258,6 +274,16 @@ const bedroomLabel = (n: number | null | undefined) => (!n ? T.studio : T.bedroo
         return (RU ? 'открыто до ' : 'open till ') + hhmm(o.close);
       }
 
+      // booking mode: walk from the apartment door ('' outside booking mode)
+      var trip = window.rrTrip && window.rrTrip.active();
+      var walk = function (lat, lng) { return trip ? window.rrTrip.from(lat, lng, RU) : ''; };
+      var join = function (a, b) { return a && b ? a + ' · ' + b : a || b; };
+      if (trip) {
+        $('nowTripName').textContent = trip.apt_title || trip.apt_name || '';
+        $('nowTripStatus').textContent = window.rrTrip.status(trip, RU);
+        if (trip.apt && trip.apt.photo) { $('nowTripImg').src = trip.apt.photo; $('nowTripImg').hidden = false; }
+      }
+
       var m = MOMENTS.filter(function (x) { return hour >= x.from && hour < x.to; })[0];
       var fits = function (p) { return p.t.some(function (t) { return m.tags.indexOf(t) >= 0; }); };
       var scored = PLACES.map(function (p) { return { p: p, o: openNow(p.h) }; });
@@ -266,6 +292,11 @@ const bedroomLabel = (n: number | null | undefined) => (!n ? T.studio : T.bedroo
       if (pool.length < 3) pool = pool.concat(scored.filter(function (x) { return fits(x.p) && x.o === null; }));
       if (pool.length < 3) pool = pool.concat(scored.filter(function (x) { return !fits(x.p) && x.o && pool.indexOf(x) < 0; }));
       if (!pool.length) pool = scored;
+      // staying somewhere: keep the pick within a walk of the door when there's enough choice
+      if (trip) {
+        var near = pool.filter(function (x) { var mn = window.rrTrip.minutes(x.p.la, x.p.lo); return mn != null && mn <= 15; });
+        if (near.length >= 3) pool = near;
+      }
 
       // rotate daily so the pick changes but stays stable within a day + moment
       var day = Math.floor(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) / 864e5);
@@ -274,7 +305,6 @@ const bedroomLabel = (n: number | null | undefined) => (!n ? T.studio : T.bedroo
 
       var words = RU ? m.ru : m.en;
       var hero = picks[0];
-      var $ = function (id) { return document.getElementById(id); };
       $('nowOverline').textContent = words[0] + ' · rega standard';
       $('nowHeadline').textContent = words[1];
       if (hero) {
@@ -282,7 +312,7 @@ const bedroomLabel = (n: number | null | undefined) => (!n ? T.studio : T.bedroo
         $('nowHeroImg').src = hero.p.p;
         $('nowName').textContent = hero.p.n;
         $('nowWhy').textContent = hero.p.w;
-        var st = statusText(hero.o);
+        var st = join(statusText(hero.o), walk(hero.p.la, hero.p.lo));
         if (st) { $('nowStatus').textContent = st; $('nowStatus').hidden = false; }
       }
 
@@ -295,7 +325,7 @@ const bedroomLabel = (n: number | null | undefined) => (!n ? T.studio : T.bedroo
         var img = document.createElement('img'); img.src = x.p.q; img.alt = ''; ph.appendChild(img);
         var body = document.createElement('span'); body.className = 'now-alt__body';
         var nm = document.createElement('span'); nm.className = 'now-alt__name'; nm.textContent = x.p.n;
-        var meta = document.createElement('span'); meta.className = 'now-alt__meta'; meta.textContent = statusText(x.o) || x.p.c;
+        var meta = document.createElement('span'); meta.className = 'now-alt__meta'; meta.textContent = walk(x.p.la, x.p.lo) || statusText(x.o) || x.p.c;
         body.appendChild(nm); body.appendChild(meta);
         a.appendChild(ph); a.appendChild(body);
         row.appendChild(a);
@@ -311,6 +341,22 @@ const bedroomLabel = (n: number | null | undefined) => (!n ? T.studio : T.bedroo
         .slice(0, 6);
       events.forEach(function (e) { townRow.appendChild(e); e.hidden = false; });
       if (events.length) $('nowTown').hidden = false;
+
+      // booking mode: the guide row shows the walk from the door, nearest first
+      if (trip) {
+        var placesRow = $('nowPlaces');
+        [].slice.call(placesRow.querySelectorAll('.now-placecard'))
+          .map(function (c) {
+            var la = parseFloat(c.dataset.lat), lo = parseFloat(c.dataset.lng);
+            var w = isNaN(la) ? '' : walk(la, lo);
+            var meta = c.querySelector('.now-placecard__meta');
+            if (w) meta.textContent = meta.dataset.cat + ' · ' + w;
+            var a = trip.apt || {};
+            return { c: c, k: isNaN(la) || a.lat == null ? 1e9 : Math.pow(la - a.lat, 2) + Math.pow((lo - a.lng) * Math.cos(a.lat * Math.PI / 180), 2) };
+          })
+          .sort(function (x, y) { return x.k - y.k; })
+          .forEach(function (x) { placesRow.appendChild(x.c); });
+      }
 
       // category chips filter the guide row
       var chips = document.querySelectorAll('.now-chip');

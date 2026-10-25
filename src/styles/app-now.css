@@ -311,3 +311,43 @@
   overflow:hidden;
 }
 .now-event__title em{ font-style:italic; }
+
+/* ---------- booking mode (html.has-trip): your trip on top, no "where to stay" ---------- */
+.now-trip{ display:none; }
+html.has-trip .now-trip{
+  display:flex;
+  align-items:center;
+  gap:11px;
+  margin:0 15px 12px;
+  padding:9px 12px 9px 9px;
+  border-radius:14px;
+  background:var(--accent-soft);
+  text-decoration:none;
+}
+html.has-trip .now-stays{ display:none; }
+.now-trip__photo{
+  width:48px; height:48px;
+  flex:none;
+  border-radius:10px;
+  overflow:hidden;
+  background:#EFD3C3;
+}
+.now-trip__photo img{ width:100%; height:100%; object-fit:cover; display:block; }
+.now-trip__body{ flex:1 1 auto; min-width:0; display:flex; flex-direction:column; gap:1px; }
+.now-trip__kicker{
+  font-family:"JetBrains Mono", monospace;
+  font-size:9.5px;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:var(--accent-deep);
+}
+.now-trip__name,
+.now-trip__status{
+  font-family:"Bricolage Grotesque", sans-serif;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.now-trip__name{ font-size:14.5px; font-weight:600; color:var(--ink); }
+.now-trip__status{ font-size:12px; color:var(--accent-deep); }
+.now-trip__chev{ flex:none; width:16px; height:16px; color:var(--accent-deep); }

@@ -302,3 +302,24 @@ a.pl-row:active{ background:#F1ECDF; }
   .pl-round, .pl-primary,
   .pl-gallery__slide img, .pl-stay__photo img, .pl-more__photo img{ transition:none; }
 }
+
+/* booking mode (html.has-trip): the walk from the apartment instead of "stay nearby" */
+.pl-walk{
+  display:flex;
+  width:fit-content;
+  align-items:center;
+  gap:6px;
+  margin:6px 0 0;
+  font-family:"JetBrains Mono", monospace;
+  font-size:11px;
+  letter-spacing:.02em;
+  color:var(--accent-deep);
+}
+.pl-walk::before{
+  content:"";
+  width:6px; height:6px;
+  border-radius:50%;
+  background:var(--accent);
+}
+.pl-walk[hidden]{ display:none; }
+html.has-trip .pl-nearby{ display:none; }

@@ -1,4 +1,5 @@
 ---
+import TripFlag from '../components/TripFlag.astro';
 // Shared shell: head, topbar, mobile menu, footer, cursor + shell JS. Edit ONCE.
 import '../styles/shell.css';
 import '../styles/date-sheet.css';
@@ -86,6 +87,7 @@ const ogImage = new URL(image, Astro.site).href;
     // not on the website in a normal browser — tabbar.css keys off html.in-app
     if (window.Capacitor || window.navigator.standalone || (window.matchMedia && matchMedia('(display-mode: standalone)').matches)) document.documentElement.classList.add('in-app');
   </script>
+  <TripFlag />
 </head>
 <body class="has-tabbar" style={`--page:${accent};--page-deep:${accentDeep}`}>
 <a class="skip-link" href="#main">skip to content</a>

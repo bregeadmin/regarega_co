@@ -148,6 +148,7 @@ const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fi
       </p>
       <h1 class="pl-name">{name}</h1>
       <p class="pl-status" id="plStatus" hidden></p>
+      <p class="pl-walk" id="plWalk" hidden></p>
 
       {takeHtml && <p class="pl-take" set:html={takeHtml} />}
       {bodyHtml && <div class="pl-body" set:html={bodyHtml} />}
@@ -197,7 +198,7 @@ const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fi
       </section>
 
       {nearby.length > 0 && (
-        <section class="pl-section">
+        <section class="pl-section pl-nearby">
           <h2 class="pl-section__title">{T.nearby}</h2>
           <div class="pl-scroller">
             {nearby.map((a) => (
@@ -245,7 +246,7 @@ const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fi
 
   <TabBar lang={lang} />
 
-  <script is:inline define:vars={{ HOURS: p.hours || [], RU: isRu, SHARE: shareUrl, NAME: name }}>
+  <script is:inline define:vars={{ HOURS: p.hours || [], RU: isRu, SHARE: shareUrl, NAME: name, LAT: p.lat, LNG: p.lng }}>
     (function () {
       var $ = function (id) { return document.getElementById(id); };
 
@@ -304,6 +305,9 @@ const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fi
           if (li.getAttribute('data-days').split(',').indexOf(String(idx)) >= 0) li.classList.add('is-today');
         });
       }
+      // booking mode: how far this is from the apartment door
+      var w = window.rrTrip && window.rrTrip.from(LAT, LNG, RU);
+      if (w) { $('plWalk').textContent = w + (RU ? ' от твоей квартиры' : ' from your apartment'); $('plWalk').hidden = false; }
     })();
   </script>
 </AppFull>
