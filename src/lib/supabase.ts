@@ -2,8 +2,8 @@ import { createClient } from '@supabase/supabase-js';
 
 // Public (publishable) key — safe to ship in client/build output.
 // Reads the shared Rega Rega Supabase (single source of truth).
-const url = import.meta.env.PUBLIC_SUPABASE_URL || 'https://qkzinjawtumhjbezlyog.supabase.co';
-const key = import.meta.env.PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_R0NeSmTwX9qt0bxlHYj1AA_JIVRqsqU';
+export const url = import.meta.env.PUBLIC_SUPABASE_URL || 'https://qkzinjawtumhjbezlyog.supabase.co';
+export const key = import.meta.env.PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_R0NeSmTwX9qt0bxlHYj1AA_JIVRqsqU';
 
 export const supabase = createClient(url, key);
 
