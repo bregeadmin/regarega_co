@@ -80,7 +80,8 @@
   // the account supplies them. The website form keeps working exactly as before.
   var APP_IDX = location.pathname.indexOf('/app/');
   var IN_APP = APP_IDX >= 0;
-  var APP_BASE = IN_APP ? location.pathname.slice(0, APP_IDX) : '';
+  var APP_BASE = CFG.lang === 'ru' ? '/ru/georgia/batumi' : '/georgia/batumi';
+  var RU = CFG.lang === 'ru';
 
   function sym(c) { return (c || CUR) === 'gel' ? '₾' : '$'; }
   function money(n, c) { return sym(c) + Math.round(n); }
@@ -298,13 +299,25 @@
   function submitInApp() {
     sending = true; abSend.disabled = true; abSend.textContent = t('sending', 'sending…');
     var done = function () { sending = false; abSend.disabled = false; abSend.textContent = t('send', '↗ send request'); };
-    var fail = function () { showErr(t('errSend', 'could not send — try telegram')); done(); };
-    whenAuth(function () {
+    var fail = function (code) {
+      showErr(code === 'unavailable' ? (RU ? 'эти даты уже заняты' : 'those dates are taken')
+        : (RU ? 'не получилось отправить — попробуй ещё раз' : "couldn't send — try again"));
+      done();
+    };
+    var login = function () { done(); loginWithDates(); };
+    var timer = setTimeout(function () { timer = null; fail(); }, 8000);
+    var ready = function () {
+      if (!timer) return;            // already timed out
+      clearTimeout(timer); timer = null;
+      go();
+    };
+    whenAuth(ready);
+    function go() {
       window.rrAuth.session().then(function (sess) {
-        if (!sess || !sess.access_token) { loginWithDates(); return null; }
+        if (!sess || !sess.access_token) { login(); return null; }
         return window.rrAuth.profile().then(function (prof) {
           if (prof && prof.error) { fail(); return null; }
-          if (!prof) { loginWithDates(); return null; }       // login finishes the profile
+          if (!prof) { login(); return null; }       // login finishes the profile
           var amount = abSummary && abSummary.dataset.amount ? Number(abSummary.dataset.amount) : null;
           return fetch('/api/booking', {
             method: 'POST',
@@ -319,12 +332,13 @@
               if (res && res.ok && res.guest_token) {
                 try { localStorage.removeItem('rr_trip'); localStorage.setItem('rr_trip_token', res.guest_token); } catch (e) {}
                 location.href = APP_BASE + '/app/trip';
-              } else if (res && res.error === 'no_profile') { loginWithDates(); }
-              else { fail(); }
+              } else if (res && (res.error === 'no_profile' || res.error === 'auth')) { login(); }
+              else { fail(res && res.error); }
             });
         });
-      }).catch(fail);
-    });
+      }).catch(function () { fail(); });
+    }
+    window.addEventListener('pageshow', function (e) { if (e.persisted) done(); });
   }
 
   // ---------- submit ----------
