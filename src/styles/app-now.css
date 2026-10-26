@@ -1,353 +1,480 @@
-/* Native app "now" home screen (src/components/app/NowScreen.astro): one-pick moment hero,
-   two alternatives, the guide as a filterable horizontal row, and stays. Header and bottom
-   bar are the shared AppHeader / TabBar (styles in app-shell.css / tabbar.css). */
+/* Native app home screen «гид» (src/components/app/NowScreen.astro).
+   Visual source: rega-design-panel r3/01-guide.html + r3/onboarding/daily.html.
+   Tokens only (app-shell.css :root); category colours arrive inline from src/lib/guideCats.ts
+   as --c / --tag-c / --tag-t / --tag-d / --accent-c / --hero-c. Header and the floating glass
+   bar are the shared AppHeader / TabBar (app-shell.css / tabbar.css). */
 
-.now-screen{ padding:12px 0 var(--tabbar-space); }
+.now-screen{ padding:0 0 var(--tabbar-space); overflow-x:clip; }
 
-/* ---------- moment hero: one confident pick ---------- */
+/* display type: Bricolage for latin/digits, Golos 800 for cyrillic (via --font) */
+.now-display{
+  margin:0;
+  font-family:var(--font);
+  font-weight:800;
+  letter-spacing:-.045em;
+  line-height:.9;
+  color:var(--ink);
+  overflow-wrap:break-word;
+}
+.now-display em{
+  font-style:italic;
+  font-weight:800;
+  letter-spacing:-.03em;
+  padding-right:.04em;
+  color:var(--accent-c, var(--ink));
+}
+
+/* ---------- drawn city line + weather ---------- */
+.now-city{ position:relative; height:64px; margin:6px 20px 0; color:var(--ink); }
+.now-city__line{ position:absolute; inset:0; width:100%; height:100%; display:block; }
+.now-city__wx{ position:absolute; left:0; top:4px; display:flex; flex-direction:column; gap:2px; }
+.now-city__wx[hidden]{ display:none; }
+.now-city.has-wx .now-city__wave{ display:none; }
+.now-city__temp{ font-size:22px; font-weight:800; letter-spacing:-.04em; line-height:1; }
+.now-city__sky{ font-size:13.5px; color:var(--ink-2); letter-spacing:-.005em; white-space:nowrap; }
+
+/* ---------- greeting by time of day ---------- */
+.now-hello{ padding:16px 20px 0; }
+.now-hello__h{ font-size:clamp(44px, 13.8vw, 54px); min-height:1.8em; }
+
+/* ---------- hero: one confident pick ---------- */
 .now-hero{
   position:relative;
   display:block;
-  margin:0 15px 12px;
-  height:300px;
-  border-radius:16px;
+  margin:20px 16px 0;
+  height:380px;
+  border-radius:30px;
   overflow:hidden;
-  background:#2b2320;
-  -webkit-tap-highlight-color:transparent;
+  isolation:isolate;
+  background:color-mix(in srgb, var(--ink) 88%, var(--home));
+  box-shadow:var(--sh-card);
+  color:white;
+  transition:transform .16s var(--ease-out);
+}
+.now-hero:active{ transform:scale(.985); }
+.now-hero::before{
+  content:"";
+  position:absolute; inset:0; z-index:1;
+  background:linear-gradient(180deg, rgba(0,0,0,.18), rgba(0,0,0,0) 28%, rgba(0,0,0,0) 46%, rgba(12,10,14,.82));
+  pointer-events:none;
+}
+.now-hero::after{
+  content:"";
+  position:absolute; inset:0; z-index:3;
+  border-radius:inherit;
+  box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);
+  pointer-events:none;
 }
 .now-hero__img{
   position:absolute; inset:0;
   width:100%; height:100%;
   object-fit:cover;
+  display:block;
   opacity:0;
-  transition:opacity .4s ease;
 }
 .now-hero__img.is-loaded{ opacity:1; }
-.now-hero__scrim{
-  position:absolute;
-  left:0; right:0; bottom:0;
-  padding:60px 16px 16px;
-  background:linear-gradient(to bottom, rgba(18,10,4,0), rgba(18,10,4,.72) 45%);
-}
-.now-hero__overline{
-  margin:0 0 6px;
-  font-family:"JetBrains Mono", monospace;
-  font-size:9.5px;
-  letter-spacing:.16em;
-  text-transform:uppercase;
-  color:#f0e4d0;
-}
-.now-hero__headline{
-  margin:0 0 12px;
-  font-family:"Bricolage Grotesque", sans-serif;
-  font-size:15px;
-  font-weight:500;
-  line-height:1.1;
-  text-transform:lowercase;
-  color:rgba(250,247,240,.8);
-}
-.now-hero__name{
-  margin:0;
-  font-family:"Bricolage Grotesque", sans-serif;
-  font-size:26px;
-  font-weight:600;
-  line-height:1.05;
+.now-hero__tags{ position:absolute; left:14px; top:14px; z-index:2; display:flex; gap:6px; }
+.now-hero__tags[hidden]{ display:none; }
+.now-hero__open{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  height:26px;
+  padding:0 10px 0 9px;
+  border-radius:var(--r-pill);
+  background:rgba(10,9,8,.42);
+  -webkit-backdrop-filter:blur(14px);
+  backdrop-filter:blur(14px);
+  font-size:12.5px;
+  font-weight:700;
   letter-spacing:-.01em;
-  color:#FAF7F0;
+  white-space:nowrap;
+  color:white;
 }
-.now-hero__why{
-  margin:6px 0 0;
-  font-family:"Bricolage Grotesque", sans-serif;
-  font-size:13px;
-  line-height:1.3;
-  color:rgba(250,247,240,.85);
+/* «открыто» — not green/orange: the category colour lifted for a dark glass, in a soft ring */
+.now-hero__open i{
+  --dot:color-mix(in srgb, var(--hero-c, var(--ink-3)) 45%, white);
+  width:7px; height:7px;
+  flex:none;
+  border-radius:50%;
+  background:var(--dot);
+  box-shadow:0 0 0 3px color-mix(in srgb, var(--dot) 28%, transparent);
+}
+.now-hero__cap{ position:absolute; left:20px; right:20px; bottom:20px; z-index:2; }
+.now-hero__name{
+  font-size:54px;
+  letter-spacing:-.04em;
+  color:white;
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
+  overflow:hidden;
+  padding-bottom:.06em;
+}
+.now-hero__name, .now-row__name, .now-pc__name{ text-transform:lowercase; }
+.now-hero__name.is-long{ font-size:44px; }
+.now-hero__name.is-xlong{ font-size:36px; }
+.now-hero__say{
+  margin:10px 0 0;
+  max-width:290px;
+  font-size:14.5px;
+  line-height:1.35;
+  color:white;
   display:-webkit-box;
   -webkit-line-clamp:2;
   -webkit-box-orient:vertical;
   overflow:hidden;
 }
-.now-hero__why:empty{ display:none; }
-.now-hero__status{
+.now-hero__say:empty{ display:none; }
+.now-hero__meta{
+  margin:8px 0 0;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  gap:12px;
+  font-size:14.5px;
+  color:rgba(255,255,255,.74);
+}
+.now-hero__meta span:first-child{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
+.now-hero__meta span:last-child{ flex:none; white-space:nowrap; }
+
+/* ---------- category stamp (as on the site): tint + dark text + colour dot ---------- */
+.now-tag{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  height:26px;
+  padding:0 10px 0 9px;
+  border-radius:var(--r-pill);
+  background:var(--tag-t, var(--eat-tint));
+  color:var(--tag-d, var(--eat-dark));
+  font-size:12.5px;
+  font-weight:700;
+  letter-spacing:-.01em;
+  white-space:nowrap;
+  max-width:100%;
+}
+.now-tag i{ width:8px; height:8px; flex:none; border-radius:50%; background:var(--tag-c, var(--eat)); }
+.now-tag.is-ring i{ background:transparent; box-shadow:inset 0 0 0 2px var(--tag-c, var(--eat)); }
+
+/* ---------- two more places: list card ---------- */
+.now-list{
+  display:block;
+  margin:10px 16px 0;
+  padding:6px 0;
+  border-radius:var(--r-card);
+  background:var(--surface);
+  box-shadow:var(--sh-card);
+}
+.now-list[hidden]{ display:none; }
+.now-row{ display:flex; align-items:center; gap:14px; padding:10px 14px 10px 10px; position:relative; }
+.now-row + .now-row::before{ content:""; position:absolute; left:84px; right:0; top:0; height:1px; background:var(--line); }
+.now-row__th{
+  width:60px; height:60px;
+  flex:none;
+  border-radius:16px;
+  overflow:hidden;
+  background:var(--sunk);
+}
+.now-row__th img{ width:100%; height:100%; object-fit:cover; display:block; opacity:0; transition:opacity .3s var(--ease-out); }
+.now-row__th img.is-loaded{ opacity:1; }
+.now-row__t{ flex:1; min-width:0; }
+.now-row__name{
+  display:block;
+  font-size:17px;
+  font-weight:700;
+  letter-spacing:-.025em;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.now-row__meta{ display:flex; align-items:center; gap:8px; margin-top:3px; min-width:0; }
+.now-row__meta .now-tag{ flex:none; }
+.now-row__info{
+  font-size:13.5px;
+  color:var(--ink-2);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  min-width:0;
+}
+.now-row__chev{ flex:none; width:20px; height:20px; fill:none; stroke:var(--ink-3); stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+
+/* ---------- section heads ---------- */
+.now-sec{ display:flex; justify-content:space-between; align-items:flex-end; gap:12px; padding:0 20px; margin:46px 0 14px; }
+.now-sec__h{ font-size:32px; line-height:.95; }
+.now-sec__all{
+  flex:none;
+  display:flex;
+  align-items:center;
+  gap:2px;
+  padding-bottom:3px;
+  font-size:14px;
+  font-weight:600;
+  color:var(--ink-2);
+}
+.now-sec__all svg{ width:16px; height:16px; }
+
+/* ---------- categories: 8 tiles 1:1 with the site (filled / white with edge, «скоро») ---------- */
+.now-cats{ display:grid; grid-template-columns:1fr 1fr; gap:10px; padding:0 16px; }
+.now-ct{
+  position:relative;
+  overflow:hidden;
+  min-height:172px;
+  border-radius:20px;
+  padding:16px;
+  display:flex;
+  flex-direction:column;
+  border:1px solid transparent;
+  min-width:0;
+  transition:transform .16s var(--ease-out);
+}
+a.now-ct:active{ transform:scale(.97); }
+.now-ct > *{ position:relative; z-index:2; }
+.now-ct__top{ display:flex; justify-content:space-between; align-items:flex-start; gap:8px; }
+.now-ct__n{
+  font-family:"Bricolage Grotesque", sans-serif;
+  font-weight:800;
+  font-size:36px;
+  line-height:.9;
+  letter-spacing:-.03em;
+}
+.now-ct__ic{ width:32px; height:32px; flex:none; border-radius:50%; display:grid; place-items:center; }
+.now-ct__ic svg{ width:17px; height:17px; display:block; }
+.now-ct__h{
+  display:block;
+  margin-top:auto;
+  padding-top:14px;
+  font-weight:800;
+  font-size:clamp(16px, 4.9vw, 21px);
+  line-height:1;
+  letter-spacing:-.04em;
+  overflow-wrap:break-word;
+}
+.now-ct__sb{
+  display:block;
+  margin-top:7px;
+  font-family:var(--mono);
+  font-size:9px;
+  letter-spacing:.16em;
+  text-transform:uppercase;
+  line-height:1.4;
+}
+.now-ct__bdg{
   display:inline-flex;
   align-items:center;
   gap:6px;
-  margin:10px 0 0;
-  font-family:"JetBrains Mono", monospace;
-  font-size:10px;
-  letter-spacing:.06em;
-  color:#FAF7F0;
+  height:22px;
+  padding:0 9px;
+  border:1px solid currentColor;
+  border-radius:var(--r-pill);
+  font-family:var(--mono);
+  font-size:8.5px;
+  letter-spacing:.18em;
+  text-transform:uppercase;
+  font-weight:500;
+  white-space:nowrap;
 }
-.now-hero__status::before{
-  content:"";
-  width:6px; height:6px;
-  border-radius:50%;
-  background:#3BC47E;
-}
-
-/* ---------- two alternatives ---------- */
-.now-alts{ padding:0 15px 20px; }
-.now-alts__label{
-  margin:0 0 8px;
-  font-family:"JetBrains Mono", monospace;
+/* filled */
+.now-ct--fill{ background:var(--c); color:var(--bg); }
+.now-ct--fill::before{ content:""; position:absolute; inset:0; z-index:0; background:radial-gradient(circle at top right, rgba(255,255,255,.18), transparent 60%); }
+.now-ct--fill::after{ content:""; position:absolute; left:-30%; bottom:-40%; width:140%; height:80%; z-index:0; background:radial-gradient(ellipse, rgba(0,0,0,.14), transparent 60%); }
+.now-ct--fill .now-ct__ic{ background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.22); }
+.now-ct--fill .now-ct__sb{ opacity:.75; }
+/* white with a colour edge */
+.now-ct--line{ background:var(--surface); border-color:var(--line); color:var(--ink); }
+.now-ct--line::before{ content:""; position:absolute; left:0; top:0; z-index:0; width:5px; height:48px; background:var(--c); border-radius:0 4px 4px 0; }
+.now-ct--line .now-ct__ic{ background:var(--sunk); color:var(--c); border:1px solid var(--line); }
+.now-ct--line .now-ct__sb{ color:var(--ink-2); }
+.now-ct.is-soon{ opacity:.5; }
+/* stays (orange — the home world) */
+.now-ct--stay .now-ct__bdg{ border-color:rgba(255,255,255,.45); background:rgba(255,255,255,.14); }
+.now-ct--stay .now-ct__bdg i{ width:5px; height:5px; border-radius:50%; background:var(--bg); }
+.now-ct__cta{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  margin-top:12px;
+  height:30px;
+  padding:0 12px;
+  width:fit-content;
+  max-width:100%;
+  border-radius:var(--r-pill);
+  background:var(--bg);
+  color:var(--home-deep);
+  font-family:var(--mono);
   font-size:9.5px;
   letter-spacing:.16em;
   text-transform:uppercase;
-  color:var(--ink-soft);
-}
-.now-alts__row{ display:flex; gap:10px; }
-.now-alt{
-  flex:1 1 0;
-  min-width:0;
-  display:flex;
-  align-items:center;
-  gap:9px;
-  padding:7px;
-  border:.5px solid var(--line);
-  border-radius:12px;
-  background:var(--paper);
-}
-.now-alt__photo{
-  width:44px; height:44px;
-  flex:none;
-  border-radius:8px;
-  overflow:hidden;
-  background:#EFE9DD;
-}
-.now-alt__photo img{ width:100%; height:100%; object-fit:cover; display:block; }
-.now-alt__body{ min-width:0; display:flex; flex-direction:column; gap:2px; }
-.now-alt__name,
-.now-alt__meta{
-  font-family:"Bricolage Grotesque", sans-serif;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-}
-.now-alt__name{ font-size:12.5px; font-weight:500; color:var(--ink); }
-.now-alt__meta{ font-size:11px; color:var(--ink-soft); }
-
-/* ---------- section header ---------- */
-.now-block{ padding:0 0 6px; }
-.now-block__head{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  padding:0 15px 10px;
-}
-.now-block__title{
-  margin:0;
-  font-family:"Bricolage Grotesque", sans-serif;
-  font-size:16px;
-  font-weight:600;
-  color:var(--ink);
-  text-transform:lowercase;
-}
-.now-block__all{
-  font-family:"Bricolage Grotesque", sans-serif;
-  font-size:12px;
   font-weight:500;
-  color:var(--accent);
-}
-
-/* ---------- category chips ---------- */
-.now-chips{
-  display:flex;
-  gap:7px;
-  padding:0 15px 12px;
-  overflow-x:auto;
-  scrollbar-width:none;
-  -webkit-overflow-scrolling:touch;
-}
-.now-chips::-webkit-scrollbar{ display:none; }
-.now-chip{
-  flex:none;
-  font-family:"Bricolage Grotesque", sans-serif;
-  font-size:12.5px;
-  font-weight:500;
-  color:var(--ink);
-  background:#F1ECDF;
-  border:none;
-  border-radius:999px;
-  padding:7px 14px;
-  cursor:pointer;
   white-space:nowrap;
-  text-transform:lowercase;
+  box-shadow:0 4px 14px rgba(0,0,0,.12);
 }
-.now-chip.is-active{ background:var(--accent); color:#fff; }
+.now-ct__cta svg{ width:13px; height:13px; flex:none; }
 
-/* ---------- horizontal rows: guide places + stays ---------- */
-.now-scroller{
+/* ---------- rails: «мы сами ходим сюда» + news ---------- */
+.now-rail{
   display:flex;
-  gap:11px;
-  padding:0 15px 20px;
+  gap:12px;
   overflow-x:auto;
+  padding:0 16px 6px;
   scroll-snap-type:x mandatory;
-  scroll-padding:0 15px;
+  scroll-padding:0 16px;
   scrollbar-width:none;
   -webkit-overflow-scrolling:touch;
 }
-.now-scroller::-webkit-scrollbar{ display:none; }
+.now-rail::-webkit-scrollbar{ display:none; }
 
-.now-placecard{ flex:none; width:150px; display:block; scroll-snap-align:start; }
-.now-placecard[hidden]{ display:none; }
-.now-placecard__photo{
-  height:112px;
-  border-radius:11px;
-  overflow:hidden;
-  background:#EFE9DD;
-}
-.now-placecard__name{
-  margin:8px 0 2px;
-  font-family:"Bricolage Grotesque", sans-serif;
-  font-size:12.5px;
-  font-weight:500;
-  color:var(--ink);
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-}
-.now-placecard__meta{
-  margin:0;
-  font-family:"Bricolage Grotesque", sans-serif;
-  font-size:11px;
-  color:var(--ink-soft);
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
-}
-
-.now-staycard{
+.now-pc{
   flex:none;
-  width:200px;
-  display:block;
-  scroll-snap-align:start;
-  border:.5px solid var(--line);
-  border-radius:11px;
-  background:var(--paper);
-  overflow:hidden;
-}
-.now-staycard__photo{ height:120px; background:#EFE9DD; }
-.now-staycard__row{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:6px;
-  padding:8px 10px 0;
-}
-.now-staycard__name{
-  font-family:"Bricolage Grotesque", sans-serif;
-  font-size:12.5px;
-  font-weight:500;
-  color:var(--ink);
-  overflow:hidden;
-  text-overflow:ellipsis;
-  white-space:nowrap;
-  min-width:0;
-}
-.now-staycard__price{
-  flex:none;
-  font-family:"Bricolage Grotesque", sans-serif;
-  font-size:12.5px;
-  font-weight:500;
-  color:var(--ink);
-}
-.now-staycard__meta{
-  margin:2px 0 0;
-  padding:0 10px 9px;
-  font-family:"Bricolage Grotesque", sans-serif;
-  font-size:11px;
-  color:var(--ink-soft);
-  overflow:hidden;
-  text-overflow:ellipsis;
-  white-space:nowrap;
-}
-
-/* photos fade in over a warm placeholder instead of popping in on a blank tile */
-.now-placecard__photo img,
-.now-staycard__photo img{
-  width:100%; height:100%;
-  object-fit:cover;
-  display:block;
-  opacity:0;
-  transition:opacity .3s ease;
-}
-.now-placecard__photo img.is-loaded,
-.now-staycard__photo img.is-loaded{ opacity:1; }
-
-/* ---------- in town: upcoming city events ---------- */
-.now-event{
-  flex:none;
-  width:200px;
-  scroll-snap-align:start;
+  width:226px;
   display:flex;
   flex-direction:column;
-  border-radius:12px;
+  align-items:flex-start;
+  padding:6px 6px 14px;
+  border-radius:var(--r-card);
+  background:var(--surface);
+  box-shadow:var(--sh-card);
+  scroll-snap-align:start;
+  margin:2px 0 14px;
+}
+.now-pc__ph{
+  position:relative;
+  display:block;
+  width:100%;
+  height:250px;
+  border-radius:19px;
   overflow:hidden;
-  background:var(--paper);
-  border:.5px solid var(--line);
+  background:var(--sunk);
 }
-.now-event[hidden]{ display:none; }
-.now-event--plain{ background:var(--accent-soft); border-color:transparent; justify-content:flex-end; min-height:178px; }
-.now-event__photo{ height:110px; background:#EFE9DD; }
-.now-event__photo img{ width:100%; height:100%; object-fit:cover; display:block; opacity:0; transition:opacity .3s ease; }
-.now-event__photo img.is-loaded{ opacity:1; }
-.now-event__when{
-  margin:10px 11px 3px;
-  font-family:"JetBrains Mono", monospace;
-  font-size:10px;
-  letter-spacing:.12em;
-  text-transform:uppercase;
-  color:var(--accent-deep);
+.now-pc__ph img{ width:100%; height:100%; object-fit:cover; display:block; opacity:0; transition:opacity .3s var(--ease-out); }
+.now-pc__ph img.is-loaded{ opacity:1; }
+.now-pc .now-tag{ margin:12px 8px 0; }
+.now-pc__name{
+  display:block;
+  max-width:calc(100% - 20px);
+  margin:8px 10px 0;
+  font-size:18px;
+  font-weight:800;
+  letter-spacing:-.035em;
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
 }
-.now-event__title{
-  margin:0 11px 11px;
-  font-family:"Bricolage Grotesque", sans-serif;
-  font-size:14px;
-  font-weight:600;
-  line-height:1.2;
-  color:var(--ink);
+.now-pc__meta{
+  display:block;
+  max-width:calc(100% - 20px);
+  margin:2px 10px 0;
+  font-size:13.5px;
+  color:var(--ink-2);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+  min-height:1.4em;
+}
+
+.now-town{ margin-top:12px; }
+.now-town[hidden]{ display:none; }
+.now-news{
+  flex:none;
+  width:calc(100% - 44px);
+  max-width:398px;
+  display:grid;
+  grid-template-columns:1fr 104px;
+  gap:16px;
+  padding:20px;
+  border-radius:var(--r-card);
+  background:var(--eat-tint);
+  scroll-snap-align:start;
+}
+.now-news[hidden]{ display:none; }
+.now-rail--news.is-single .now-news{ width:100%; max-width:none; }
+.now-news--plain{ grid-template-columns:1fr; }
+.now-news__body{ display:flex; flex-direction:column; justify-content:space-between; min-width:0; }
+.now-tag--news{ background:var(--surface); color:var(--eat-dark); }
+.now-tag--news i{ background:var(--eat); }
+.now-news__title{
   display:-webkit-box;
-  -webkit-line-clamp:3;
+  -webkit-line-clamp:4;
   -webkit-box-orient:vertical;
   overflow:hidden;
+  margin-top:12px;
+  font-size:24px;
+  font-weight:800;
+  letter-spacing:-.04em;
+  line-height:1.02;
+  color:var(--eat-dark);
+  overflow-wrap:break-word;
 }
-.now-event__title em{ font-style:italic; }
+@media (max-width:389.98px){ .now-news{ grid-template-columns:1fr 92px; gap:14px; padding:18px; } .now-news__title{ font-size:20px; } }
+.now-news__title em{ font-style:italic; }
+.now-news__read{ display:flex; align-items:center; gap:2px; margin-top:14px; font-size:13.5px; color:var(--eat-dark); }
+.now-news__read svg{ width:15px; height:15px; }
+.now-news__ph{ position:relative; display:block; border-radius:16px; overflow:hidden; min-height:150px; background:var(--surface); }
+.now-news__ph img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; opacity:0; transition:opacity .3s var(--ease-out); }
+.now-news__ph img.is-loaded{ opacity:1; }
 
-/* ---------- booking mode (html.has-trip): your trip on top, no "where to stay" ---------- */
+/* ---------- booking mode (html.has-trip): your trip under the greeting ---------- */
 .now-trip{ display:none; }
 html.has-trip .now-trip{
   display:flex;
   align-items:center;
-  gap:11px;
-  margin:0 15px 12px;
-  padding:9px 12px 9px 9px;
-  border-radius:14px;
-  background:var(--accent-soft);
-  text-decoration:none;
+  gap:12px;
+  margin:18px 16px 0;
+  padding:10px 14px 10px 10px;
+  border-radius:20px;
+  background:var(--home-tint);
 }
-html.has-trip .now-stays{ display:none; }
-.now-trip__photo{
-  width:48px; height:48px;
-  flex:none;
-  border-radius:10px;
-  overflow:hidden;
-  background:#EFD3C3;
-}
+.now-trip__photo{ width:52px; height:52px; flex:none; border-radius:14px; overflow:hidden; background:color-mix(in srgb, var(--home) 22%, var(--home-tint)); }
 .now-trip__photo img{ width:100%; height:100%; object-fit:cover; display:block; }
 .now-trip__body{ flex:1 1 auto; min-width:0; display:flex; flex-direction:column; gap:1px; }
-.now-trip__kicker{
-  font-family:"JetBrains Mono", monospace;
-  font-size:9.5px;
-  letter-spacing:.14em;
-  text-transform:uppercase;
-  color:var(--accent-deep);
-}
+.now-trip__kicker{ font-family:var(--mono); font-size:10px; font-weight:500; letter-spacing:.14em; text-transform:uppercase; color:var(--home-deep); }
 .now-trip__name,
-.now-trip__status{
-  font-family:"Bricolage Grotesque", sans-serif;
-  white-space:nowrap;
-  overflow:hidden;
-  text-overflow:ellipsis;
+.now-trip__status{ white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.now-trip__name{ font-size:16px; font-weight:700; letter-spacing:-.025em; color:var(--ink); }
+.now-trip__status{ font-size:13px; color:var(--home-deep); }
+.now-trip__chev{ flex:none; width:18px; height:18px; color:var(--home-deep); }
+
+/* ---------- narrow phones (iPhone SE 375) ---------- */
+@media (max-width:389.98px){
+  .now-city{ margin-left:16px; margin-right:16px; }
+  .now-hello, .now-sec{ padding-left:16px; padding-right:16px; }
+  .now-hero{ height:360px; }
+  .now-hero__name{ font-size:48px; }
+  .now-hero__name.is-long{ font-size:40px; }
+  .now-hero__name.is-xlong{ font-size:34px; }
+  .now-ct{ padding:14px; min-height:164px; }
+  .now-ct__sb{ font-size:8.5px; letter-spacing:.12em; }
+  .now-ct__cta{ padding:0 10px; letter-spacing:.12em; }
 }
-.now-trip__name{ font-size:14.5px; font-weight:600; color:var(--ink); }
-.now-trip__status{ font-size:12px; color:var(--accent-deep); }
-.now-trip__chev{ flex:none; width:16px; height:16px; color:var(--accent-deep); }
+
+/* ---------- daily entry (r3 onboarding/daily.html): the guide «comes alive» in ≤0.6 s ----------
+   No splash. Header, list and tiles stand still from the first frame; the greeting appears in
+   place, the «now» photo develops in its card (dark base → live photo), the city line draws
+   itself. Nothing travels across the screen — only appearing in place. */
+@keyframes nowIn{ from{ opacity:0; filter:blur(4px); } to{ opacity:1; filter:none; } }
+@keyframes nowPh{ from{ opacity:0; transform:scale(1.035); } to{ opacity:1; transform:none; } }
+@keyframes nowDraw{ to{ stroke-dashoffset:0; } }
+.now-city__line path,
+.now-city__line circle{
+  stroke-dasharray:var(--len, 600);
+  stroke-dashoffset:var(--len, 600);
+  animation:nowDraw .6s var(--ease-out) forwards;
+}
+.now-city__wx{ animation:nowIn .32s var(--ease-out) both; }
+.now-hello__h{ animation:nowIn .38s var(--ease-out) both; }
+.now-hero__img.is-loaded{ animation:nowPh .55s var(--ease-out) .05s both; }
+.now-hero__cap,
+.now-hero__tags{ animation:nowIn .32s var(--ease-out) .22s both; }
+
+@media (prefers-reduced-motion:reduce){
+  .now-city__line path,
+  .now-city__line circle{ animation:none; stroke-dashoffset:0; }
+  .now-city__wx,
+  .now-hello__h,
+  .now-hero__img.is-loaded,
+  .now-hero__cap,
+  .now-hero__tags{ animation:none; }
+  .now-hero, a.now-ct{ transition:none; }
+  .now-row__th img, .now-pc__ph img, .now-news__ph img{ transition:none; }
+}

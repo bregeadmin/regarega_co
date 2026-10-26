@@ -1,21 +1,24 @@
 ---
-// Native app "now" home screen — one component for both languages (pages
-// app/now.astro and ru/app/now.astro just render it with `lang`).
-// The hero is ONE confident pick for this moment: Batumi time → a moment (morning / lunch /
-// golden hour / evening / night) → guide places whose tags fit that moment AND are open now
-// (Google hours from guide_places.hours) → one place, rotated daily so it isn't always the
-// same. Two alternatives sit under it; below — the whole guide (chips filter it) and stays.
-// Data is build-time (static HTML); only the pick runs client-side, because it depends on
-// the clock. Booking mode (html.has-trip): a trip card on top, the pick and the guide row
-// lean to what's near the apartment and show the walk from its door, stays are hidden.
+// Native app home screen «гид» — one component for both languages (pages app/now.astro and
+// ru/app/now.astro just render it with `lang`). Visual source: rega-design-panel r3/01-guide.html
+// + r3/onboarding/daily.html (the daily «coming alive» entry, ≤0.6 s, no splash).
+// Top to bottom: drawn Batumi skyline + live weather (no number when there is no data), a
+// greeting by time of day whose italic word takes the hero's category colour, the hero —
+// ONE confident pick for this moment, two more places as a list, the 8 category tiles 1:1
+// with the site guide, the guide rail «мы сами ходим сюда», and upcoming city news.
+// The pick: Batumi time → a moment (morning / lunch / golden hour / evening / night) → guide
+// places whose tags fit that moment AND are open now (Google hours from guide_places.hours)
+// → one place, rotated daily. Data is build-time (static HTML); only the pick runs
+// client-side, because it depends on the clock. Booking mode (html.has-trip): a trip card
+// under the greeting, the pick and the rail lean to what's near the apartment and show the
+// walk from its door.
 import AppFull from '../../layouts/AppFull.astro';
 import '../../styles/app-shell.css';
 import '../../styles/app-now.css';
 import AppHeader from '../AppHeader.astro';
 import TabBar from '../TabBar.astro';
-import { supabase, applyNames, type Apartment } from '../../lib/supabase';
-import { catLabel } from '../../lib/guideCats';
-import { priceSym } from '../../lib/price';
+import { supabase } from '../../lib/supabase';
+import { GUIDE_CATS, catLabel, catColor, catTint, catDark, catOutline } from '../../lib/guideCats';
 import { thumb } from '../../lib/thumb';
 import { loadNews, newsPhotos, newsText, newsDate, newsDay } from '../../lib/appNews';
 
@@ -26,32 +29,32 @@ const BASE = isRu ? '/ru/georgia/batumi' : '/georgia/batumi';
 
 const T = isRu
   ? {
-      title: 'сейчас — rega rega',
-      desc: 'батуми прямо сейчас — одно место под этот момент, весь гид и где остановиться.',
-      or: 'или',
-      town: 'в городе',
+      title: 'гид — rega rega',
+      desc: 'батуми прямо сейчас — одно место под этот момент, категории гида и новости города.',
       trip: 'твоя поездка',
-      guide: 'в гиде',
-      stays: 'где остановиться',
-      all: 'все →',
-      allChip: 'всё',
-      cats: 'категории',
-      studio: 'студия',
-      bedrooms: (n: number) => (n === 1 ? '1 спальня' : `${n} спальни`),
+      cats: 'наши категории,<br>один батуми',
+      rail: 'мы сами<br>ходим <em>сюда</em>',
+      all: 'все',
+      news: 'новости',
+      read: 'читать',
+      soon: 'скоро',
+      start: 'начни тут',
+      book: 'забронировать',
+      skyline: 'батуми: алфавитная башня, колесо обозрения, пальмы, море',
     }
   : {
-      title: 'now — rega rega',
-      desc: 'batumi right now — one place for this moment, the whole guide and where to stay.',
-      or: 'or',
-      town: 'in town',
+      title: 'guide — rega rega',
+      desc: 'batumi right now — one place for this moment, the guide categories and city news.',
       trip: 'your trip',
-      guide: 'in the guide',
-      stays: 'where to stay',
-      all: 'all →',
-      allChip: 'all',
-      cats: 'categories',
-      studio: 'studio',
-      bedrooms: (n: number) => (n === 1 ? '1 bedroom' : `${n} bedrooms`),
+      cats: 'our categories,<br>one batumi',
+      rail: 'we go<br>here <em>ourselves</em>',
+      all: 'all',
+      news: 'news',
+      read: 'read',
+      soon: 'soon',
+      start: 'start here',
+      book: 'book a stay',
+      skyline: 'batumi: alphabet tower, ferris wheel, palms, the sea',
     };
 
 // --- guide places ---
@@ -68,7 +71,8 @@ const areaOf = (p: any) => {
   if (!a) return '';
   const cleaned = a.replace(/,?\s*Batumi[^,]*,?\s*Georgia\s*$/i, '').replace(/,\s*Georgia\s*$/i, '').trim();
   const first = (cleaned.split(',')[0] || '').trim();
-  if (!first) return '';
+  // Google plus codes ("MPR4+FCW") are not an area
+  if (!first || /^[A-Z0-9]{4,}\+[A-Z0-9]{2,}/.test(first)) return '';
   return first.length > 26 ? first.slice(0, 26).replace(/\s+\S*$/, '') + '…' : first;
 };
 // one line on why this place: the editorial take (EN) / first clause of the RU summary
@@ -83,8 +87,7 @@ const whyOf = (p: any) => {
 };
 
 const CAT_ORDER = ['eat-drink', 'wellness', 'move-around', 'work'];
-const cats = CAT_ORDER.filter((c) => gpAll.some((p) => p.category === c));
-// guide row order: category order first (food before transport), then rating
+// guide rail order: category order first (food before transport), then rating
 const withPhoto = gpAll
   .filter((p) => photoOf(p))
   .sort((a, b) => (CAT_ORDER.indexOf(a.category) - CAT_ORDER.indexOf(b.category)) || ((b.rating || 0) - (a.rating || 0)));
@@ -93,32 +96,55 @@ const withPhoto = gpAll
 const PICK_DATA = withPhoto.map((p) => ({
   s: p.slug,
   n: p.title || p.name,
+  k: p.category,
   c: catLabel(p.category, lang),
   t: p.tags || [],
   h: p.hours || [],
   p: thumb(photoOf(p), 828),
-  q: thumb(photoOf(p), 320),
+  q: thumb(photoOf(p), 160),
   w: whyOf(p),
   la: p.lat,
   lo: p.lng,
 }));
+// category colours for the client (hero accent, list tags) — from guideCats.ts, never duplicated
+const CAT_STYLE = Object.fromEntries(Object.keys(GUIDE_CATS).map((k) => [k, { c: catColor(k), t: catTint(k), d: catDark(k), o: catOutline(k) }]));
+// category stamp: tint background + dark text + colour dot (ring for outline categories)
+const tagStyle = (k: string) => `--tag-c:${catColor(k)};--tag-t:${catTint(k)};--tag-d:${catDark(k)}`;
 
-// --- apartments: cheapest first, with a real photo ---
-const { data: apts } = await supabase
-  .from('apartments_public')
-  .select('id,slug,title,title_ru,neighborhood,bedrooms,max_guests,price_from,price_currency,photos')
-  .order('price_from', { ascending: true });
-const apartments = ((apts as Apartment[]) || [])
-  .map(applyNames)
-  .map((a: any) => ({ ...a, title: (isRu && a.title_ru) || a.title }))
-  .filter((a) => a.photos && a.photos[0])
-  .slice(0, 6);
+// --- apartments: only the count, for the «жить и оставаться» tile ---
+const { data: apts } = await supabase.from('apartments_public').select('id');
+const aptCount = (apts || []).length;
+const counts: Record<string, number> = {};
+gpAll.forEach((p) => { counts[p.category] = (counts[p.category] || 0) + 1; });
+
+// Real Tabler-icons "outline" path data (viewBox 0 0 24 24).
+const ICO = {
+  eat: '<path d="M19 3v12h-5c-.023 -3.681 .184 -7.406 5 -12zm0 12v6h-1v-3m-10 -14v17m-3 -17v3a3 3 0 1 0 6 0v-3" />',
+  leaf: '<path d="M5 21c.5 -4.5 2.5 -8 7 -10" /><path d="M9 18c6.218 0 10.5 -3.288 11 -12v-2h-4.014c-9 0 -11.986 4 -12 9c0 1 0 3 2 5h3z" />',
+  bike: '<path d="M5 18m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" /><path d="M19 18m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" /><path d="M12 19l0 -4l-3 -3l5 -4l2 3l3 0" /><path d="M17 5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" />',
+  laptop: '<path d="M3 19l18 0" /><path d="M5 6m0 1a1 1 0 0 1 1 -1h12a1 1 0 0 1 1 1v8a1 1 0 0 1 -1 1h-12a1 1 0 0 1 -1 -1z" />',
+  arrow: '<path d="M17 7l-10 10" /><path d="M8 7l9 0l0 9" />',
+  chev: '<path d="M9 6l6 6l-6 6" />',
+};
+// 8 tiles 1:1 with the site guide hub: 4 worlds × filled / white-with-edge, «скоро» muted.
+// Colour: categories from guideCats.ts; stays / experiences / nightlife / explore from the
+// design tokens (orange = home world only; blue = experiences; ink-2 = about the city).
+type Tile = { k: string; fill: boolean; c: string; n: number | string; ico?: string; h: { en: string; ru: string }; sb: { en: string; ru: string }; href?: string; soon?: boolean; stay?: boolean };
+const TILES: Tile[] = [
+  { k: 'stay', fill: true, stay: true, c: 'var(--home)', n: aptCount || '—', href: `${BASE}/app/stays`, h: { en: 'stay & live', ru: 'жить и оставаться' }, sb: { en: 'flats · hotels', ru: 'квартиры · отели' } },
+  { k: 'eat-drink', fill: true, c: catColor('eat-drink'), n: counts['eat-drink'] || 0, ico: ICO.eat, href: `${BASE}/app/guide?cat=eat-drink`, h: { en: 'eat & drink', ru: 'есть и пить' }, sb: { en: 'cafés · restaurants · bars', ru: 'кафе · рестораны · бары' } },
+  { k: 'wellness', fill: true, c: catColor('wellness'), n: counts['wellness'] || 0, ico: ICO.leaf, href: `${BASE}/app/guide?cat=wellness`, h: { en: 'wellness', ru: 'велнес' }, sb: { en: 'spa · baths · massage', ru: 'спа · бани · массаж' } },
+  { k: 'experiences', fill: true, soon: true, c: 'var(--blue)', n: '—', h: { en: 'experiences', ru: 'впечатления' }, sb: { en: 'tours · classes', ru: 'туры · мастер-классы' } },
+  { k: 'move-around', fill: false, c: catColor('move-around'), n: counts['move-around'] || 0, ico: ICO.bike, href: `${BASE}/app/guide?cat=move-around`, h: { en: 'move around', ru: 'передвижение' }, sb: { en: 'taxi · scooter · car', ru: 'такси · самокат · машина' } },
+  { k: 'work', fill: false, c: catColor('work'), n: counts['work'] || 0, ico: ICO.laptop, href: `${BASE}/app/guide?cat=work`, h: { en: 'work & remote', ru: 'работа и удалёнка' }, sb: { en: 'co-workings · wifi cafés', ru: 'коворкинги · кафе с wifi' } },
+  { k: 'nightlife', fill: false, soon: true, c: 'var(--blue)', n: '—', h: { en: 'nightlife', ru: 'ночная жизнь' }, sb: { en: 'wine bars · clubs', ru: 'винные бары · клубы' } },
+  { k: 'explore', fill: false, soon: true, c: 'var(--ink-2)', n: '—', h: { en: 'explore', ru: 'про город' }, sb: { en: 'beaches · old town', ru: 'пляжи · старый город' } },
+];
+
 // city events: rendered all, the client keeps only upcoming ones (today in Batumi or later)
 const news = await loadNews();
 const esc = (x: string) => x.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const mdEm = (raw: string) => esc(raw).replace(/\*([^*]+)\*/g, '<em>$1</em>').replace(/\*/g, '');
-
-const bedroomLabel = (n: number | null | undefined) => (!n ? T.studio : T.bedrooms(n));
 ---
 <AppFull lang={lang} title={T.title} description={T.desc}>
   <script is:inline define:vars={{ LANG: lang }}>
@@ -130,6 +156,28 @@ const bedroomLabel = (n: number | null | undefined) => (!n ? T.studio : T.bedroo
   </script>
   <AppHeader lang={lang} />
   <main class="now-screen">
+    <!-- drawn Batumi line (alphabet tower, ferris wheel, palms, sea) + weather -->
+    <div class="now-city">
+      <div class="now-city__wx" id="nowWx" hidden>
+        <b class="now-city__temp" id="nowTemp"></b>
+        <span class="now-city__sky" id="nowSky"></span>
+      </div>
+      <svg class="now-city__line" viewBox="0 0 353 64" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label={T.skyline}>
+        <path style="--len:360" d="M96 56 C130 52 150 58 180 55 S240 52 270 56 S330 55 353 54"/>
+        <path style="--len:140" d="M150 55 L150 14 M146 55 L154 55 M150 14 C153 18 147 22 150 26 C153 30 147 34 150 38 C153 42 147 46 150 50 M150 10 L150 14"/>
+        <circle style="--len:110" cx="150" cy="10" r="2.6"/>
+        <circle style="--len:110" cx="214" cy="32" r="17"/>
+        <path style="--len:120" d="M214 15 L214 49 M197 32 L231 32 M202 20 L226 44 M226 20 L202 44 M206 55 L214 49 L222 55"/>
+        <path style="--len:120" d="M268 55 C268 44 266 36 262 30 M262 30 C256 28 251 30 248 34 M262 30 C266 25 272 25 276 27 M262 30 C262 24 259 21 255 20"/>
+        <path style="--len:120" d="M300 55 C300 46 302 40 306 35 M306 35 C312 33 317 35 319 39 M306 35 C303 30 297 30 293 32 M306 35 C307 29 311 27 314 27"/>
+        <path class="now-city__wave" style="--len:60" d="M112 46 C116 44 120 48 124 46 M120 40 C124 38 128 42 132 40"/>
+      </svg>
+    </div>
+
+    <section class="now-hello">
+      <h1 class="now-display now-hello__h" id="nowHello"></h1>
+    </section>
+
     <a class="now-trip" id="nowTrip" href={`${BASE}/app/trip`}>
       <span class="now-trip__photo"><img id="nowTripImg" alt="" hidden /></span>
       <span class="now-trip__body">
@@ -137,101 +185,105 @@ const bedroomLabel = (n: number | null | undefined) => (!n ? T.studio : T.bedroo
         <span class="now-trip__name" id="nowTripName"></span>
         <span class="now-trip__status" id="nowTripStatus"></span>
       </span>
-      <svg class="now-trip__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6l-6 6" /></svg>
+      <svg class="now-trip__chev" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={ICO.chev} />
     </a>
 
     <a class="now-hero" id="nowHero" href={`${BASE}/app/guide`}>
       <img class="now-hero__img" id="nowHeroImg" alt="" onload="this.classList.add('is-loaded')" />
-      <div class="now-hero__scrim">
-        <p class="now-hero__overline" id="nowOverline">rega standard</p>
-        <h1 class="now-hero__headline" id="nowHeadline"></h1>
-        <p class="now-hero__name" id="nowName"></p>
-        <p class="now-hero__why" id="nowWhy"></p>
-        <p class="now-hero__status" id="nowStatus" hidden></p>
+      <span class="now-hero__tags" id="nowHeroTags" hidden><span class="now-hero__open"><i></i><span id="nowStatus"></span></span></span>
+      <div class="now-hero__cap">
+        <p class="now-display now-hero__name" id="nowName"></p>
+        <p class="now-hero__say" id="nowWhy"></p>
+        <p class="now-hero__meta"><span id="nowMeta"></span><span>{isRu ? 'пробито нами' : 'tried by us'}</span></p>
       </div>
     </a>
 
-    <div class="now-alts" id="nowAlts" hidden>
-      <p class="now-alts__label">{T.or}</p>
-      <div class="now-alts__row" id="nowAltsRow"></div>
-    </div>
+    <div class="now-list" id="nowAlts" hidden></div>
 
-    <section class="now-block">
-      <div class="now-block__head">
-        <h2 class="now-block__title">{T.guide}</h2>
-        <a class="now-block__all" href={`${BASE}/app/guide`}>{T.all}</a>
-      </div>
-      <nav class="now-chips" aria-label={T.cats}>
-        <button class="now-chip is-active" data-cat="all" type="button">{T.allChip}</button>
-        {cats.map((c) => (
-          <button class="now-chip" data-cat={c} type="button">{catLabel(c, lang)}</button>
-        ))}
-      </nav>
-      <div class="now-scroller" id="nowPlaces">
-        {withPhoto.map((p) => {
-          const area = areaOf(p);
-          return (
-            <a class="now-placecard" data-category={p.category} data-lat={p.lat} data-lng={p.lng} href={`${BASE}/app/place/${p.slug}`}>
-              <div class="now-placecard__photo"><img src={thumb(photoOf(p), 320)} alt="" loading="lazy" onload="this.classList.add('is-loaded')" /></div>
-              <p class="now-placecard__name">{p.title || p.name}</p>
-              <p class="now-placecard__meta" data-cat={catLabel(p.category, lang)}>{catLabel(p.category, lang)}{area ? ` · ${area}` : ''}</p>
-            </a>
-          );
-        })}
-      </div>
+    <div class="now-sec"><h2 class="now-display now-sec__h" set:html={T.cats} /></div>
+    <section class="now-cats">
+      {TILES.map((t) => {
+        const cls = `now-ct now-ct--${t.fill ? 'fill' : 'line'}${t.soon ? ' is-soon' : ''}${t.stay ? ' now-ct--stay' : ''}`;
+        const inner = (
+          <Fragment>
+            <span class="now-ct__top">
+              <span class="now-ct__n">{t.n}</span>
+              {t.stay
+                ? <span class="now-ct__bdg"><i></i>{T.start}</span>
+                : t.soon
+                  ? <span class="now-ct__bdg">{T.soon}</span>
+                  : <span class="now-ct__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={t.ico} /></span>}
+            </span>
+            <span class="now-ct__h">{t.h[lang]}</span>
+            <span class="now-ct__sb">{t.sb[lang]}</span>
+            {t.stay && <span class="now-ct__cta">{T.book}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={ICO.arrow} /></span>}
+          </Fragment>
+        );
+        return t.soon
+          ? <div class={cls} style={`--c:${t.c}`} aria-disabled="true">{inner}</div>
+          : <a class={cls} style={`--c:${t.c}`} href={t.href}>{inner}</a>;
+      })}
     </section>
 
-    <section class="now-block" id="nowTown" hidden>
-      <div class="now-block__head">
-        <h2 class="now-block__title">{T.town}</h2>
-      </div>
-      <div class="now-scroller" id="nowTownRow">
+    <div class="now-sec now-sec--link">
+      <h2 class="now-display now-sec__h" style={`--accent-c:${catColor('eat-drink')}`} set:html={T.rail} />
+      <a class="now-sec__all" href={`${BASE}/app/guide`}>{T.all}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={ICO.chev} /></a>
+    </div>
+    <div class="now-rail" id="nowPlaces">
+      {withPhoto.map((p) => {
+        const area = areaOf(p);
+        return (
+          <a class="now-pc" data-category={p.category} data-lat={p.lat} data-lng={p.lng} href={`${BASE}/app/place/${p.slug}`}>
+            <span class="now-pc__ph"><img src={thumb(photoOf(p), 480)} alt="" loading="lazy" onload="this.classList.add('is-loaded')" /></span>
+            <span class={`now-tag${catOutline(p.category) ? ' is-ring' : ''}`} style={tagStyle(p.category)}><i></i>{catLabel(p.category, lang)}</span>
+            <span class="now-pc__name">{p.title || p.name}</span>
+            <span class="now-pc__meta" data-area={area}>{area}</span>
+          </a>
+        );
+      })}
+    </div>
+
+    <section class="now-town" id="nowTown" hidden>
+      <div class="now-rail now-rail--news" id="nowTownRow">
         {news.map((n) => {
           const t = newsText(n, lang);
           const photo = newsPhotos(n)[0];
           return (
-            <a class={`now-event${photo ? '' : ' now-event--plain'}`} data-day={newsDay(n.date)} href={`${BASE}/app/news/${n.slug}`} hidden>
-              {photo && <div class="now-event__photo"><img src={thumb(photo, 480)} alt="" loading="lazy" onload="this.classList.add('is-loaded')" /></div>}
-              <p class="now-event__when">{newsDate(n.date, lang)}</p>
-              <p class="now-event__title" set:html={mdEm(String(t.title))} />
+            <a class={`now-news${photo ? '' : ' now-news--plain'}`} data-day={newsDay(n.date)} href={`${BASE}/app/news/${n.slug}`} hidden>
+              <span class="now-news__body">
+                <span>
+                  <span class="now-tag now-tag--news"><i></i>{T.news} · {newsDate(n.date, lang)}</span>
+                  <span class="now-news__title" set:html={mdEm(String(t.title))} />
+                </span>
+                <span class="now-news__read">{T.read}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={ICO.chev} /></span>
+              </span>
+              {photo && <span class="now-news__ph"><img src={thumb(photo, 320)} alt="" loading="lazy" onload="this.classList.add('is-loaded')" /></span>}
             </a>
           );
         })}
-      </div>
-    </section>
-
-    <section class="now-block now-stays">
-      <div class="now-block__head">
-        <h2 class="now-block__title">{T.stays}</h2>
-        <a class="now-block__all" href={`${BASE}/app/stays`}>{T.all}</a>
-      </div>
-      <div class="now-scroller now-scroller--stays">
-        {apartments.map((a) => (
-          <a class="now-staycard" href={`${BASE}/app/stays/${a.slug}`}>
-            <div class="now-staycard__photo"><img src={thumb(a.photos[0], 480)} alt="" loading="lazy" onload="this.classList.add('is-loaded')" /></div>
-            <div class="now-staycard__row">
-              <span class="now-staycard__name">{a.title}</span>
-              <span class="now-staycard__price">{priceSym(a.price_currency)}{a.price_from}</span>
-            </div>
-            <p class="now-staycard__meta">{bedroomLabel(a.bedrooms)}{a.neighborhood ? ` · ${a.neighborhood}` : ''}</p>
-          </a>
-        ))}
       </div>
     </section>
   </main>
 
   <TabBar lang={lang} />
 
-  <script is:inline define:vars={{ PLACES: PICK_DATA, LANG: lang, BASE }}>
+  <script is:inline define:vars={{ PLACES: PICK_DATA, CATS: CAT_STYLE, LANG: lang, BASE }}>
     (function () {
       var RU = LANG === 'ru';
       // moment of the day (Batumi time) → which guide tags fit it
       var MOMENTS = [
-        { from: 0, to: 5, tags: ['Bars'], ru: ['ночь', 'ещё открыто.'], en: ['night', 'still open.'] },
-        { from: 5, to: 11, tags: ['Coffee', 'Cafes'], ru: ['утро', 'начни с кофе.'], en: ['morning', 'start with coffee.'] },
-        { from: 11, to: 16, tags: ['Restaurants', 'Cafes', 'Asian dining', 'Dining Around Batumi', 'Gastro shops'], ru: ['день', 'время обеда.'], en: ['afternoon', 'time for lunch.'] },
-        { from: 16, to: 20, tags: ['Cafes', 'Bars', 'Coffee', 'Restaurants'], ru: ['золотой час', 'успей до заката.'], en: ['golden hour', 'catch the light.'] },
-        { from: 20, to: 24, tags: ['Bars', 'Restaurants'], ru: ['вечер', 'куда пойти вечером.'], en: ['evening', 'where to tonight.'] },
+        { from: 0, to: 5, tags: ['Bars'] },
+        { from: 5, to: 11, tags: ['Coffee', 'Cafes'] },
+        { from: 11, to: 16, tags: ['Restaurants', 'Cafes', 'Asian dining', 'Dining Around Batumi', 'Gastro shops'] },
+        { from: 16, to: 20, tags: ['Cafes', 'Bars', 'Coffee', 'Restaurants'] },
+        { from: 20, to: 24, tags: ['Bars', 'Restaurants'] },
+      ];
+      // greeting by time of day (r3 onboarding/daily.html): the italic word takes the hero's colour
+      var HELLO = [
+        { from: 5, to: 11, ru: ['утро. куда', 'сначала?'], en: ['morning. where', 'first?'] },
+        { from: 11, to: 17, ru: ['день. куда', 'выдохнуть?'], en: ['afternoon. where to', 'unwind?'] },
+        { from: 17, to: 24, ru: ['вечер. куда', 'сейчас?'], en: ['evening. where', 'now?'] },
+        { from: 0, to: 5, ru: ['ночь. что ещё', 'открыто?'], en: ['night. what’s', 'still open?'] },
       ];
       var $ = function (id) { return document.getElementById(id); };
       var DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
@@ -273,6 +325,13 @@ const bedroomLabel = (n: number | null | undefined) => (!n ? T.studio : T.bedroo
         if (o.all) return RU ? 'открыто круглосуточно' : 'open 24 hours';
         return (RU ? 'открыто до ' : 'open till ') + hhmm(o.close);
       }
+      // short form for the list rows: «до 23:00» / «until 23:00»
+      function shortStatus(o) {
+        if (!o) return '';
+        if (o.all) return RU ? 'круглосуточно' : '24 hours';
+        return (RU ? 'до ' : 'until ') + hhmm(o.close);
+      }
+      var catOf = function (k) { return CATS[k] || null; };
 
       // booking mode: walk from the apartment door ('' outside booking mode)
       var trip = window.rrTrip && window.rrTrip.active();
@@ -302,55 +361,84 @@ const bedroomLabel = (n: number | null | undefined) => (!n ? T.studio : T.bedroo
       var day = Math.floor(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) / 864e5);
       var start = (day + MOMENTS.indexOf(m)) % pool.length;
       var picks = pool.slice(start).concat(pool.slice(0, start)).slice(0, 3);
-
-      var words = RU ? m.ru : m.en;
       var hero = picks[0];
-      $('nowOverline').textContent = words[0] + ' · rega standard';
-      $('nowHeadline').textContent = words[1];
+      var heroCat = hero && catOf(hero.p.k);
+
+      // greeting — two lines, the second in italic, coloured like the hero's category (ink if none)
+      var hl = HELLO.filter(function (x) { return hour >= x.from && hour < x.to; })[0];
+      var words = RU ? hl.ru : hl.en;
+      var h1 = $('nowHello');
+      h1.textContent = words[0];
+      h1.appendChild(document.createElement('br'));
+      var em = document.createElement('em'); em.textContent = words[1]; h1.appendChild(em);
+      if (heroCat) h1.style.setProperty('--accent-c', heroCat.c);
+
       if (hero) {
-        $('nowHero').href = BASE + '/app/place/' + hero.p.s;
+        var heroEl = $('nowHero');
+        heroEl.href = BASE + '/app/place/' + hero.p.s;
+        if (heroCat) heroEl.style.setProperty('--hero-c', heroCat.c);
         $('nowHeroImg').src = hero.p.p;
-        $('nowName').textContent = hero.p.n;
-        $('nowWhy').textContent = hero.p.w;
-        var st = join(statusText(hero.o), walk(hero.p.la, hero.p.lo));
-        if (st) { $('nowStatus').textContent = st; $('nowStatus').hidden = false; }
+        var nm = $('nowName');
+        nm.textContent = hero.p.n;
+        // long names step down so they stay on two lines at most
+        var len = String(hero.p.n).length;
+        if (len > 18) nm.classList.add('is-xlong'); else if (len > 11) nm.classList.add('is-long');
+        if (hero.p.w) $('nowWhy').textContent = (RU ? '«' : '“') + hero.p.w + (RU ? '»' : '”');
+        $('nowMeta').textContent = join(hero.p.c, walk(hero.p.la, hero.p.lo));
+        var st = statusText(hero.o);
+        if (st) { $('nowStatus').textContent = st; $('nowHeroTags').hidden = false; }
       }
 
-      var row = $('nowAltsRow');
+      // two more places — a list card under the hero
+      var list = $('nowAlts');
+      var SVGNS = 'http://www.w3.org/2000/svg';
       picks.slice(1).forEach(function (x) {
         var a = document.createElement('a');
-        a.className = 'now-alt';
+        a.className = 'now-row';
         a.href = BASE + '/app/place/' + x.p.s;
-        var ph = document.createElement('span'); ph.className = 'now-alt__photo';
-        var img = document.createElement('img'); img.src = x.p.q; img.alt = ''; ph.appendChild(img);
-        var body = document.createElement('span'); body.className = 'now-alt__body';
-        var nm = document.createElement('span'); nm.className = 'now-alt__name'; nm.textContent = x.p.n;
-        var meta = document.createElement('span'); meta.className = 'now-alt__meta'; meta.textContent = walk(x.p.la, x.p.lo) || statusText(x.o) || x.p.c;
-        body.appendChild(nm); body.appendChild(meta);
-        a.appendChild(ph); a.appendChild(body);
-        row.appendChild(a);
+        var th = document.createElement('span'); th.className = 'now-row__th';
+        var img = document.createElement('img'); img.src = x.p.q; img.alt = ''; img.loading = 'lazy';
+        img.onload = function () { img.classList.add('is-loaded'); };
+        th.appendChild(img);
+        var t = document.createElement('span'); t.className = 'now-row__t';
+        var b = document.createElement('span'); b.className = 'now-row__name'; b.textContent = x.p.n;
+        var meta = document.createElement('span'); meta.className = 'now-row__meta';
+        var cs = catOf(x.p.k);
+        var tag = document.createElement('span'); tag.className = 'now-tag' + (cs && cs.o ? ' is-ring' : '');
+        if (cs) tag.setAttribute('style', '--tag-c:' + cs.c + ';--tag-t:' + cs.t + ';--tag-d:' + cs.d);
+        tag.appendChild(document.createElement('i'));
+        tag.appendChild(document.createTextNode(x.p.c));
+        var info = document.createElement('span'); info.className = 'now-row__info';
+        info.textContent = walk(x.p.la, x.p.lo) || shortStatus(x.o);
+        meta.appendChild(tag); meta.appendChild(info);
+        t.appendChild(b); t.appendChild(meta);
+        var chev = document.createElementNS(SVGNS, 'svg');
+        chev.setAttribute('class', 'now-row__chev'); chev.setAttribute('viewBox', '0 0 24 24'); chev.setAttribute('aria-hidden', 'true');
+        var path = document.createElementNS(SVGNS, 'path'); path.setAttribute('d', 'M9 6l6 6l-6 6'); chev.appendChild(path);
+        a.appendChild(th); a.appendChild(t); a.appendChild(chev);
+        list.appendChild(a);
       });
-      if (row.children.length) $('nowAlts').hidden = false;
+      if (list.children.length) list.hidden = false;
 
-      // in town: upcoming events only, soonest first, at most 6
+      // news: upcoming events only, soonest first, at most 6
       var today = now.getFullYear() + '-' + ('0' + (now.getMonth() + 1)).slice(-2) + '-' + ('0' + now.getDate()).slice(-2);
       var townRow = $('nowTownRow');
-      var events = [].slice.call(townRow.querySelectorAll('.now-event'))
+      var events = [].slice.call(townRow.querySelectorAll('.now-news'))
         .filter(function (e) { return e.dataset.day >= today; })
         .sort(function (a, b) { return a.dataset.day < b.dataset.day ? -1 : 1; })
         .slice(0, 6);
       events.forEach(function (e) { townRow.appendChild(e); e.hidden = false; });
       if (events.length) $('nowTown').hidden = false;
+      if (events.length === 1) townRow.classList.add('is-single');
 
-      // booking mode: the guide row shows the walk from the door, nearest first
+      // booking mode: the guide rail shows the walk from the door, nearest first
       if (trip) {
         var placesRow = $('nowPlaces');
-        [].slice.call(placesRow.querySelectorAll('.now-placecard'))
+        [].slice.call(placesRow.querySelectorAll('.now-pc'))
           .map(function (c) {
             var la = parseFloat(c.dataset.lat), lo = parseFloat(c.dataset.lng);
             var w = isNaN(la) ? '' : walk(la, lo);
-            var meta = c.querySelector('.now-placecard__meta');
-            if (w) meta.textContent = meta.dataset.cat + ' · ' + w;
+            if (w) c.querySelector('.now-pc__meta').textContent = w;
             var a = trip.apt || {};
             return { c: c, k: isNaN(la) || a.lat == null ? 1e9 : Math.pow(la - a.lat, 2) + Math.pow((lo - a.lng) * Math.cos(a.lat * Math.PI / 180), 2) };
           })
@@ -358,18 +446,30 @@ const bedroomLabel = (n: number | null | undefined) => (!n ? T.studio : T.bedroo
           .forEach(function (x) { placesRow.appendChild(x.c); });
       }
 
-      // category chips filter the guide row
-      var chips = document.querySelectorAll('.now-chip');
-      var cards = document.querySelectorAll('#nowPlaces .now-placecard');
-      chips.forEach(function (chip) {
-        chip.addEventListener('click', function () {
-          chips.forEach(function (c) { c.classList.remove('is-active'); });
-          chip.classList.add('is-active');
-          var cat = chip.getAttribute('data-cat');
-          cards.forEach(function (c) { c.hidden = !(cat === 'all' || c.getAttribute('data-category') === cat); });
-          $('nowPlaces').scrollLeft = 0;
-        });
-      });
+      // weather — Open-Meteo (no key, same source as the site's «right now» block).
+      // Nothing is shown until real data arrives; offline → the line stays without a number.
+      var SKY = RU
+        ? [[0, 'ясно'], [3, 'облачно'], [48, 'туман'], [67, 'дождь'], [77, 'снег'], [82, 'ливень'], [99, 'гроза']]
+        : [[0, 'clear'], [3, 'cloudy'], [48, 'fog'], [67, 'rain'], [77, 'snow'], [82, 'showers'], [99, 'storm']];
+      var sky = function (code) { for (var i = 0; i < SKY.length; i++) if (code <= SKY[i][0]) return SKY[i][1]; return ''; };
+      var deg = function (t) { var r = Math.round(t); return (r > 0 ? '+' : r < 0 ? '−' : '') + Math.abs(r) + '°'; };
+      try {
+        var LAT = 41.6508, LNG = 41.6357;
+        var air = fetch('https://api.open-meteo.com/v1/forecast?latitude=' + LAT + '&longitude=' + LNG + '&current=temperature_2m,weather_code&timezone=Asia%2FTbilisi')
+          .then(function (r) { return r.ok ? r.json() : null; });
+        var sea = fetch('https://marine-api.open-meteo.com/v1/marine?latitude=' + LAT + '&longitude=' + LNG + '&current=sea_surface_temperature')
+          .then(function (r) { return r.ok ? r.json() : null; }).catch(function () { return null; });
+        Promise.all([air, sea]).then(function (res) {
+          var c = res[0] && res[0].current;
+          if (!c || typeof c.temperature_2m !== 'number') return;
+          $('nowTemp').textContent = deg(c.temperature_2m);
+          var s = res[1] && res[1].current && res[1].current.sea_surface_temperature;
+          var seaTxt = typeof s === 'number' ? (RU ? 'море ' : 'sea ') + Math.round(s) + '°' : '';
+          $('nowSky').textContent = join(sky(c.weather_code), seaTxt);
+          $('nowWx').hidden = false;
+          $('nowWx').parentNode.classList.add('has-wx');
+        }).catch(function () {});
+      } catch (e) {}
     })();
   </script>
 </AppFull>
