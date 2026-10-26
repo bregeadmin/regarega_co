@@ -19,7 +19,7 @@ const apartments = ((data as Apartment[]) || []).map(applyNames);
 const ph = (a: Apartment) => thumb((a.photos && a.photos[0]) || `https://picsum.photos/seed/${a.slug}/900/700`, 828);
 const facts = (a: Apartment) => [
   a.bedrooms === 0 ? 'studio' : `${a.bedrooms ?? 1} bedroom${(a.bedrooms ?? 1) === 1 ? '' : 's'}`,
-  `up to ${a.max_guests ?? 2} guests`,
+  `up to ${a.max_guests ?? 2} guest${(a.max_guests ?? 2) === 1 ? '' : 's'}`,
   a.neighborhood ? a.neighborhood.toLowerCase() : null,
 ].filter(Boolean).join(' · ');
 const n = apartments.length;

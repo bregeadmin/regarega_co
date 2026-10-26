@@ -3,7 +3,10 @@
    - Pulls live availability + prices from the public RPCs (035/036).
    - Calendar: booked nights struck-through & locked; free nights show price/night (+10%).
    - On a valid range: shows price breakdown + request form; submits to /api/booking.
-   Shared by EN and RU pages; all visible copy comes from APT_BOOK.t (English fallback). */
+   Shared by EN and RU pages; all visible copy comes from APT_BOOK.t (English fallback).
+   WEBSITE ONLY. The app's stay screen (src/components/app/StayScreen.astro) has its own copy of the
+   pricing / markup / min-nights / turnover (check-in day = valid check-out) / snap-to-minimum rules —
+   change them in BOTH places together. */
 (function () {
   var CFG = window.APT_BOOK || {};
   var T = CFG.t || {};
@@ -76,12 +79,6 @@
   var startDate = null, endDate = null, mode = 'start';
   var channel = 'telegram';
   var sending = false;
-  // In the app (/app/ pages) a request needs a signed-in guest: no name/contact fields,
-  // the account supplies them. The website form keeps working exactly as before.
-  var APP_IDX = location.pathname.indexOf('/app/');
-  var IN_APP = APP_IDX >= 0;
-  var APP_BASE = CFG.lang === 'ru' ? '/ru/georgia/batumi' : '/georgia/batumi';
-  var RU = CFG.lang === 'ru';
 
   function sym(c) { return (c || CUR) === 'gel' ? '₾' : '$'; }
   function money(n, c) { return sym(c) + Math.round(n); }
@@ -284,63 +281,6 @@
     });
   });
 
-  // ---------- in-app submit (signed-in guest) ----------
-  function whenAuth(fn) { window.rrAuth ? fn() : window.addEventListener('rr-auth-ready', fn, { once: true }); }
-  function guestAdults() {
-    var g = (window.__getBookingGuests && window.__getBookingGuests()) || { adults: 2, children: 0 };
-    return (g.adults || 2) + (g.children || 0);
-  }
-  function loginWithDates() {
-    var q = new URLSearchParams(location.search);
-    q.set('ci', fmtKey(startDate)); q.set('co', fmtKey(endDate)); q.set('adults', String(guestAdults()));
-    var next = location.pathname + '?' + q.toString();
-    location.href = APP_BASE + '/app/login?next=' + encodeURIComponent(next);
-  }
-  function submitInApp() {
-    sending = true; abSend.disabled = true; abSend.textContent = t('sending', 'sending…');
-    var done = function () { sending = false; abSend.disabled = false; abSend.textContent = t('send', '↗ send request'); };
-    var fail = function (code) {
-      showErr(code === 'unavailable' ? (RU ? 'эти даты уже заняты' : 'those dates are taken')
-        : (RU ? 'не получилось отправить — попробуй ещё раз' : "couldn't send — try again"));
-      done();
-    };
-    var login = function () { done(); loginWithDates(); };
-    var timer = setTimeout(function () { timer = null; fail(); }, 8000);
-    var ready = function () {
-      if (!timer) return;            // already timed out
-      clearTimeout(timer); timer = null;
-      go();
-    };
-    whenAuth(ready);
-    function go() {
-      window.rrAuth.session().then(function (sess) {
-        if (!sess || !sess.access_token) { login(); return null; }
-        return window.rrAuth.profile().then(function (prof) {
-          if (prof && prof.error) { fail(); return null; }
-          if (!prof) { login(); return null; }       // login finishes the profile
-          var amount = abSummary && abSummary.dataset.amount ? Number(abSummary.dataset.amount) : null;
-          return fetch('/api/booking', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + sess.access_token },
-            body: JSON.stringify({
-              apartment_id: CFG.id, apt_title: CFG.title || '',
-              ci: fmtKey(startDate), co: fmtKey(endDate), adults: guestAdults(),
-              amount: amount, currency: CUR
-            })
-          }).then(function (r) { return r.json().catch(function () { return { ok: false }; }); })
-            .then(function (res) {
-              if (res && res.ok && res.guest_token) {
-                try { localStorage.removeItem('rr_trip'); localStorage.setItem('rr_trip_token', res.guest_token); } catch (e) {}
-                location.href = APP_BASE + '/app/trip';
-              } else if (res && (res.error === 'no_profile' || res.error === 'auth')) { login(); }
-              else { fail(res && res.error); }
-            });
-        });
-      }).catch(function () { fail(); });
-    }
-    window.addEventListener('pageshow', function (e) { if (e.persisted) done(); });
-  }
-
   // ---------- submit ----------
   function showErr(m) { if (abErr) { abErr.textContent = m; abErr.style.display = m ? 'block' : 'none'; } }
   if (abForm) abForm.addEventListener('submit', function (e) {
@@ -348,7 +288,6 @@
     if (sending) return;
     showErr('');
     if (!(startDate && endDate && nightsCount() >= MIN_NIGHTS)) { showErr(t('errDates', 'pick your dates first')); return; }
-    if (IN_APP) { submitInApp(); return; }
     var name = (abName.value || '').trim();
     var contact = (abContact.value || '').trim();
     if (!name) { showErr(t('errName', 'add your name')); abName.focus(); return; }
@@ -383,26 +322,6 @@
   var gpApply = document.getElementById('gpApply');
   if (gpApply) gpApply.addEventListener('click', function () { setTimeout(localizeGuests, 0); });
   loadData();
-
-  if (IN_APP) {
-    var toBox = document.querySelector('.ab-to');
-    if (toBox) toBox.style.display = 'none';
-    // restore dates + guests after the login round-trip (?ci=&co=&adults=)
-    try {
-      var qs = new URLSearchParams(location.search);
-      var rci = qs.get('ci'), rco = qs.get('co');
-      if (/^\d{4}-\d{2}-\d{2}$/.test(rci || '') && /^\d{4}-\d{2}-\d{2}$/.test(rco || '')) {
-        var a = parseKey(rci), b = parseKey(rco);
-        if (a >= today && b > a) {
-          startDate = a; endDate = b; mode = 'start';
-          viewYear = a.getFullYear(); viewMonth = a.getMonth();
-          var ra = parseInt(qs.get('adults'), 10), gs = window.__getBookingGuests && window.__getBookingGuests();
-          if (gs && ra >= 1) { gs.adults = Math.min(ra, 4); gs.children = 0; gs.infants = 0; if (gpApply) gpApply.click(); }
-          updateLabels();
-        }
-      }
-    } catch (e) {}
-  }
 
   // auto-open the date calendar when arrived via a "book" deep link (#aptBook — e.g. from bre.ge)
   try {

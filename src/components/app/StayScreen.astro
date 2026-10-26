@@ -97,7 +97,9 @@ const T = RU ? {
   sentP: 'живой человек посмотрит календарь и ответит — обычно в течение часа. деньги до ответа не списываем.',
   stSent: 'заявка отправлена', stConfirm: op ? `${op} подтверждает` : 'хозяин подтверждает', stConfirmP: 'смотрит календарь и уборку',
   eta: 'обычно в течение часа', now: 'сейчас', stBooking: 'бронь', stBookingP: 'адрес, код двери и wifi появятся в «поездке»',
-  stArrive: 'заезд', statusIn: 'ответ появится в «поездке»', statusInP: 'открой её в любой момент — там и статус, и потом коды',
+  stArrive: 'заезд', pushIn: op ? `пришлём пуш, как только ${op} ответит` : 'пришлём пуш, как только хозяин ответит', pushInP: 'и всё будет в «поездке» — статус, потом коды',
+  waitAns: op ? `ждём ответа ${op}` : 'ждём ответа хозяина', waitAnsP: 'статус — в «поездке», загляни туда чуть позже',
+  statusIn: 'ответ появится в «поездке»', statusInP: 'открой её в любой момент — там и статус, и потом коды',
   wait: 'пока ждёшь —<br><em>спроси у местного</em>', ask: 'что поесть в первый вечер?',
   // 09
   yoursH: 'бронь<br><em>твоя.</em>', yoursP: op ? `${op} подтвердил. увидимся в батуми.` : 'хозяин подтвердил. увидимся в батуми.',
@@ -137,7 +139,9 @@ const T = RU ? {
   sentP: 'a real person checks the calendar and answers — usually within an hour. nothing is charged before the answer.',
   stSent: 'request sent', stConfirm: op ? `${op} is confirming` : 'the host is confirming', stConfirmP: 'checking the calendar and cleaning',
   eta: 'usually within an hour', now: 'now', stBooking: 'booking', stBookingP: 'address, door code and wifi appear in your trip',
-  stArrive: 'check-in', statusIn: 'the answer shows up in your trip', statusInP: 'open it any time — the status now, the codes later',
+  stArrive: 'check-in', pushIn: op ? `we'll send a push as soon as ${op} answers` : "we'll send a push as soon as the host answers", pushInP: 'and it all lands in your trip — the status now, the codes later',
+  waitAns: op ? `waiting for ${op}'s answer` : "waiting for the host's answer", waitAnsP: 'the status is in your trip — check back a bit later',
+  statusIn: 'the answer shows up in your trip', statusInP: 'open it any time — the status now, the codes later',
   wait: 'while you wait —<br><em>ask a local</em>', ask: 'where to eat on the first night?',
   yoursH: 'the booking<br>is <em>yours.</em>', yoursP: op ? `${op} confirmed. see you in batumi.` : 'the host confirmed. see you in batumi.',
   days: ['day', 'days', 'days'], today: 'today',
@@ -328,8 +332,8 @@ const sign = `<svg viewBox="0 0 100 100" aria-hidden="true"><path fill-rule="eve
         </li>
         <li class="bk-st is-now">
           <span class="bk-st__ic"></span>
-          <span><b>{T.stConfirm}</b><span class="st-meta">{T.stConfirmP}</span><span class="rr-tag rr-tag--home bk-eta">{T.eta}</span></span>
-          <span class="bk-st__when">{T.now}</span>
+          <span><b id="bkNowT">{T.stConfirm}</b><span class="st-meta" id="bkNowP">{T.stConfirmP}</span><span class="rr-tag rr-tag--home bk-eta" id="bkEta">{T.eta}</span></span>
+          <span class="bk-st__when" id="bkNowW">{T.now}</span>
         </li>
         <li class="bk-st">
           <span class="bk-st__ic" set:html={icon('key', 15)} />
@@ -344,7 +348,7 @@ const sign = `<svg viewBox="0 0 100 100" aria-hidden="true"><path fill-rule="eve
       </ol>
       <a class="bk-box st-card bk-status bk-in bk-d2" href={`${BASE}/app/trip`}>
         <span class="bk-app" set:html={sign} />
-        <span><b>{T.statusIn}</b><span>{T.statusInP}</span></span>
+        <span><b id="bkStatusT">{T.statusIn}</b><span id="bkStatusP">{T.statusInP}</span></span>
       </a>
       <div class="bk-acts bk-in bk-d3">
         <a class="st-btn st-btn--home" href={`${BASE}/app/trip`}>{T.toTrip} <Fragment set:html={icon('arrowRight', 19)} /></a>
@@ -375,9 +379,12 @@ const sign = `<svg viewBox="0 0 100 100" aria-hidden="true"><path fill-rule="eve
     </div>
   </section>
 
-  <script is:inline set:html={'window.RR_STAY=' + JSON.stringify(cfg) + ';'}></script>
+  <script is:inline set:html={'window.RR_STAY=' + JSON.stringify(cfg).replace(/</g, '\\u003c') + ';'}></script>
   <script>
     // ---------------------------------------------------------------- stay + booking flow
+    // NOTE: the pricing / markup / min-nights / turnover (check-in day = valid check-out) /
+    // snap-to-minimum rules below also live in public/apt-booking.js (the website's booking
+    // panel). Change them in BOTH places together.
     const C: any = (window as any).RR_STAY;
     const T: any = C.t;
     const RU = C.lang === 'ru';
@@ -421,7 +428,7 @@ const sign = `<svg viewBox="0 0 100 100" aria-hidden="true"><path fill-rule="eve
     let viewY = today.getFullYear(), viewM = today.getMonth();
     let startDate: Date | null = null, endDate: Date | null = null, mode = 'start';
     let guests = Math.min(2, C.maxGuests || 2);
-    let sending = false, sentToken = '', signedIn: boolean | null = null;
+    let sending = false, sentToken = '', signedIn: boolean | null = null, priced = false;
     let view = 'stay';
 
     const pl = (n: number, f: string[]) => {
@@ -462,7 +469,7 @@ const sign = `<svg viewBox="0 0 100 100" aria-hidden="true"><path fill-rule="eve
         loaded(); render(); updateFrom();
       });
       rpc('public_apartment_pricing', { p_apartment: C.id }).then((p: any) => {
-        loaded();
+        loaded(); priced = true; sendLabel();
         if (!p) { render(); return; }
         BASE = p.base_rate != null ? Number(p.base_rate) : null;
         CUR = p.currency || CUR;
@@ -585,6 +592,7 @@ const sign = `<svg viewBox="0 0 100 100" aria-hidden="true"><path fill-rule="eve
     $('bkGPlus').addEventListener('click', () => { if (guests < (C.maxGuests || 2)) { guests++; buildReview(); bump(); } });
     function sendLabel() {
       const b = $('bkSend');
+      b.disabled = sending || !priced;
       if (sending) { b.textContent = T.sending; return; }
       b.textContent = signedIn === false ? T.sendLogin : T.send;
       $('bkLogin').hidden = signedIn !== false;
@@ -616,11 +624,12 @@ const sign = `<svg viewBox="0 0 100 100" aria-hidden="true"><path fill-rule="eve
       q.set('ci', key(startDate as Date)); q.set('co', key(endDate as Date)); q.set('adults', String(guests));
       location.href = C.base + '/app/login?next=' + encodeURIComponent(location.pathname + '?' + q.toString());
     }
-    function setSending(on: boolean) { sending = on; $('bkSend').disabled = on; sendLabel(); }
+    function setSending(on: boolean) { sending = on; sendLabel(); }
     function submit() {
       if (sending) return;
       hideErr();
       if (!valid()) { showErr('bad_dates'); return; }
+      if (!priced) return;
       setSending(true);
       const done = () => setSending(false);
       const fail = (code?: string) => { done(); showErr(code || 'rejected'); };
@@ -670,6 +679,8 @@ const sign = `<svg viewBox="0 0 100 100" aria-hidden="true"><path fill-rule="eve
       $('stCta').hidden = true; $('stTripCta').hidden = false;
       $('stFrom').textContent = T.sentBar; $('stPer').textContent = T.sentBarP;
       $('stBar').classList.add('is-sent');
+      // guest push («бронь подтверждена», OneSignal) exists only in the native app shell
+      if (W.Capacitor) { $('bkStatusT').textContent = T.pushIn; $('bkStatusP').textContent = T.pushInP; }
       show('sent'); history.replaceState({ rrv: 'sent' }, '');
       poll(token);
     }
@@ -679,9 +690,15 @@ const sign = `<svg viewBox="0 0 100 100" aria-hidden="true"><path fill-rule="eve
         rpc('guest_instruction', { p_token: token }).then((r: any) => {
           if (r && (r.state === 'pre' || r.state === 'open')) { yours(r); return; }
           if (++n < 40) setTimeout(tick, 15000);
+          else quiet();
         });
       };
       setTimeout(tick, 5000);
+    }
+    // no answer while the guest watched: no stale «… подтверждает / сейчас»
+    function quiet() {
+      $('bkNowT').textContent = T.waitAns; $('bkNowP').textContent = T.waitAnsP;
+      $('bkEta').hidden = true; $('bkNowW').textContent = '';
     }
     function yours(r: any) {
       const ci = r.ci ? parse(String(r.ci).slice(0, 10)) : (startDate as Date), co = r.co ? parse(String(r.co).slice(0, 10)) : (endDate as Date);

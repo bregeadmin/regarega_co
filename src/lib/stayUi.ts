@@ -44,7 +44,9 @@ export const ICON: Record<string, string> = {
 export const icon = (name: string, size = 20, cls = 'ti'): string =>
   `<svg class="${cls}" width="${size}" height="${size}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICON[name] || ICON.check}</svg>`;
 
-// amenity (as stored, Russian or English) → icon + EN label
+import { tAmenity } from './roomsRu';
+
+// amenity (as stored, Russian or English) → icon + label (RU via tAmenity, EN via the table)
 const AMENITY: { re: RegExp; icon: string; en: string }[] = [
   { re: /wi-?fi|интернет/i, icon: 'wifi', en: 'wi-fi' },
   { re: /кондиц|air cond/i, icon: 'ac', en: 'air conditioning' },
@@ -63,8 +65,9 @@ const AMENITY: { re: RegExp; icon: string; en: string }[] = [
 ];
 export function amenity(raw: string, lang: 'en' | 'ru'): { icon: string; label: string } {
   const hit = AMENITY.find((a) => a.re.test(String(raw).trim()));
-  if (!hit) return { icon: 'check', label: String(raw).toLowerCase() };
-  return { icon: hit.icon, label: lang === 'ru' ? String(raw).toLowerCase() : hit.en };
+  const ru = tAmenity(String(raw)).toLowerCase();
+  if (!hit) return { icon: 'check', label: lang === 'ru' ? ru : String(raw).toLowerCase() };
+  return { icon: hit.icon, label: lang === 'ru' ? ru : hit.en };
 }
 
 // who answers the request — bre by id; any other operator stays a generic «хозяин»
