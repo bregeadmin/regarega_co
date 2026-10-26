@@ -1,0 +1,90 @@
+/* Native app sign-in (src/components/app/LoginScreen.astro). On top of the :root tokens +
+   body.app-full reset from app-shell.css — this file only styles .lg-*. */
+
+.lg-screen{ padding:28px 20px calc(40px + env(safe-area-inset-bottom)); }
+.lg-screen [hidden]{ display:none !important; }
+
+.lg-loading{
+  margin:60px 0 0;
+  text-align:center;
+  font-family:"JetBrains Mono", monospace;
+  font-size:11px;
+  letter-spacing:.06em;
+  color:var(--ink-soft);
+}
+.lg-step{ max-width:380px; margin:0 auto; }
+.lg-h{
+  margin:0 0 8px;
+  font-family:"Bricolage Grotesque", sans-serif;
+  font-size:24px;
+  font-weight:600;
+  line-height:1.15;
+  color:var(--ink);
+}
+.lg-p{
+  margin:0 0 22px;
+  font-family:"Bricolage Grotesque", sans-serif;
+  font-size:14px;
+  line-height:1.4;
+  color:var(--ink-soft);
+}
+.lg-mail{ font-weight:600; color:var(--ink); overflow-wrap:anywhere; }
+
+.lg-form{ display:flex; flex-direction:column; gap:10px; }
+.lg-field{
+  width:100%;
+  height:50px;
+  padding:0 14px;
+  border:.5px solid var(--line);
+  border-radius:12px;
+  background:var(--paper);
+  font-family:"Bricolage Grotesque", sans-serif;
+  font-size:16px; /* 16px: iOS doesn't zoom the page on focus */
+  color:var(--ink);
+  outline:none;
+  box-sizing:border-box;
+}
+.lg-field:focus{ border-color:var(--accent); }
+.lg-field--code{
+  font-family:"JetBrains Mono", monospace;
+  font-size:24px;
+  font-weight:600;
+  letter-spacing:.35em;
+  text-align:center;
+}
+.lg-err{
+  margin:0;
+  font-family:"Bricolage Grotesque", sans-serif;
+  font-size:12.5px;
+  line-height:1.35;
+  color:var(--accent-deep);
+}
+.lg-btn{
+  width:100%;
+  height:50px;
+  margin-top:4px;
+  border:none;
+  border-radius:12px;
+  background:var(--accent);
+  color:#fff;
+  font-family:"Bricolage Grotesque", sans-serif;
+  font-size:15px;
+  font-weight:600;
+  cursor:pointer;
+}
+.lg-btn:active{ background:var(--accent-deep); }
+.lg-btn:disabled{ opacity:.6; cursor:default; }
+
+.lg-alt{ display:flex; justify-content:space-between; gap:12px; margin-top:20px; }
+.lg-link{
+  padding:6px 0;
+  border:none;
+  background:none;
+  font-family:"Bricolage Grotesque", sans-serif;
+  font-size:13px;
+  color:var(--ink-soft);
+  text-decoration:underline;
+  text-underline-offset:3px;
+  cursor:pointer;
+}
+.lg-link:disabled{ color:var(--faint); text-decoration:none; cursor:default; }

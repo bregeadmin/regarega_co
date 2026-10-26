@@ -3,8 +3,11 @@
 // and ru/app/profile.astro render it with `lang`). Shows only what is real today: the
 // dot-punch avatar, "my trip" when a booking token is saved on this device (set by the
 // trip screen as localStorage rr_trip_token) — else "I have a booking", the way in for a
-// guest whose host sent a link — and a working language switch. Taste, cities,
-// sign-in and notifications come back once they actually exist — no placeholder data.
+// guest whose host sent a link — and a working language switch. Two modes, picked
+// client-side from window.rrAuth: signed out (the screen above + primary "sign in" →
+// app/login?next=profile) and signed in (name/email/phone + inline edit, "my trips" from
+// my_trips(), sign out, two-tap delete account). Taste, cities and notifications come back
+// once they actually exist — no placeholder data.
 import AppFull from '../../layouts/AppFull.astro';
 import '../../styles/app-shell.css';
 import '../../styles/app-profile.css';
@@ -19,20 +22,31 @@ const OTHER = isRu ? '/georgia/batumi/app/profile' : '/ru/georgia/batumi/app/pro
 
 const T = isRu
   ? {
-      title: 'профиль — rega rega', desc: 'твой профиль rega rega — поездка и настройки.',
+      title: 'профиль — rega rega', desc: 'твой профиль rega rega — поездки и настройки.',
       h: 'профиль', guest: 'гость', trip: 'моя поездка', haveBooking: 'у меня есть бронь', settings: 'настройки', lang: 'язык',
-      langValue: 'русский', soon: 'скоро здесь: вход, твой вкус и уведомления.',
+      langValue: 'русский', signIn: 'войти', signInHint: 'войди по коду из письма — твои поездки будут везде с тобой.',
+      edit: 'изменить', name: 'имя', phone: 'телефон (необязательно)', save: 'сохранить', saving: 'сохраняем…', cancel: 'отмена',
+      eName: 'напиши имя.', eNet: 'нет сети — попробуй ещё раз.', eGeneric: 'что-то пошло не так — попробуй ещё раз.',
+      trips: 'мои поездки', pending: 'ждёт подтверждения', noTrips: 'пока нет поездок — они появятся, когда хозяин подтвердит бронь.',
+      signOut: 'выйти', del: 'удалить аккаунт', delSure: 'точно удалить? нажми ещё раз', deleting: 'удаляем…',
+      months: ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'],
     }
   : {
-      title: 'profile — rega rega', desc: 'your rega rega profile — trip and settings.',
+      title: 'profile — rega rega', desc: 'your rega rega profile — trips and settings.',
       h: 'profile', guest: 'guest', trip: 'my trip', haveBooking: 'i have a booking', settings: 'settings', lang: 'language',
-      langValue: 'english', soon: 'coming here soon: sign-in, your taste and notifications.',
+      langValue: 'english', signIn: 'sign in', signInHint: 'sign in with a code from your email — your trips follow you everywhere.',
+      edit: 'edit', name: 'name', phone: 'phone (optional)', save: 'save', saving: 'saving…', cancel: 'cancel',
+      eName: 'please enter your name.', eNet: "you're offline — try again.", eGeneric: 'something went wrong — please try again.',
+      trips: 'my trips', pending: 'awaiting confirmation', noTrips: "no trips yet — they'll show up once your host confirms a booking.",
+      signOut: 'sign out', del: 'delete account', delSure: 'really delete? tap again', deleting: 'deleting…',
+      months: ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'],
     };
 
 const ICONS = {
   pin: '<path d="M9 11a3 3 0 1 0 6 0a3 3 0 0 0 -6 0" /><path d="M17.657 16.657l-4.243 4.243a2 2 0 0 1 -2.827 0l-4.244 -4.243a8 8 0 1 1 11.314 0z" />',
   chevron: '<path d="M9 6l6 6l-6 6" />',
 };
+const chev = `<svg class="pf-row__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS.chevron}</svg>`;
 ---
 <AppFull lang={lang} title={T.title} description={T.desc}>
   <AppHeader lang={lang} />
@@ -43,10 +57,36 @@ const ICONS = {
       <span class="pf-avatar" aria-hidden="true">
         <span class="pf-avatar__hole"></span>
       </span>
-      <p class="pf-name">{T.guest}</p>
+      <p class="pf-name" id="pfName">{T.guest}</p>
+      <p class="pf-since pf-contact" id="pfEmail" hidden></p>
+      <p class="pf-since pf-contact" id="pfPhone" hidden></p>
+      <button class="pf-edit" id="pfEdit" type="button" hidden>{T.edit}</button>
     </div>
 
-    <section class="pf-section">
+    <!-- signed in: edit name / phone inline -->
+    <form class="pf-form" id="pfForm" novalidate hidden>
+      <input class="pf-field" id="pfFName" type="text" autocomplete="name" placeholder={T.name} aria-label={T.name} />
+      <input class="pf-field" id="pfFPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder={T.phone} aria-label={T.phone} />
+      <p class="pf-err" id="pfErr" role="alert" hidden></p>
+      <button class="pf-primary" id="pfSave" type="submit">{T.save}</button>
+      <button class="pf-text" id="pfCancel" type="button">{T.cancel}</button>
+    </form>
+
+    <!-- signed out -->
+    <section class="pf-section" id="pfOut" hidden>
+      <a class="pf-primary" id="pfSignIn" href={`${BASE}/app/login?next=${encodeURIComponent(BASE + '/app/profile')}`}>{T.signIn}</a>
+      <p class="pf-soon">{T.signInHint}</p>
+    </section>
+
+    <!-- signed in: trips -->
+    <section class="pf-section" id="pfTripsSec" aria-label={T.trips} hidden>
+      <h2 class="pf-section__title">{T.trips}</h2>
+      <div class="pf-trips" id="pfTrips"></div>
+      <p class="pf-soon" id="pfNoTrips" hidden>{T.noTrips}</p>
+    </section>
+
+    <!-- signed out: the booking-link way in (hidden once signed in: trips cover it) -->
+    <section class="pf-section" id="pfLinkSec">
       <a class="pf-city" id="pfTrip" href={`${BASE}/app/trip`}>
         <svg class="pf-city__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={ICONS.pin} />
         <span class="pf-city__label" id="pfTripLabel">{T.haveBooking}</span>
@@ -60,28 +100,129 @@ const ICONS = {
           <span class="pf-row__label">{T.lang}</span>
           <span class="pf-row__right">
             <span class="pf-row__value">{T.langValue}</span>
-            <svg class="pf-row__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={ICONS.chevron} />
+            <Fragment set:html={chev} />
           </span>
         </a>
       </div>
-      <p class="pf-soon">{T.soon}</p>
+    </section>
+
+    <!-- signed in: account -->
+    <section class="pf-account" id="pfAcct" hidden>
+      <button class="pf-text" id="pfOutBtn" type="button">{T.signOut}</button>
+      <button class="pf-forget" id="pfDel" type="button">{T.del}</button>
     </section>
   </main>
 
   <TabBar lang={lang} />
 
-  <script is:inline define:vars={{ TRIP: T.trip }}>
+  <script is:inline define:vars={{ T, BASE, TRIP: T.trip }}>
     (function () {
+      function $(id) { return document.getElementById(id); }
       try {
         if (localStorage.getItem('rr_trip_token')) {
-          document.getElementById('pfTrip').classList.add('pf-city--accent');
-          document.getElementById('pfTripLabel').textContent = TRIP;
+          $('pfTrip').classList.add('pf-city--accent');
+          $('pfTripLabel').textContent = TRIP;
         }
       } catch (e) {}
       // remember the choice so the app opens in this language next time (read by the now screen)
-      document.getElementById('pfLang').addEventListener('click', function () {
+      $('pfLang').addEventListener('click', function () {
         try { localStorage.setItem('rr_lang', this.getAttribute('data-lang')); } catch (e) {}
       });
+
+      function fmt(iso) {
+        var m = String(iso || '').match(/^(\d{4})-(\d{2})-(\d{2})/);
+        return m ? (+m[3]) + ' ' + T.months[+m[2] - 1] : '';
+      }
+      function range(ci, co) { var a = fmt(ci), b = fmt(co); return a && b ? a + ' – ' + b : (a || b); }
+      function err(msg) { $('pfErr').textContent = msg || ''; $('pfErr').hidden = !msg; }
+
+      var profile = null;
+      function paint(p) {
+        profile = p;
+        $('pfName').textContent = p.name || T.guest;
+        $('pfEmail').textContent = p.email || ''; $('pfEmail').hidden = !p.email;
+        $('pfPhone').textContent = p.phone || ''; $('pfPhone').hidden = !p.phone;
+      }
+      function signedOut() {
+        $('pfOut').hidden = false;
+      }
+      function renderTrips(list) {
+        var box = $('pfTrips');
+        box.textContent = '';
+        $('pfNoTrips').hidden = list.length > 0;
+        list.forEach(function (t) {
+          var a = document.createElement('a');
+          a.className = 'pf-trip';
+          a.href = BASE + '/app/trip?t=' + encodeURIComponent(t.guest_token || '');
+          var left = document.createElement('span'); left.className = 'pf-trip__main';
+          var n = document.createElement('span'); n.className = 'pf-trip__name'; n.textContent = t.apt_title || '';
+          var d = document.createElement('span'); d.className = 'pf-trip__dates'; d.textContent = range(t.ci, t.co);
+          left.appendChild(n); left.appendChild(d);
+          if (t.pending) {
+            var s = document.createElement('span'); s.className = 'pf-trip__pending'; s.textContent = T.pending;
+            left.appendChild(s);
+          }
+          a.appendChild(left);
+          var c = document.createElement('span'); c.className = 'pf-trip__chev'; c.innerHTML = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6l-6 6" /></svg>';
+          a.appendChild(c);
+          box.appendChild(a);
+        });
+      }
+
+      function init() {
+        var rr = window.rrAuth;
+        rr.session().then(function (s) {
+          if (!s) return signedOut();
+          return rr.profile().then(function (p) {
+            if (!p) { // signed in but no profile yet → finish it on the sign-in screen
+              location.replace(BASE + '/app/login?next=' + encodeURIComponent(BASE + '/app/profile'));
+              return;
+            }
+            paint(p);
+            $('pfEdit').hidden = false; $('pfAcct').hidden = false;
+            $('pfLinkSec').hidden = true; $('pfTripsSec').hidden = false;
+            return rr.trips().then(renderTrips);
+          });
+        }).catch(signedOut);
+
+        $('pfEdit').addEventListener('click', function () {
+          $('pfFName').value = profile.name || ''; $('pfFPhone').value = profile.phone || '';
+          err(); $('pfForm').hidden = false; this.hidden = true; $('pfFName').focus();
+        });
+        $('pfCancel').addEventListener('click', function () { $('pfForm').hidden = true; $('pfEdit').hidden = false; });
+        $('pfForm').addEventListener('submit', function (e) {
+          e.preventDefault();
+          var n = $('pfFName').value.trim();
+          if (!n) { err(T.eName); return; }
+          err(); var b = $('pfSave'); b.disabled = true; b.textContent = T.saving;
+          rr.saveProfile(n, $('pfFPhone').value.trim() || null).then(function (r) {
+            b.disabled = false; b.textContent = T.save;
+            if (!r.ok) { err(r.error === 'bad_name' ? T.eName : r.error === 'network' ? T.eNet : T.eGeneric); return; }
+            paint({ name: r.name || n, email: r.email || profile.email, phone: r.phone != null ? r.phone : ($('pfFPhone').value.trim() || null) });
+            $('pfForm').hidden = true; $('pfEdit').hidden = false;
+          });
+        });
+        $('pfOutBtn').addEventListener('click', function () {
+          rr.signOut().then(function () { location.reload(); });
+        });
+        // delete account: two taps, no dialogs
+        $('pfDel').addEventListener('click', function () {
+          var b = this;
+          if (!b.classList.contains('is-sure')) {
+            b.classList.add('is-sure'); b.textContent = T.delSure;
+            setTimeout(function () { b.classList.remove('is-sure'); b.textContent = T.del; }, 4000);
+            return;
+          }
+          b.disabled = true; b.textContent = T.deleting;
+          rr.deleteAccount().then(function (r) {
+            if (r.ok) { location.reload(); return; }
+            b.disabled = false; b.classList.remove('is-sure'); b.textContent = T.del;
+            err(r.error === 'network' ? T.eNet : T.eGeneric);
+            $('pfForm').hidden = false; $('pfEdit').hidden = true;
+          });
+        });
+      }
+      window.rrAuth ? init() : addEventListener('rr-auth-ready', init, { once: true });
     })();
   </script>
 </AppFull>

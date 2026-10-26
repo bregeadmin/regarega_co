@@ -146,3 +146,107 @@ a.pf-city{ text-decoration:none; }
   line-height:1.4;
   color:var(--ink-soft);
 }
+
+/* ---------- guest account: contact lines, edit form, trips, account actions ---------- */
+.pf-screen [hidden]{ display:none !important; }
+.pf-contact{ margin-top:2px; overflow-wrap:anywhere; text-transform:none; }
+.pf-edit, .pf-text{
+  padding:6px 0;
+  border:none;
+  background:none;
+  font-family:"Bricolage Grotesque", sans-serif;
+  font-size:13px;
+  color:var(--ink-soft);
+  text-decoration:underline;
+  text-underline-offset:3px;
+  cursor:pointer;
+}
+.pf-edit{ margin-top:6px; }
+.pf-form{ display:flex; flex-direction:column; gap:10px; padding:0 0 24px; }
+.pf-field{
+  width:100%;
+  height:48px;
+  padding:0 14px;
+  border:.5px solid var(--line);
+  border-radius:12px;
+  background:var(--paper);
+  font-family:"Bricolage Grotesque", sans-serif;
+  font-size:16px; /* 16px: iOS doesn't zoom the page on focus */
+  color:var(--ink);
+  outline:none;
+  box-sizing:border-box;
+}
+.pf-field:focus{ border-color:var(--accent); }
+.pf-err{
+  margin:0;
+  font-family:"Bricolage Grotesque", sans-serif;
+  font-size:12.5px;
+  color:var(--accent-deep);
+}
+.pf-primary{
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  width:100%;
+  height:48px;
+  border:none;
+  border-radius:12px;
+  background:var(--accent);
+  font-family:"Bricolage Grotesque", sans-serif;
+  font-size:15px;
+  font-weight:600;
+  text-decoration:none;
+  cursor:pointer;
+}
+.pf-primary:active{ background:var(--accent-deep); }
+.pf-primary:disabled{ opacity:.6; cursor:default; }
+.pf-form .pf-text{ align-self:center; }
+
+.pf-trips{ display:flex; flex-direction:column; gap:8px; }
+.pf-trip{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  padding:13px 14px;
+  border:.5px solid var(--line);
+  border-radius:13px;
+  text-decoration:none;
+}
+.pf-trip__main{ display:flex; flex-direction:column; gap:2px; min-width:0; }
+.pf-trip__name{
+  font-family:"Bricolage Grotesque", sans-serif;
+  font-size:14px;
+  font-weight:500;
+  color:var(--ink);
+}
+.pf-trip__dates{
+  font-family:"JetBrains Mono", monospace;
+  font-size:11.5px;
+  color:var(--ink-soft);
+}
+.pf-trip__pending{
+  font-family:"Bricolage Grotesque", sans-serif;
+  font-size:12px;
+  color:var(--accent-deep);
+}
+.pf-trip__chev{ flex:none; width:16px; height:16px; color:var(--ink-soft); }
+.pf-trip__chev svg{ width:16px; height:16px; display:block; }
+
+.pf-account{ display:flex; flex-direction:column; align-items:flex-start; gap:12px; padding:6px 0 0; }
+.pf-forget{
+  padding:6px 0;
+  border:none;
+  background:none;
+  font-family:"Bricolage Grotesque", sans-serif;
+  font-size:12.5px;
+  color:var(--faint);
+  text-decoration:underline;
+  text-underline-offset:3px;
+  cursor:pointer;
+}
+.pf-forget.is-sure{ color:var(--accent-deep); }
+
+/* body.app-full a{color:inherit} (app-shell.css) outranks a bare class — scope the colours */
+.pf-screen a.pf-primary, .pf-screen button.pf-primary{ color:#fff; }
+.pf-screen a.pf-trip{ color:inherit; }

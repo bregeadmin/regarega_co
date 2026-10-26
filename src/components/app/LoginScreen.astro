@@ -1,0 +1,207 @@
+---
+// Native app sign-in — one component for both languages. Email one-time code (no passwords):
+// state 1 email → 2 six-digit code → 3 name/phone (only when my_guest_profile is null).
+// All through window.rrAuth (src/lib/guestAuth.ts); raw Supabase errors are never shown, they
+// are mapped to the copy below. After success: location.replace(?next=, default = profile).
+// Other screens send people here as  ${BASE}/app/login?next=<own path + query>.
+import AppFull from '../../layouts/AppFull.astro';
+import '../../styles/app-shell.css';
+import '../../styles/app-login.css';
+import AppHeader from '../AppHeader.astro';
+
+export interface Props { lang: 'en' | 'ru' }
+const { lang } = Astro.props;
+const isRu = lang === 'ru';
+const BASE = isRu ? '/ru/georgia/batumi' : '/georgia/batumi';
+
+const T = isRu
+  ? {
+      title: 'вход — rega rega', desc: 'войди по коду из письма — без пароля.',
+      loading: 'секунду…',
+      h1: 'войти в rega rega', p1: 'пришлём код на почту — пароль не нужен.',
+      email: 'почта', getCode: 'получить код', sending: 'отправляем…',
+      h2: 'введи код из письма', sent: 'код отправлен на', code: 'код из 6 цифр',
+      verify: 'войти', verifying: 'проверяем…',
+      resend: 'отправить ещё раз', resendIn: 'отправить ещё раз через', sec: 'с', other: 'другая почта',
+      h3: 'как тебя зовут?', p3: 'имя увидит хозяин жилья. телефон — по желанию.',
+      name: 'имя', phone: 'телефон (необязательно)', done: 'готово', saving: 'сохраняем…',
+      eBadEmail: 'проверь почту — похоже, в адресе опечатка.',
+      eCode: 'код не подошёл или устарел — проверь цифры или запроси новый.',
+      eRate: 'слишком много попыток — подожди минуту и попробуй снова.',
+      eNet: 'нет сети — проверь соединение и попробуй ещё раз.',
+      eGeneric: 'что-то пошло не так — попробуй ещё раз.',
+      eName: 'напиши имя.',
+    }
+  : {
+      title: 'sign in — rega rega', desc: 'sign in with a code from your email — no password.',
+      loading: 'one moment…',
+      h1: 'sign in to rega rega', p1: "we'll email you a code — no password needed.",
+      email: 'email', getCode: 'get code', sending: 'sending…',
+      h2: 'enter the code from your email', sent: 'code sent to', code: '6-digit code',
+      verify: 'sign in', verifying: 'checking…',
+      resend: 'send again', resendIn: 'send again in', sec: 's', other: 'different email',
+      h3: "what's your name?", p3: 'your host will see it. phone is optional.',
+      name: 'name', phone: 'phone (optional)', done: 'done', saving: 'saving…',
+      eBadEmail: 'check your email — the address looks off.',
+      eCode: "that code didn't work or has expired — check the digits or ask for a new one.",
+      eRate: 'too many tries — wait a minute and try again.',
+      eNet: "you're offline — check your connection and try again.",
+      eGeneric: 'something went wrong — please try again.',
+      eName: 'please enter your name.',
+    };
+---
+<AppFull lang={lang} title={T.title} description={T.desc}>
+  <AppHeader lang={lang} />
+  <main class="lg-screen">
+    <p class="lg-loading" id="lgLoading">{T.loading}</p>
+
+    <!-- 1: email -->
+    <section class="lg-step" id="lgS1" hidden>
+      <h1 class="lg-h">{T.h1}</h1>
+      <p class="lg-p">{T.p1}</p>
+      <form class="lg-form" id="lgF1" novalidate>
+        <input class="lg-field" id="lgEmail" type="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" placeholder={T.email} aria-label={T.email} />
+        <p class="lg-err" id="lgE1" role="alert" hidden></p>
+        <button class="lg-btn" id="lgB1" type="submit">{T.getCode}</button>
+      </form>
+    </section>
+
+    <!-- 2: code -->
+    <section class="lg-step" id="lgS2" hidden>
+      <h1 class="lg-h">{T.h2}</h1>
+      <p class="lg-p">{T.sent} <b class="lg-mail" id="lgMail"></b></p>
+      <form class="lg-form" id="lgF2" novalidate>
+        <input class="lg-field lg-field--code" id="lgCode" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]*" placeholder="000000" aria-label={T.code} />
+        <p class="lg-err" id="lgE2" role="alert" hidden></p>
+        <button class="lg-btn" id="lgB2" type="submit">{T.verify}</button>
+      </form>
+      <div class="lg-alt">
+        <button class="lg-link" id="lgResend" type="button" disabled>{T.resend}</button>
+        <button class="lg-link" id="lgOther" type="button">{T.other}</button>
+      </div>
+    </section>
+
+    <!-- 3: name / phone (first sign-in only) -->
+    <section class="lg-step" id="lgS3" hidden>
+      <h1 class="lg-h">{T.h3}</h1>
+      <p class="lg-p">{T.p3}</p>
+      <form class="lg-form" id="lgF3" novalidate>
+        <input class="lg-field" id="lgName" type="text" autocomplete="name" placeholder={T.name} aria-label={T.name} />
+        <input class="lg-field" id="lgPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder={T.phone} aria-label={T.phone} />
+        <p class="lg-err" id="lgE3" role="alert" hidden></p>
+        <button class="lg-btn" id="lgB3" type="submit">{T.done}</button>
+      </form>
+    </section>
+  </main>
+
+  <script is:inline define:vars={{ T, BASE }}>
+    (function () {
+      function $(id) { return document.getElementById(id); }
+      // same checks as src/lib/guestCore.js (inline scripts can't import)
+      function isEmail(s) { return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(s || '').trim()); }
+      function cleanCode(s) { return String(s || '').replace(/\D/g, '').slice(0, 6); }
+      function nextPath() {
+        var fb = BASE + '/app/profile', v = null;
+        try { v = new URLSearchParams(location.search).get('next'); } catch (e) {}
+        if (!v || v[0] !== '/' || v[1] === '/' || v[1] === '\\' || /[\r\n]/.test(v)) return fb;
+        return v;
+      }
+      function show(id) {
+        ['lgLoading', 'lgS1', 'lgS2', 'lgS3'].forEach(function (x) { $(x).hidden = x !== id; });
+      }
+      function err(id, msg) { var e = $(id); e.textContent = msg || ''; e.hidden = !msg; }
+      function busy(id, on, label, idle) { var b = $(id); b.disabled = on; b.textContent = on ? label : idle; }
+      // raw Supabase text never reaches the screen
+      function mapErr(r, kind) {
+        var m = String((r && r.error) || '').toLowerCase();
+        if (m === 'network' || /fetch|network|failed to/.test(m)) return T.eNet;
+        if (/rate|too many|429|security purposes|after \d+ s/.test(m)) return T.eRate;
+        if (kind === 'verify' && /expired|invalid|token|otp|code/.test(m)) return T.eCode;
+        if (kind === 'send' && /invalid|email/.test(m)) return T.eBadEmail;
+        return T.eGeneric;
+      }
+      function go() { location.replace(nextPath()); }
+
+      var email = '', timer = null;
+      function startTimer() {
+        clearInterval(timer);
+        var left = 60, b = $('lgResend');
+        b.disabled = true;
+        function tick() {
+          if (left <= 0) { clearInterval(timer); b.disabled = false; b.textContent = T.resend; return; }
+          b.textContent = T.resendIn + ' ' + left + ' ' + T.sec; left--;
+        }
+        tick(); timer = setInterval(tick, 1000);
+      }
+      function toCode() {
+        $('lgMail').textContent = email; $('lgCode').value = ''; err('lgE2');
+        show('lgS2'); startTimer(); $('lgCode').focus();
+      }
+      function after(rr) {
+        rr.profile().then(function (p) {
+          if (p) return go();
+          show('lgS3'); $('lgName').focus();
+        });
+      }
+
+      function init() {
+        var rr = window.rrAuth;
+        rr.session().then(function (s) {
+          if (!s) { show('lgS1'); return; }
+          after(rr);
+        });
+
+        $('lgF1').addEventListener('submit', function (e) {
+          e.preventDefault();
+          var v = $('lgEmail').value.trim();
+          if (!isEmail(v)) { err('lgE1', T.eBadEmail); return; }
+          err('lgE1'); busy('lgB1', true, T.sending, T.getCode);
+          rr.sendCode(v).then(function (r) {
+            busy('lgB1', false, '', T.getCode);
+            if (!r.ok) { err('lgE1', mapErr(r, 'send')); return; }
+            email = v; toCode();
+          });
+        });
+
+        function verify() {
+          var c = cleanCode($('lgCode').value);
+          if (c.length !== 6) { err('lgE2', T.eCode); return; }
+          err('lgE2'); busy('lgB2', true, T.verifying, T.verify);
+          rr.verify(email, c).then(function (r) {
+            if (!r.ok) { busy('lgB2', false, '', T.verify); err('lgE2', mapErr(r, 'verify')); return; }
+            busy('lgB2', false, '', T.verify);
+            after(rr);
+          });
+        }
+        $('lgF2').addEventListener('submit', function (e) { e.preventDefault(); verify(); });
+        $('lgCode').addEventListener('input', function () {
+          this.value = cleanCode(this.value); err('lgE2');
+          if (this.value.length === 6 && !$('lgB2').disabled) verify();
+        });
+        $('lgResend').addEventListener('click', function () {
+          if (this.disabled) return;
+          this.disabled = true; err('lgE2');
+          rr.sendCode(email).then(function (r) {
+            if (!r.ok) { err('lgE2', mapErr(r, 'send')); $('lgResend').disabled = false; $('lgResend').textContent = T.resend; return; }
+            startTimer();
+          });
+        });
+        $('lgOther').addEventListener('click', function () {
+          clearInterval(timer); err('lgE1'); show('lgS1'); $('lgEmail').focus();
+        });
+
+        $('lgF3').addEventListener('submit', function (e) {
+          e.preventDefault();
+          var n = $('lgName').value.trim();
+          if (!n) { err('lgE3', T.eName); return; }
+          err('lgE3'); busy('lgB3', true, T.saving, T.done);
+          rr.saveProfile(n, $('lgPhone').value.trim() || null).then(function (r) {
+            if (!r.ok) { busy('lgB3', false, '', T.done); err('lgE3', r.error === 'bad_name' ? T.eName : mapErr(r, 'save')); return; }
+            go();
+          });
+        });
+      }
+      window.rrAuth ? init() : addEventListener('rr-auth-ready', init, { once: true });
+    })();
+  </script>
+</AppFull>
