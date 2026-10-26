@@ -1,14 +1,12 @@
 ---
-// Native app "stays" screen — clean vertical list of apartments (no search bar,
-// no breadcrumbs, no list/map toggle: map is its own tab, see app/map.astro).
-// Same apartments_public query + applyNames + priceFrom helpers as the site's
-// /stays page (src/pages/georgia/batumi/stays.astro) — just without its chrome.
-// Tapping a card goes to the native detail screen (app/stays/[slug].astro),
-// not the site's /stays/[slug] page.
+// Native app "stays" screen (EN) — the home world's list: a display heading and one card per
+// apartment (photo, price stamp, name, facts). Same apartments_public query + applyNames as
+// the site's /stays page. Tapping a card opens the native apartment screen (app/stays/[slug]).
 import App from '../../../../layouts/App.astro';
 import '../../../../styles/app-stays.css';
 import { supabase, applyNames, type Apartment } from '../../../../lib/supabase';
-import { priceFrom } from '../../../../lib/price';
+import { priceSym } from '../../../../lib/price';
+import { thumb } from '../../../../lib/thumb';
 
 const LANG = 'en' as const;
 const BASE = '/georgia/batumi';
@@ -18,21 +16,34 @@ const { data } = await supabase
   .select('id,slug,title,neighborhood,bedrooms,max_guests,price_from,price_currency,photos')
   .order('price_from', { ascending: true });
 const apartments = ((data as Apartment[]) || []).map(applyNames);
-const ph = (a: Apartment) => (a.photos && a.photos[0]) || `https://picsum.photos/seed/${a.slug}/900/700`;
+const ph = (a: Apartment) => thumb((a.photos && a.photos[0]) || `https://picsum.photos/seed/${a.slug}/900/700`, 828);
+const facts = (a: Apartment) => [
+  a.bedrooms === 0 ? 'studio' : `${a.bedrooms ?? 1} bedroom${(a.bedrooms ?? 1) === 1 ? '' : 's'}`,
+  `up to ${a.max_guests ?? 2} guests`,
+  a.neighborhood ? a.neighborhood.toLowerCase() : null,
+].filter(Boolean).join(' · ');
+const n = apartments.length;
 ---
 <App lang={LANG} title="stays — rega rega" description="checked apartments in batumi — pick one, book direct.">
-  <div class="stay-list__count">{apartments.length} apartments</div>
-  <div class="stay-list">
-    {apartments.map((a) => (
-      <a class="stay-card" href={`${BASE}/app/stays/${a.slug}`}>
-        <div class="stay-card__photo"><img src={ph(a)} alt={a.title} loading="lazy" /></div>
-        <div class="stay-card__body">
-          <h3 class="stay-card__name">{a.title}</h3>
-          <p class="stay-card__meta">{a.bedrooms === 0 ? 'studio' : `${a.bedrooms ?? 1} bed`} · {a.max_guests ?? 2} guests{a.neighborhood ? ` · ${a.neighborhood}` : ''}</p>
-          <p class="stay-card__price">{priceFrom(a, LANG)}</p>
-        </div>
-      </a>
-    ))}
-    {apartments.length === 0 && <p class="stay-list__empty">no apartments yet</p>}
+  <div class="sl-screen">
+    <header class="sl-head">
+      <h1 class="rr-display sl-head__h">where to <em>stay</em></h1>
+      <p class="sl-head__sub">{n} apartment{n === 1 ? '' : 's'} · book direct, a real person answers</p>
+    </header>
+    <div class="sl-list">
+      {apartments.map((a, i) => (
+        <a class="sl-card" href={`${BASE}/app/stays/${a.slug}`} style={`--i:${Math.min(i, 6)}`}>
+          <span class="sl-card__photo">
+            <img src={ph(a)} alt="" loading={i < 2 ? 'eager' : 'lazy'} decoding="async" />
+            <span class="sl-card__price">{a.price_from ? <><small>from</small> {priceSym(a.price_currency)}{a.price_from}<small> / night</small></> : 'on request'}</span>
+          </span>
+          <span class="sl-card__body">
+            <span class="sl-card__name">{a.title.toLowerCase()}</span>
+            <span class="sl-card__meta">{facts(a)}</span>
+          </span>
+        </a>
+      ))}
+      {n === 0 && <p class="sl-empty">no apartments yet</p>}
+    </div>
   </div>
 </App>

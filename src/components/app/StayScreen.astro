@@ -1,0 +1,764 @@
+---
+// Native app apartment screen + the request-to-book flow, one component for both languages
+// (pages app/stays/[slug].astro and ru/app/stays/[slug].astro). Visual source: rega-design-panel
+// r3/02-stay (apartment), 06 (dates sheet), 07 (review), 08 (request sent), 09 (booking yours).
+//
+// Booking machinery = the same as before (it was public/apt-booking.js's in-app path, which the
+// website still uses untouched): availability + prices from the public RPCs
+// public_apartment_availability / public_apartment_pricing (markup, cleaning, min nights, per-day
+// rates), booked nights locked, check-in day of the next booking allowed as checkout (turnover),
+// too-short stays snap to the minimum; signed-out guests go through the email-code login and come
+// back with ?ci=&co=&adults= (now straight to the review step); POST /api/booking with the guest's
+// bearer token; the guest_token it returns is saved as rr_trip_token and leads to /app/trip.
+// Errors (no_profile/auth → login, unavailable, bad_dates, unknown_apartment, rate, network,
+// rejected) get human copy + retry. Step 09 appears when the request is confirmed while the
+// guest is still on step 08 (guest_instruction(token) leaves 'pending').
+import AppFull from '../../layouts/AppFull.astro';
+import '../../styles/app-shell.css';
+import '../../styles/app-apt.css';
+import type { Apartment } from '../../lib/supabase';
+import { stripEmoji } from '../../lib/text';
+import { priceSym } from '../../lib/price';
+import { thumb } from '../../lib/thumb';
+import { icon, amenity, operatorName, SIGN_PATH } from '../../lib/stayUi';
+
+export interface Props { lang: 'en' | 'ru'; apt: Apartment }
+const { lang, apt } = Astro.props;
+const RU = lang === 'ru';
+const BASE = RU ? '/ru/georgia/batumi' : '/georgia/batumi';
+
+const title = ((RU ? apt.title_ru : null) || apt.title || '').trim();
+const photos = (apt.photos && apt.photos.length) ? apt.photos : ['https://picsum.photos/seed/' + apt.slug + '/1600/1000'];
+const op = operatorName(apt.operator_id);
+
+const plural = (n: number, one: string, few: string, many: string) => { const m = n % 100, d = n % 10; if (m >= 11 && m <= 14) return many; if (d === 1) return one; if (d >= 2 && d <= 4) return few; return many; };
+const beds = apt.bedrooms ?? 1;
+const guests = apt.max_guests ?? 2;
+const facts: { i: string; t: string }[] = [
+  { i: apt.bedrooms === 0 ? 'home' : 'bed', t: apt.bedrooms === 0 ? (RU ? 'студия' : 'studio') : RU ? `${beds} ${plural(beds, 'спальня', 'спальни', 'спален')}` : `${beds} bedroom${beds === 1 ? '' : 's'}` },
+  { i: 'users', t: RU ? `до ${guests} ${plural(guests, 'гостя', 'гостей', 'гостей')}` : `up to ${guests} guest${guests === 1 ? '' : 's'}` },
+];
+if (apt.baths) facts.push({ i: 'bath', t: RU ? `${apt.baths} ${plural(apt.baths, 'ванная', 'ванные', 'ванных')}` : `${apt.baths} bath${apt.baths === 1 ? '' : 's'}` });
+if (apt.neighborhood) facts.push({ i: 'pin', t: apt.neighborhood.toLowerCase() });
+
+// title as a display heading: first word, italic rest («coral / apartment»)
+const words = title.toLowerCase().split(/\s+/).filter(Boolean);
+const titleHead = words.length > 1 ? words[0] : '';
+const titleEm = words.length > 1 ? words.slice(1).join(' ') : words.join(' ');
+
+// Airbnb section labels glued into the text → sub-headings (same helper as before)
+const ABNB_HEAD = /^(the space|guest access|other things to note|other details to note|the neighbou?rhood|getting around|getting there|interaction with guests|during your stay|registration number)\.?:?$/i;
+const renderAbout = (raw: string) => {
+  const out: string[] = []; let para: string[] = [];
+  const esc = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+  const flush = () => { if (para.length) { out.push(`<p>${esc(para.join(' '))}</p>`); para = []; } };
+  stripEmoji(raw).split(/\n/).map((l) => l.trim()).forEach((l) => {
+    if (!l) { flush(); return; }
+    if (ABNB_HEAD.test(l)) { flush(); out.push(`<h3 class="st-about__h">${esc(l.replace(/[:.]$/, '').toLowerCase())}</h3>`); return; }
+    para.push(l);
+  });
+  flush();
+  return out.join('');
+};
+const summary = (RU ? apt.summary_ru : null) || apt.summary || '';
+const aboutHtml = summary ? renderAbout(summary) : '';
+const amenities = (apt.amenities || []).map((a) => amenity(a, lang));
+
+const sym = priceSym(apt.price_currency);
+const opLabel = op || (RU ? 'хозяин' : 'the host');
+const avatar = op ? op.slice(0, 3) : '';
+
+const T = RU ? {
+  more2: 'читать полностью', back: 'назад к жилью', share: 'поделиться', photo: 'фото',
+  kick: 'жильё / батуми', direct: 'бронь напрямую',
+  hosts: op ? `принимает ${op}` : 'принимает хозяин', human: 'живой человек · ответим за час',
+  about: 'о <em>квартире</em>', inside: 'что <em>внутри</em>',
+  perNight: 'за ночь', from: 'от', onRequest: 'по запросу', pick: 'выбрать даты',
+  sentBar: `заявка у ${opLabel}`, sentBarP: 'ждём ответа', toTrip: 'открыть поездку',
+  // 06
+  when: 'когда <em>едешь?</em>', close: 'закрыть', prev: 'прошлый месяц', next: 'следующий месяц',
+  busy: 'занято', priceNote: 'цена — за ночь, сбор уже в ней',
+  pickDates: 'выбери даты', inOut: 'заезд и выезд', checkIn: 'заезд', nowOut: 'теперь — дата выезда',
+  forStay: 'за проживание', go: 'дальше', minStay: 'минимум',
+  months: ['январь', 'февраль', 'март', 'апрель', 'май', 'июнь', 'июль', 'август', 'сентябрь', 'октябрь', 'ноябрь', 'декабрь'],
+  monShort: ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'],
+  week: ['пн', 'вт', 'ср', 'чт', 'пт', 'сб', 'вс'],
+  wdShort: ['вс', 'пн', 'вт', 'ср', 'чт', 'пт', 'сб'],
+  nights: ['ночь', 'ночи', 'ночей'], guestsW: ['гость', 'гостя', 'гостей'],
+  // 07
+  almost: 'почти<br><em>твоя.</em>', check: op ? `проверь и отправь — ${op} подтвердит сам` : 'проверь и отправь — хозяин подтвердит сам',
+  edit: 'изменить', guests: 'гости', less: 'меньше', more: 'больше', cleaning: 'уборка после выезда',
+  fee: 'сервисный сбор', feeIn: 'уже в цене', total: 'итого', free: 'до подтверждения ничего не списываем',
+  answers: 'ответит живой человек', answersP: op ? `${op}, обычно в течение часа` : 'обычно в течение часа',
+  where: 'куда прислать ответ?', whereP: 'войдёшь по коду из письма — без паролей. даты сохраним.',
+  send: 'отправить заявку', sendLogin: 'войти и отправить', sending: 'отправляем…', step2: 'шаг 2 из 3', step3: 'заявка отправлена',
+  // 08
+  sentH: op ? `заявка<br>у <em>${op}.</em>` : 'заявка<br><em>отправлена.</em>',
+  sentP: 'живой человек посмотрит календарь и ответит — обычно в течение часа. деньги до ответа не списываем.',
+  stSent: 'заявка отправлена', stConfirm: op ? `${op} подтверждает` : 'хозяин подтверждает', stConfirmP: 'смотрит календарь и уборку',
+  eta: 'обычно в течение часа', now: 'сейчас', stBooking: 'бронь', stBookingP: 'адрес, код двери и wifi появятся в «поездке»',
+  stArrive: 'заезд', statusIn: 'ответ появится в «поездке»', statusInP: 'открой её в любой момент — там и статус, и потом коды',
+  wait: 'пока ждёшь —<br><em>спроси у местного</em>', ask: 'что поесть в первый вечер?',
+  // 09
+  yoursH: 'бронь<br><em>твоя.</em>', yoursP: op ? `${op} подтвердил. увидимся в батуми.` : 'хозяин подтвердил. увидимся в батуми.',
+  days: ['день', 'дня', 'дней'], today: 'сегодня',
+  // errors
+  err: {
+    unavailable: ['эти даты уже заняты', 'кто-то успел раньше. выбери другие — календарь обновили.', 'выбрать другие даты'],
+    bad_dates: ['даты не подошли', 'проверь заезд и выезд и попробуй ещё раз.', 'выбрать даты'],
+    unknown_apartment: ['эту квартиру сейчас не забронировать', 'спроси у местного — подскажем похожую.', 'к консьержу'],
+    rate: ['слишком много попыток', 'подожди минуту и попробуй ещё раз — даты на месте.', 'попробовать ещё раз'],
+    network: ['нет связи', 'проверь интернет и попробуй ещё раз — даты на месте.', 'попробовать ещё раз'],
+    rejected: ['не получилось отправить', 'попробуй ещё раз. если не выйдет — спроси у местного, поможем.', 'попробовать ещё раз'],
+  },
+} : {
+  more2: 'read it all', back: 'back to stays', share: 'share', photo: 'photo',
+  kick: 'stays / batumi', direct: 'book direct',
+  hosts: op ? `hosted by ${op}` : 'hosted by the owner', human: 'a real person · answers within an hour',
+  about: 'about the <em>flat</em>', inside: "what's <em>inside</em>",
+  perNight: 'a night', from: 'from', onRequest: 'on request', pick: 'pick dates',
+  sentBar: `request is with ${opLabel}`, sentBarP: 'waiting for the answer', toTrip: 'open the trip',
+  when: 'when are you <em>coming?</em>', close: 'close', prev: 'previous month', next: 'next month',
+  busy: 'booked', priceNote: 'price per night, fee included',
+  pickDates: 'pick your dates', inOut: 'check-in and check-out', checkIn: 'check-in', nowOut: 'now — the check-out date',
+  forStay: 'for the stay', go: 'next', minStay: 'minimum',
+  months: ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'],
+  monShort: ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'],
+  week: ['mo', 'tu', 'we', 'th', 'fr', 'sa', 'su'],
+  wdShort: ['sun', 'mon', 'tue', 'wed', 'thu', 'fri', 'sat'],
+  nights: ['night', 'nights', 'nights'], guestsW: ['guest', 'guests', 'guests'],
+  almost: 'almost<br><em>yours.</em>', check: op ? `check and send — ${op} confirms in person` : 'check and send — the host confirms in person',
+  edit: 'change', guests: 'guests', less: 'fewer', more: 'more', cleaning: 'cleaning after check-out',
+  fee: 'service fee', feeIn: 'already included', total: 'total', free: 'nothing is charged before confirmation',
+  answers: 'a real person answers', answersP: op ? `${op}, usually within an hour` : 'usually within an hour',
+  where: 'where should we answer?', whereP: "you'll sign in with a code from an email — no passwords. we'll keep your dates.",
+  send: 'send request', sendLogin: 'sign in and send', sending: 'sending…', step2: 'step 2 of 3', step3: 'request sent',
+  sentH: op ? `request's<br>with <em>${op}.</em>` : 'request<br><em>sent.</em>',
+  sentP: 'a real person checks the calendar and answers — usually within an hour. nothing is charged before the answer.',
+  stSent: 'request sent', stConfirm: op ? `${op} is confirming` : 'the host is confirming', stConfirmP: 'checking the calendar and cleaning',
+  eta: 'usually within an hour', now: 'now', stBooking: 'booking', stBookingP: 'address, door code and wifi appear in your trip',
+  stArrive: 'check-in', statusIn: 'the answer shows up in your trip', statusInP: 'open it any time — the status now, the codes later',
+  wait: 'while you wait —<br><em>ask a local</em>', ask: 'where to eat on the first night?',
+  yoursH: 'the booking<br>is <em>yours.</em>', yoursP: op ? `${op} confirmed. see you in batumi.` : 'the host confirmed. see you in batumi.',
+  days: ['day', 'days', 'days'], today: 'today',
+  err: {
+    unavailable: ['those dates are taken', 'someone got there first. pick others — the calendar is refreshed.', 'pick other dates'],
+    bad_dates: ["those dates didn't work", 'check the check-in and check-out and try again.', 'pick dates'],
+    unknown_apartment: ["this flat can't be booked right now", "ask a local — we'll suggest a similar one.", 'ask the concierge'],
+    rate: ['too many tries', 'wait a minute and try again — your dates are kept.', 'try again'],
+    network: ['no connection', 'check the internet and try again — your dates are kept.', 'try again'],
+    rejected: ["couldn't send", "try again. if it still fails, ask a local and we'll help.", 'try again'],
+  },
+};
+
+const cfg = {
+  id: apt.id, title, lang, base: BASE, maxGuests: guests,
+  cur: apt.price_currency || 'usd', priceFrom: apt.price_from || null,
+  photo: thumb(photos[0], 320), op: opLabel,
+  url: import.meta.env.PUBLIC_SUPABASE_URL || 'https://qkzinjawtumhjbezlyog.supabase.co',
+  key: import.meta.env.PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_R0NeSmTwX9qt0bxlHYj1AA_JIVRqsqU',
+  t: T,
+};
+const sign = `<svg viewBox="0 0 100 100" aria-hidden="true"><path fill-rule="evenodd" fill="currentColor" d="${SIGN_PATH}"/></svg>`;
+---
+<AppFull lang={lang} title={title + ' — rega rega'} description={stripEmoji(summary).slice(0, 160) || (RU ? 'проверенная квартира в батуми.' : 'a checked flat in batumi.')}>
+  <main class="st-page" id="stPage">
+    <div class="st-gal">
+      <div class="st-gal__scroll" id="stGal" aria-label={T.photo}>
+        {photos.map((p, i) => (
+          <div class="st-gal__slide"><img src={thumb(p, 828)} alt={`${title} — ${T.photo} ${i + 1}`} loading={i === 0 ? 'eager' : 'lazy'} decoding="async" /></div>
+        ))}
+      </div>
+      <div class="st-gal__nav">
+        <a class="st-round st-glass" href={`${BASE}/app/stays`} aria-label={T.back} set:html={icon('arrowLeft')} />
+        <button class="st-round st-glass" id="stShare" type="button" aria-label={T.share} hidden set:html={icon('share')} />
+      </div>
+      {photos.length > 1 && (
+        <div class="st-gal__thumbs">
+          {photos.slice(1, 4).map((p, i) => (
+            <button class="st-gal__thumb" type="button" data-i={i + 1} aria-label={`${T.photo} ${i + 2}`}><img src={thumb(p, 320)} alt="" loading="lazy" /></button>
+          ))}
+        </div>
+      )}
+      {photos.length > 1 && <span class="st-gal__count" id="stGalCount">1 / {photos.length}</span>}
+    </div>
+
+    <div class="st-sheet">
+      <div class="st-crumb">
+        <span class="rr-kick">{T.kick}</span>
+        <span class="rr-tag rr-tag--home"><i></i><span>{T.direct}</span></span>
+      </div>
+      <h1 class="rr-display st-title">{titleHead && <>{titleHead}<br /></>}<em>{titleEm}</em></h1>
+      <div class="st-facts">
+        {facts.map((f) => <span class="st-fact"><Fragment set:html={icon(f.i, 17)} />{f.t}</span>)}
+      </div>
+
+      <div class="st-host st-card">
+        <span class="st-av">{avatar ? avatar : <Fragment set:html={sign} />}</span>
+        <span class="st-host__t"><b>{T.hosts}</b><span class="st-meta">{T.human}</span></span>
+      </div>
+
+      {aboutHtml && (
+        <section class="st-sec">
+          <h2 class="rr-display st-h2" set:html={T.about} />
+          <div class="st-about" id="stAbout" set:html={aboutHtml} />
+          <button class="st-more" id="stMore" type="button" hidden>{T.more2}</button>
+        </section>
+      )}
+
+      {amenities.length > 0 && (
+        <section class="st-sec">
+          <h2 class="rr-display st-h2" set:html={T.inside} />
+          <ul class="st-am">
+            {amenities.map((a) => <li class="st-card"><Fragment set:html={icon(a.icon, 24)} /><span>{a.label}</span></li>)}
+          </ul>
+        </section>
+      )}
+    </div>
+  </main>
+
+  <div class="st-fade" aria-hidden="true"></div>
+  <div class="st-bar st-glass" id="stBar">
+    <div class="st-bar__price">
+      <b id="stFrom">{apt.price_from ? <><small>{T.from}</small> {sym}{apt.price_from}</> : T.onRequest}</b>
+      <span class="st-meta" id="stPer">{apt.price_from ? T.perNight : ''}</span>
+    </div>
+    <button class="st-btn st-btn--home" id="stCta" type="button">{T.pick} <Fragment set:html={icon('arrowRight', 19)} /></button>
+    <a class="st-btn st-btn--home" id="stTripCta" href={`${BASE}/app/trip`} hidden>{T.toTrip} <Fragment set:html={icon('arrowRight', 19)} /></a>
+  </div>
+
+  <!-- 06 · dates sheet -->
+  <div class="bk-scrim" id="bkScrim" hidden></div>
+  <section class="bk-sheet" id="bkDates" role="dialog" aria-modal="true" aria-labelledby="bkDatesH" hidden>
+    <div class="bk-grab" aria-hidden="true"></div>
+    <div class="bk-sheet__body">
+      <div class="bk-hd">
+        <h2 class="rr-display bk-h2" id="bkDatesH" tabindex="-1" set:html={T.when} />
+        <button class="st-round bk-x" id="bkDatesX" type="button" aria-label={T.close} set:html={icon('x')} />
+      </div>
+      <div class="bk-rule">
+        <span class="rr-tag rr-tag--home" id="bkMin"><i></i><span id="bkMinT">{T.minStay} 2 {T.nights[1]}</span></span>
+        <span class="st-meta" id="bkRuleMeta">{title.toLowerCase()}{apt.price_from ? ` · ${T.from} ${sym}${apt.price_from} ${T.perNight}` : ''}</span>
+      </div>
+      <div class="bk-mon">
+        <b id="bkMonT"></b>
+        <span class="bk-mon__arr">
+          <button class="st-round bk-arr" id="bkPrev" type="button" aria-label={T.prev} set:html={icon('chevronLeft', 18)} />
+          <button class="st-round bk-arr" id="bkNext" type="button" aria-label={T.next} set:html={icon('chevronRight', 18)} />
+        </span>
+      </div>
+      <div class="bk-wd" aria-hidden="true">{T.week.map((w) => <span>{w}</span>)}</div>
+      <div class="bk-grid is-loading" id="bkGrid"></div>
+      <div class="bk-legend"><span><i></i>{T.busy}</span><span>{T.priceNote}</span></div>
+    </div>
+    <div class="bk-foot">
+      <div class="bk-sum" id="bkSum" aria-live="polite"><b>{T.pickDates}</b><span class="st-meta">{T.inOut}</span></div>
+      <button class="st-btn st-btn--home" id="bkGo" type="button" disabled>{T.go} <Fragment set:html={icon('arrowRight', 19)} /></button>
+    </div>
+  </section>
+
+  <!-- 07 · review -->
+  <section class="bk-view" id="bkReview" aria-labelledby="bkReviewH" hidden>
+    <div class="bk-scroll">
+      <div class="bk-top">
+        <button class="st-round st-card" id="bkReviewBack" type="button" aria-label={T.close} set:html={icon('arrowLeft')} />
+        <span class="bk-steps" role="img" aria-label={T.step2}><i class="on"></i><i class="on"></i><i></i></span>
+        <span class="bk-top__sp"></span>
+      </div>
+      <header class="bk-hello bk-in">
+        <h1 class="rr-display bk-h1" id="bkReviewH" tabindex="-1" set:html={T.almost} />
+        <p class="st-meta">{T.check}</p>
+      </header>
+      <div class="bk-box st-card bk-stay bk-in bk-d1">
+        <span class="bk-th"><img src={cfg.photo} alt="" /></span>
+        <span class="bk-stay__t"><b>{title.toLowerCase()}</b><span class="st-meta" id="bkRvDates"></span></span>
+        <button class="bk-link" id="bkRvEdit" type="button">{T.edit}</button>
+      </div>
+      <div class="bk-box st-card bk-in bk-d2">
+        <div class="bk-line">
+          <span>{T.guests}</span>
+          <span class="bk-stepper">
+            <button type="button" id="bkGMinus" aria-label={T.less} set:html={icon('minus', 17)} />
+            <b class="bk-num" id="bkGuests" aria-live="polite">2</b>
+            <button type="button" id="bkGPlus" aria-label={T.more} set:html={icon('plus', 17)} />
+          </span>
+        </div>
+        <div id="bkLines"></div>
+        <div class="bk-total"><span>{T.total}</span><b class="bk-num" id="bkTotal"></b></div>
+        <p class="bk-free"><Fragment set:html={icon('shield', 17)} />{T.free}</p>
+      </div>
+      <div class="bk-box bk-human bk-in bk-d3">
+        <span class="st-av">{avatar ? avatar : <Fragment set:html={sign} />}</span>
+        <span><b>{T.answers}</b><span>{T.answersP}</span></span>
+      </div>
+      <div class="bk-box st-card bk-login bk-in bk-d4" id="bkLogin" hidden>
+        <b>{T.where}</b>
+        <p class="st-meta">{T.whereP}</p>
+      </div>
+      <div class="bk-box bk-err" id="bkErr" role="alert" hidden>
+        <Fragment set:html={icon('alert', 22)} />
+        <span class="bk-err__t"><b id="bkErrT"></b><span id="bkErrP"></span></span>
+        <button class="st-btn st-btn--ink bk-err__btn" id="bkErrBtn" type="button"></button>
+      </div>
+    </div>
+    <div class="st-fade" aria-hidden="true"></div>
+    <div class="st-bar st-glass">
+      <div class="st-bar__price"><b class="bk-num" id="bkBarTotal"></b><span class="st-meta" id="bkBarMeta"></span></div>
+      <button class="st-btn st-btn--home" id="bkSend" type="button">{T.send}</button>
+    </div>
+  </section>
+
+  <!-- 08 · request sent -->
+  <section class="bk-view" id="bkSent" aria-labelledby="bkSentH" hidden>
+    <div class="bk-scroll bk-scroll--end">
+      <div class="bk-top">
+        <button class="st-round st-card" id="bkSentX" type="button" aria-label={T.close} set:html={icon('x')} />
+        <span class="bk-steps" role="img" aria-label={T.step3}><i class="on"></i><i class="on"></i><i class="on"></i></span>
+        <span class="bk-top__sp"></span>
+      </div>
+      <header class="bk-hello bk-in">
+        <h1 class="rr-display bk-h1" id="bkSentH" tabindex="-1" set:html={T.sentH} />
+        <p class="st-meta">{T.sentP}</p>
+      </header>
+      <ol class="bk-track st-card bk-in bk-d1">
+        <li class="bk-st is-done">
+          <span class="bk-st__ic"><svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path class="bk-tick" d="M5 12.5l4.5 4.5L19 7.5" /></svg></span>
+          <span><b>{T.stSent}</b><span class="st-meta" id="bkSentSum"></span></span>
+          <span class="bk-st__when" id="bkSentAt"></span>
+        </li>
+        <li class="bk-st is-now">
+          <span class="bk-st__ic"></span>
+          <span><b>{T.stConfirm}</b><span class="st-meta">{T.stConfirmP}</span><span class="rr-tag rr-tag--home bk-eta">{T.eta}</span></span>
+          <span class="bk-st__when">{T.now}</span>
+        </li>
+        <li class="bk-st">
+          <span class="bk-st__ic" set:html={icon('key', 15)} />
+          <span><b>{T.stBooking}</b><span class="st-meta">{T.stBookingP}</span></span>
+          <span class="bk-st__when"></span>
+        </li>
+        <li class="bk-st">
+          <span class="bk-st__ic" set:html={icon('door', 15)} />
+          <span><b>{T.stArrive}</b><span class="st-meta" id="bkSentCi"></span></span>
+          <span class="bk-st__when" id="bkSentCiShort"></span>
+        </li>
+      </ol>
+      <a class="bk-box st-card bk-status bk-in bk-d2" href={`${BASE}/app/trip`}>
+        <span class="bk-app" set:html={sign} />
+        <span><b>{T.statusIn}</b><span>{T.statusInP}</span></span>
+      </a>
+      <div class="bk-acts bk-in bk-d3">
+        <a class="st-btn st-btn--home" href={`${BASE}/app/trip`}>{T.toTrip} <Fragment set:html={icon('arrowRight', 19)} /></a>
+      </div>
+      <section class="bk-wait bk-in bk-d4">
+        <h2 class="rr-display bk-h2" set:html={T.wait} />
+        <a class="st-btn st-btn--ink" href={`${BASE}/app/concierge`}><Fragment set:html={icon('message', 19)} />{T.ask}</a>
+      </section>
+    </div>
+  </section>
+
+  <!-- 09 · booking yours (calm reveal in place) -->
+  <section class="bk-view bk-yours" id="bkYours" aria-labelledby="bkYoursH" hidden>
+    <div class="bk-scroll bk-yours__stage">
+      <div class="bk-mark" aria-hidden="true"><span class="bk-halo"></span><Fragment set:html={sign} /></div>
+      <header class="bk-hello bk-hello--c">
+        <h1 class="rr-display bk-h1 bk-y1" id="bkYoursH" tabindex="-1" set:html={T.yoursH} />
+        <p class="st-meta bk-y2">{T.yoursP}</p>
+      </header>
+      <a class="bk-trip st-card bk-y3" href={`${BASE}/app/trip`}>
+        <span class="bk-th bk-th--l"><img src={cfg.photo} alt="" /></span>
+        <span class="bk-trip__t"><b>{title.toLowerCase()}</b><span class="st-meta" id="bkYoursDates"></span></span>
+        <span class="bk-trip__cd"><b class="rr-display bk-num" id="bkYoursN"></b><span class="st-meta" id="bkYoursW"></span></span>
+      </a>
+      <div class="bk-acts bk-acts--end bk-y4">
+        <a class="st-btn st-btn--home" href={`${BASE}/app/trip`}>{T.toTrip} <Fragment set:html={icon('arrowRight', 19)} /></a>
+      </div>
+    </div>
+  </section>
+
+  <script is:inline set:html={'window.RR_STAY=' + JSON.stringify(cfg) + ';'}></script>
+  <script>
+    // ---------------------------------------------------------------- stay + booking flow
+    const C: any = (window as any).RR_STAY;
+    const T: any = C.t;
+    const RU = C.lang === 'ru';
+    const $ = (id: string) => document.getElementById(id) as any;
+    const W: any = window;
+
+    // ---------- gallery ----------
+    (function () {
+      const sc = $('stGal'), cnt = $('stGalCount');
+      if (!sc) return;
+      const n = sc.children.length;
+      sc.addEventListener('scroll', () => {
+        if (cnt) cnt.textContent = Math.min(n, Math.round(sc.scrollLeft / sc.clientWidth) + 1) + ' / ' + n;
+      }, { passive: true });
+      document.querySelectorAll('.st-gal__thumb').forEach((b: any) => b.addEventListener('click', () => {
+        const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
+        sc.scrollTo({ left: sc.clientWidth * Number(b.dataset.i), behavior: reduce ? 'auto' : 'smooth' });
+      }));
+      const ab = $('stAbout'), more = $('stMore');
+      if (ab && more && ab.scrollHeight > 320) {
+        ab.classList.add('is-clamped'); more.hidden = false;
+        more.addEventListener('click', () => { ab.classList.remove('is-clamped'); more.hidden = true; });
+      }
+      const sh = $('stShare');
+      if (sh && navigator.share) {
+        sh.hidden = false;
+        sh.addEventListener('click', () => { navigator.share({ title: C.title, url: location.origin + location.pathname }).catch(() => {}); });
+      }
+    })();
+
+    // ---------- state ----------
+    let MARKUP = 1.10;     // platform +10% on nightly only (cleaning stays netto) — from pricing.markup_pct
+    let MIN_NIGHTS = 2;
+    const SCAN_DAYS = 180;
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    let BOOKED = new Set<string>();
+    let PRICE: Record<string, number> = {};
+    let BASE: number | null = null;
+    let CUR: string = C.cur || 'usd';
+    let CLEAN = 0;
+    let viewY = today.getFullYear(), viewM = today.getMonth();
+    let startDate: Date | null = null, endDate: Date | null = null, mode = 'start';
+    let guests = Math.min(2, C.maxGuests || 2);
+    let sending = false, sentToken = '', signedIn: boolean | null = null;
+    let view = 'stay';
+
+    const pl = (n: number, f: string[]) => {
+      if (RU) { const a = n % 10, b = n % 100; if (a === 1 && b !== 11) return f[0]; if (a >= 2 && a <= 4 && (b < 10 || b >= 20)) return f[1]; return f[2]; }
+      return n === 1 ? f[0] : f[1];
+    };
+    const nightsW = (n: number) => n + ' ' + pl(n, T.nights);
+    const sym = (c?: string) => ((c || CUR) === 'gel' ? '₾' : '$');
+    const money = (n: number) => sym() + Math.round(n);
+    const key = (d: Date) => d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+    const parse = (k: string) => { const p = k.split('-').map(Number); return new Date(p[0], p[1] - 1, p[2]); };
+    const netto = (k: string) => (k in PRICE ? PRICE[k] : BASE);
+    const nightly = (k: string) => { const n = netto(k); return n == null ? null : n * MARKUP; };
+    const nightsCount = () => (startDate && endDate ? Math.round((+endDate - +startDate) / 864e5) : 0);
+    const valid = () => !!(startDate && endDate && nightsCount() >= MIN_NIGHTS);
+    const dm = (d: Date) => d.getDate() + ' ' + T.monShort[d.getMonth()];
+    function range(a: Date, b: Date, arrow?: boolean) {
+      const sep = arrow ? ' → ' : '–';
+      return a.getMonth() === b.getMonth() && !arrow ? a.getDate() + sep + dm(b) : dm(a) + (arrow ? sep : ' – ') + dm(b);
+    }
+    function bookedIn(a: Date, b: Date) { const d = new Date(a); while (d < b) { if (BOOKED.has(key(d))) return true; d.setDate(d.getDate() + 1); } return false; }
+
+    // ---------- live data (same public RPCs as before) ----------
+    function rpc(fn: string, body: any) {
+      return fetch(C.url + '/rest/v1/rpc/' + fn, {
+        method: 'POST',
+        headers: { apikey: C.key, Authorization: 'Bearer ' + C.key, 'Content-Type': 'application/json' },
+        body: JSON.stringify(body),
+      }).then((r) => (r.ok ? r.json() : null)).catch(() => null);
+    }
+    let pending = 2;
+    const loaded = () => { if (--pending <= 0) $('bkGrid').classList.remove('is-loading'); };
+    function loadData() {
+      pending = 2; $('bkGrid').classList.add('is-loading');
+      rpc('public_apartment_availability', { p_apartment: C.id }).then((rows: any) => {
+        BOOKED = new Set();
+        (rows || []).forEach((b: any) => { const d = parse(b.ci), e = parse(b.co); while (d < e) { BOOKED.add(key(d)); d.setDate(d.getDate() + 1); } });
+        loaded(); render(); updateFrom();
+      });
+      rpc('public_apartment_pricing', { p_apartment: C.id }).then((p: any) => {
+        loaded();
+        if (!p) { render(); return; }
+        BASE = p.base_rate != null ? Number(p.base_rate) : null;
+        CUR = p.currency || CUR;
+        if (p.markup_pct != null) MARKUP = 1 + Number(p.markup_pct) / 100;
+        CLEAN = p.cleaning != null ? Number(p.cleaning) : 0;
+        if (p.min_nights != null) MIN_NIGHTS = Math.max(1, Number(p.min_nights) || 2);
+        PRICE = {};
+        (p.rates || []).forEach((r: any) => { PRICE[r.date] = Number(r.price); });
+        $('bkMinT').textContent = T.minStay + ' ' + nightsW(MIN_NIGHTS);
+        $('bkMin').hidden = MIN_NIGHTS <= 1;
+        updateFrom(); render(); updateSum();
+        if (view === 'review') buildReview();
+      });
+    }
+    function updateFrom() {
+      let min: number | null = null; const d = new Date(today), lim = new Date(today); lim.setDate(lim.getDate() + SCAN_DAYS);
+      while (d < lim) { const k = key(d); if (!BOOKED.has(k)) { const g = nightly(k); if (g != null && (min == null || g < min)) min = g; } d.setDate(d.getDate() + 1); }
+      if (min == null) return;
+      $('stFrom').innerHTML = '<small>' + T.from + '</small> ' + money(min);
+      $('stPer').textContent = T.perNight;
+      $('bkRuleMeta').textContent = C.title.toLowerCase() + ' · ' + T.from + ' ' + money(min) + ' ' + T.perNight;
+    }
+
+    // ---------- 06 calendar ----------
+    function render() {
+      const grid = $('bkGrid');
+      const first = new Date(viewY, viewM, 1), lead = (first.getDay() + 6) % 7, dim = new Date(viewY, viewM + 1, 0).getDate();
+      $('bkMonT').textContent = T.months[viewM] + ' ' + viewY;
+      $('bkPrev').disabled = viewY === today.getFullYear() && viewM === today.getMonth();
+      let h = '';
+      for (let i = 0; i < lead; i++) h += '<span class="bk-d is-empty"></span>';
+      for (let dd = 1; dd <= dim; dd++) {
+        const date = new Date(viewY, viewM, dd), k = key(date);
+        let cls = 'bk-d', lock = false, price: number | null = null;
+        if (date < today) { cls += ' is-past'; lock = true; }
+        else if (BOOKED.has(k)) {
+          cls += ' is-busy';
+          // turnover: the check-in day of a booking is still a valid check-OUT for a new stay
+          if (startDate && !endDate && date > startDate && !bookedIn(startDate, date)) cls += ' is-cook';
+          else lock = true;
+        } else { cls += ' is-free'; price = nightly(k); }
+        const isS = startDate && key(startDate) === k, isE = endDate && key(endDate) === k;
+        if (isS || isE) cls += ' is-edge';
+        if (startDate && endDate && date >= startDate && date <= endDate && +startDate !== +endDate) cls += ' in-range';
+        if (isS && endDate) cls += ' is-first';
+        if (isE) cls += ' is-last';
+        if (+date === +today) cls += ' is-today';
+        if (startDate && !endDate && !lock && date > startDate) { const nn = Math.round((+date - +startDate) / 864e5); if (nn > 0 && nn < MIN_NIGHTS) cls += ' is-short'; }
+        const label = dd + ' ' + T.monShort[viewM] + (price != null ? ', ' + money(price) : (cls.includes('is-busy') ? ', ' + T.busy : ''));
+        h += '<button type="button" class="' + cls + '"' + (lock ? ' disabled' : '') + ' data-date="' + k + '" aria-label="' + label + '"' + (isS || isE ? ' aria-pressed="true"' : '') + '>' + dd + '<small>' + (price != null ? money(price) : '') + '</small></button>';
+      }
+      grid.innerHTML = h;
+    }
+    $('bkGrid').addEventListener('click', (ev: any) => {
+      const btn = ev.target.closest('.bk-d');
+      if (!btn || btn.disabled || !btn.dataset.date) return;
+      const d = parse(btn.dataset.date);
+      if (mode === 'start' || (startDate && d <= startDate)) { startDate = d; endDate = null; mode = 'end'; }
+      else if (bookedIn(startDate as Date, d)) { startDate = d; endDate = null; mode = 'end'; }       // can't span a booked night
+      else if (Math.round((+d - +(startDate as Date)) / 864e5) < MIN_NIGHTS) {
+        const snap = new Date(startDate as Date); snap.setDate(snap.getDate() + MIN_NIGHTS);            // too short → snap to the minimum
+        if (!bookedIn(startDate as Date, snap)) { endDate = snap; mode = 'start'; flashMin(); }
+        else { endDate = d; mode = 'start'; }                                                          // blocked: keep, message shows
+      } else { endDate = d; mode = 'start'; }
+      render(); updateSum();
+    });
+    function flashMin() { const m = $('bkMin'); m.classList.remove('is-flash'); void m.offsetWidth; m.classList.add('is-flash'); }
+    $('bkPrev').addEventListener('click', () => { viewM--; if (viewM < 0) { viewM = 11; viewY--; } render(); });
+    $('bkNext').addEventListener('click', () => { viewM++; if (viewM > 11) { viewM = 0; viewY++; } render(); });
+
+    function stayTotal() {
+      const n = nightsCount(); let sub = 0, missing = false, same = true, first: number | null = null; const d = new Date(startDate as Date);
+      for (let i = 0; i < n; i++) { const g = nightly(key(d)); if (g == null) missing = true; else { sub += g; if (first == null) first = g; else if (Math.round(g) !== Math.round(first)) same = false; } d.setDate(d.getDate() + 1); }
+      return { n, sub, missing, same, per: first };
+    }
+    function updateSum() {
+      const s = $('bkSum'), go = $('bkGo');
+      if (startDate && endDate) {
+        const n = nightsCount();
+        if (n < MIN_NIGHTS) {
+          s.innerHTML = '<b>' + T.minStay + ' ' + nightsW(MIN_NIGHTS) + '</b><span class="st-meta">' + T.nowOut + '</span>';
+        } else {
+          const t = stayTotal();
+          s.innerHTML = '<b>' + range(startDate, endDate) + ' · ' + nightsW(n) + '</b><span class="st-meta">' + (t.missing ? T.onRequest : money(t.sub) + ' ' + T.forStay) + '</span>';
+        }
+      } else if (startDate) {
+        s.innerHTML = '<b>' + T.checkIn + ' ' + dm(startDate) + '</b><span class="st-meta">' + T.nowOut + '</span>';
+      } else {
+        s.innerHTML = '<b>' + T.pickDates + '</b><span class="st-meta">' + T.inOut + '</span>';
+      }
+      go.disabled = !valid();
+    }
+
+    // ---------- 07 review ----------
+    function buildReview() {
+      if (!valid()) return;
+      const t = stayTotal(), n = t.n;
+      $('bkRvDates').textContent = range(startDate as Date, endDate as Date, true) + ' · ' + nightsW(n);
+      $('bkGuests').textContent = String(guests);
+      $('bkGMinus').disabled = guests <= 1;
+      $('bkGPlus').disabled = guests >= (C.maxGuests || 2);
+      let rows = '';
+      if (t.missing) {
+        rows += '<div class="bk-line"><span>' + nightsW(n) + '</span><b>' + T.onRequest + '</b></div>';
+      } else {
+        rows += '<div class="bk-line"><span>' + nightsW(n) + (t.same && t.per != null && Math.round(t.sub) === n * Math.round(t.per) ? ' × ' + money(t.per) : '') + '</span><b class="bk-num">' + money(t.sub) + '</b></div>';
+        if (CLEAN > 0) rows += '<div class="bk-line"><span>' + T.cleaning + '</span><b class="bk-num">' + money(CLEAN) + '</b></div>';
+      }
+      rows += '<div class="bk-line"><span>' + T.fee + '</span><b>' + T.feeIn + '</b></div>';
+      $('bkLines').innerHTML = rows;
+      const total = t.missing ? T.onRequest : money(t.sub + CLEAN);
+      $('bkTotal').textContent = total;
+      $('bkBarTotal').textContent = total;
+      $('bkBarMeta').textContent = range(startDate as Date, endDate as Date) + ' · ' + guests + ' ' + pl(guests, T.guestsW);
+      $('bkTotal').dataset.amount = t.missing ? '' : String(Math.round(t.sub + CLEAN));
+      sendLabel();
+    }
+    function bump() { const g = $('bkGuests'); g.classList.remove('is-roll'); void g.offsetWidth; g.classList.add('is-roll'); }
+    $('bkGMinus').addEventListener('click', () => { if (guests > 1) { guests--; buildReview(); bump(); } });
+    $('bkGPlus').addEventListener('click', () => { if (guests < (C.maxGuests || 2)) { guests++; buildReview(); bump(); } });
+    function sendLabel() {
+      const b = $('bkSend');
+      if (sending) { b.textContent = T.sending; return; }
+      b.textContent = signedIn === false ? T.sendLogin : T.send;
+      $('bkLogin').hidden = signedIn !== false;
+    }
+    function whenAuth(fn: () => void) { W.rrAuth ? fn() : window.addEventListener('rr-auth-ready', fn, { once: true }); }
+    function checkAuth() {
+      whenAuth(() => { W.rrAuth.session().then((s: any) => { signedIn = !!(s && s.access_token); sendLabel(); }).catch(() => {}); });
+    }
+
+    // ---------- errors ----------
+    function showErr(code: string) {
+      const e = T.err[code] || T.err.rejected;
+      $('bkErrT').textContent = e[0]; $('bkErrP').textContent = e[1];
+      const b = $('bkErrBtn'); b.textContent = e[2]; b.dataset.code = code;
+      const box = $('bkErr'); box.hidden = false;
+      requestAnimationFrame(() => box.scrollIntoView({ block: 'nearest', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' }));
+    }
+    function hideErr() { $('bkErr').hidden = true; }
+    $('bkErrBtn').addEventListener('click', () => {
+      const code = $('bkErrBtn').dataset.code;
+      if (code === 'unavailable' || code === 'bad_dates') { hideErr(); if (code === 'unavailable') { startDate = endDate = null; mode = 'start'; loadData(); updateSum(); } back('dates'); return; }
+      if (code === 'unknown_apartment') { location.href = C.base + '/app/concierge'; return; }
+      submit();
+    });
+
+    // ---------- submit (in-app, signed-in guest) — same contract as before ----------
+    function loginWithDates() {
+      const q = new URLSearchParams(location.search);
+      q.set('ci', key(startDate as Date)); q.set('co', key(endDate as Date)); q.set('adults', String(guests));
+      location.href = C.base + '/app/login?next=' + encodeURIComponent(location.pathname + '?' + q.toString());
+    }
+    function setSending(on: boolean) { sending = on; $('bkSend').disabled = on; sendLabel(); }
+    function submit() {
+      if (sending) return;
+      hideErr();
+      if (!valid()) { showErr('bad_dates'); return; }
+      setSending(true);
+      const done = () => setSending(false);
+      const fail = (code?: string) => { done(); showErr(code || 'rejected'); };
+      const login = () => { done(); loginWithDates(); };
+      let timer: any = setTimeout(() => { timer = null; fail('network'); }, 8000);
+      whenAuth(() => { if (!timer) return; clearTimeout(timer); timer = null; go(); });
+      function go() {
+        W.rrAuth.session().then((sess: any) => {
+          if (!sess || !sess.access_token) { login(); return null; }
+          return W.rrAuth.profile().then((prof: any) => {
+            if (prof && prof.error) { fail('network'); return null; }
+            if (!prof) { login(); return null; }                  // login finishes the profile
+            const amt = $('bkTotal').dataset.amount;
+            return fetch('/api/booking', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + sess.access_token },
+              body: JSON.stringify({
+                apartment_id: C.id, apt_title: C.title || '',
+                ci: key(startDate as Date), co: key(endDate as Date), adults: guests,
+                amount: amt ? Number(amt) : null, currency: CUR,
+              }),
+            }).then((r) => r.json().catch(() => ({ ok: false, error: r.status === 429 ? 'rate' : 'rejected' })))
+              .then((res: any) => {
+                if (res && res.ok && res.guest_token) {
+                  try { localStorage.removeItem('rr_trip'); localStorage.setItem('rr_trip_token', res.guest_token); } catch (e) {}
+                  done(); sent(res.guest_token);
+                } else if (res && (res.error === 'no_profile' || res.error === 'auth')) { login(); }
+                else { fail(res && res.error); }
+              }, () => fail('network'));
+          });
+        }).catch(() => fail('network'));
+      }
+    }
+    $('bkSend').addEventListener('click', submit);
+    window.addEventListener('pageshow', (e: any) => { if (e.persisted && sending) setSending(false); });
+
+    // ---------- 08 sent → 09 yours ----------
+    function sent(token: string) {
+      sentToken = token;
+      const t = stayTotal();
+      $('bkSentSum').textContent = C.title.toLowerCase() + ' · ' + range(startDate as Date, endDate as Date) + (t.missing ? '' : ' · ' + money(t.sub + CLEAN));
+      const now = new Date();
+      $('bkSentAt').textContent = String(now.getHours()).padStart(2, '0') + ':' + String(now.getMinutes()).padStart(2, '0');
+      $('bkSentCi').textContent = T.wdShort[(startDate as Date).getDay()] + ' ' + dm(startDate as Date);
+      $('bkSentCiShort').textContent = dm(startDate as Date);
+      // the apartment screen now points to the trip
+      $('stCta').hidden = true; $('stTripCta').hidden = false;
+      $('stFrom').textContent = T.sentBar; $('stPer').textContent = T.sentBarP;
+      $('stBar').classList.add('is-sent');
+      show('sent'); history.replaceState({ rrv: 'sent' }, '');
+      poll(token);
+    }
+    function poll(token: string) {
+      let n = 0;
+      const tick = () => {
+        rpc('guest_instruction', { p_token: token }).then((r: any) => {
+          if (r && (r.state === 'pre' || r.state === 'open')) { yours(r); return; }
+          if (++n < 40) setTimeout(tick, 15000);
+        });
+      };
+      setTimeout(tick, 5000);
+    }
+    function yours(r: any) {
+      const ci = r.ci ? parse(String(r.ci).slice(0, 10)) : (startDate as Date), co = r.co ? parse(String(r.co).slice(0, 10)) : (endDate as Date);
+      const g = r.adults || guests;
+      $('bkYoursDates').textContent = range(ci, co) + ' · ' + g + ' ' + pl(g, T.guestsW);
+      const days = Math.max(0, Math.round((+ci - +today) / 864e5));
+      $('bkYoursN').textContent = days ? String(days) : '';
+      $('bkYoursW').textContent = days ? pl(days, T.days) : T.today;
+      $('stFrom').textContent = T.yoursH.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim();
+      if (view === 'sent') { show('yours'); history.replaceState({ rrv: 'yours' }, ''); }
+    }
+    $('bkSentX').addEventListener('click', () => { show('stay'); history.replaceState({ rrv: 'stay' }, ''); });
+
+    // ---------- views + history ----------
+    const html = document.documentElement;
+    function show(v: string) {
+      view = v;
+      const dates = v === 'dates';
+      $('bkScrim').hidden = !dates; $('bkDates').hidden = !dates;
+      $('bkReview').hidden = v !== 'review';
+      $('bkSent').hidden = v !== 'sent';
+      $('bkYours').hidden = v !== 'yours';
+      html.classList.toggle('bk-lock', v !== 'stay');
+      $('stPage').inert = v !== 'stay';
+      $('stBar').inert = v !== 'stay';
+      if (dates) { hideErr(); render(); updateSum(); }
+      if (v === 'review') { buildReview(); checkAuth(); }
+      const ids: Record<string, string> = { dates: 'bkDates', review: 'bkReview', sent: 'bkSent', yours: 'bkYours' };
+      if (ids[v]) {
+        const sc = $(ids[v]).querySelector('.bk-scroll');
+        if (sc) sc.scrollTop = 0;
+        requestAnimationFrame(() => { try { $(ids[v] + 'H').focus({ preventScroll: true }); } catch (e) {} });
+      }
+    }
+    function step(v: string) { show(v); history.pushState({ rrv: v }, ''); }
+    // go back one step if it's in history, else just show the target
+    function back(target: string) {
+      const st = history.state && history.state.rrv;
+      if (st && st !== 'stay' && st !== 'sent' && st !== 'yours') history.back(); else show(target);
+    }
+    window.addEventListener('popstate', (e: any) => {
+      let v = (e.state && e.state.rrv) || 'stay';
+      if (sentToken && (v === 'dates' || v === 'review')) v = 'stay';   // request already sent
+      show(v);
+    });
+    history.replaceState({ rrv: 'stay' }, '');
+
+    $('stCta').addEventListener('click', () => step('dates'));
+    $('bkDatesX').addEventListener('click', () => back('stay'));
+    $('bkScrim').addEventListener('click', () => back('stay'));
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && view === 'dates') back('stay'); });
+    $('bkGo').addEventListener('click', () => { if (valid()) step('review'); });
+    $('bkReviewBack').addEventListener('click', () => back('dates'));
+    $('bkRvEdit').addEventListener('click', () => back('dates'));
+
+    // ---------- init ----------
+    $('bkMinT').textContent = T.minStay + ' ' + nightsW(MIN_NIGHTS);
+    render(); updateSum();
+    loadData();
+    // back from the email-code login (?ci=&co=&adults=) → straight to the review step
+    try {
+      const qs = new URLSearchParams(location.search);
+      const rci = qs.get('ci') || '', rco = qs.get('co') || '';
+      if (/^\d{4}-\d{2}-\d{2}$/.test(rci) && /^\d{4}-\d{2}-\d{2}$/.test(rco)) {
+        const a = parse(rci), b = parse(rco);
+        if (a >= today && b > a) {
+          startDate = a; endDate = b; mode = 'start'; viewY = a.getFullYear(); viewM = a.getMonth();
+          const ra = parseInt(qs.get('adults') || '', 10);
+          if (ra >= 1) guests = Math.min(ra, C.maxGuests || 2);
+          ['ci', 'co', 'adults'].forEach((k) => qs.delete(k));
+          const rest = qs.toString();
+          history.replaceState({ rrv: 'stay' }, '', location.pathname + (rest ? '?' + rest : '') + location.hash);
+          if (nightsCount() >= 1) { history.pushState({ rrv: 'dates' }, ''); step('review'); }
+        }
+      }
+    } catch (e) {}
+    // "book" deep link (#aptBook, e.g. from bre.ge) opens the dates sheet
+    if (location.hash === '#aptBook' && view === 'stay') setTimeout(() => step('dates'), 300);
+  </script>
+</AppFull>
