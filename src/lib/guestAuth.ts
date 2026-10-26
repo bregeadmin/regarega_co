@@ -58,9 +58,10 @@ const rrAuth = {
   saveProfile(name: string, phone?: string | null) {
     return call('save_guest_profile', { p_name: name, p_phone: phone ?? null });
   },
-  async trips() {
+  // The account's trips; null when the call failed (callers show a retry, not "no trips").
+  async trips(): Promise<any[] | null> {
     const r = await rpc('my_trips');
-    return r.fail || !Array.isArray(r.data) ? [] : r.data;
+    return r.fail || !Array.isArray(r.data) ? null : r.data;
   },
   claim(token: string) { return call('claim_trip', { p_token: token }); },
   invite(bookingId: number | string) { return call('create_trip_invite', { p_booking: bookingId }); },

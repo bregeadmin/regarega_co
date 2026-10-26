@@ -27,7 +27,8 @@ const T = isRu
       langValue: 'русский', signIn: 'войти', signInHint: 'войди по коду из письма — твои поездки будут везде с тобой.',
       edit: 'изменить', name: 'имя', phone: 'телефон (необязательно)', save: 'сохранить', saving: 'сохраняем…', cancel: 'отмена',
       eName: 'напиши имя.', eNet: 'нет сети — попробуй ещё раз.', eGeneric: 'что-то пошло не так — попробуй ещё раз.',
-      trips: 'мои поездки', pending: 'ждёт подтверждения', noTrips: 'пока нет поездок — они появятся, когда хозяин подтвердит бронь.',
+      trips: 'мои поездки', pending: 'ждёт подтверждения', noTrips: 'здесь появятся поездки — добавь ссылку на бронь от хозяина или отправь заявку',
+      eTrips: 'не получилось загрузить поездки.', eOperator: 'этот аккаунт — аккаунт оператора, удалить его можно только в rega os',
       retry: 'повторить', signOut: 'выйти', del: 'удалить аккаунт', delSure: 'точно удалить? нажми ещё раз', deleting: 'удаляем…',
       months: ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'],
     }
@@ -37,7 +38,8 @@ const T = isRu
       langValue: 'english', signIn: 'sign in', signInHint: 'sign in with a code from your email — your trips follow you everywhere.',
       edit: 'edit', name: 'name', phone: 'phone (optional)', save: 'save', saving: 'saving…', cancel: 'cancel',
       eName: 'please enter your name.', eNet: "you're offline — try again.", eGeneric: 'something went wrong — please try again.',
-      trips: 'my trips', pending: 'awaiting confirmation', noTrips: "no trips yet — they'll show up once your host confirms a booking.",
+      trips: 'my trips', pending: 'awaiting confirmation', noTrips: "your trips show up here — add your host's booking link or send a request",
+      eTrips: "couldn't load your trips.", eOperator: 'this is an operator account — it can only be removed in rega os',
       retry: 'try again', signOut: 'sign out', del: 'delete account', delSure: 'really delete? tap again', deleting: 'deleting…',
       months: ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'],
     };
@@ -83,6 +85,7 @@ const chev = `<svg class="pf-row__chevron" viewBox="0 0 24 24" fill="none" strok
       <h2 class="pf-section__title">{T.trips}</h2>
       <div class="pf-trips" id="pfTrips"></div>
       <p class="pf-soon" id="pfNoTrips" hidden>{T.noTrips}</p>
+      <p class="pf-err" id="pfTripsErr" hidden>{T.eTrips} <button class="pf-text" id="pfTripsRetry" type="button">{T.retry}</button></p>
     </section>
 
     <!-- signed out: the booking-link way in (hidden once signed in: trips cover it) -->
@@ -153,9 +156,16 @@ const chev = `<svg class="pf-row__chevron" viewBox="0 0 24 24" fill="none" strok
       function signedOut() {
         $('pfOut').hidden = false;
       }
+      // this phone's trip/concierge state — cleared on sign-out and delete so the next account starts clean
+      function clearLocal() {
+        try { ['rr_trip', 'rr_trip_token', 'rr_claimed', 'rr_cc', 'rr_uid'].forEach(function (k) { localStorage.removeItem(k); }); } catch (e) {}
+      }
       function renderTrips(list) {
         var box = $('pfTrips');
         box.textContent = '';
+        // null = the call failed: a retry line, never the misleading "no trips" text
+        $('pfTripsErr').hidden = list != null;
+        if (list == null) { $('pfNoTrips').hidden = true; return; }
         $('pfNoTrips').hidden = list.length > 0;
         list.forEach(function (t) {
           var a = document.createElement('a');
@@ -198,6 +208,10 @@ const chev = `<svg class="pf-row__chevron" viewBox="0 0 24 24" fill="none" strok
         var rr = window.rrAuth;
         load();
         $('pfRetry').addEventListener('click', load);
+        $('pfTripsRetry').addEventListener('click', function () {
+          $('pfTripsErr').hidden = true;
+          rr.trips().then(renderTrips);
+        });
 
         $('pfEdit').addEventListener('click', function () {
           $('pfFName').value = profile.name || ''; $('pfFPhone').value = profile.phone || '';
@@ -217,7 +231,7 @@ const chev = `<svg class="pf-row__chevron" viewBox="0 0 24 24" fill="none" strok
           });
         });
         $('pfOutBtn').addEventListener('click', function () {
-          rr.signOut().then(function () { location.reload(); });
+          rr.signOut().then(function () { clearLocal(); location.reload(); });
         });
         // delete account: two taps, no dialogs
         $('pfDel').addEventListener('click', function () {
@@ -230,11 +244,11 @@ const chev = `<svg class="pf-row__chevron" viewBox="0 0 24 24" fill="none" strok
           b.disabled = true; b.textContent = T.deleting;
           rr.deleteAccount().then(function (r) {
             if (r.ok) {
-              try { ['rr_trip', 'rr_trip_token', 'rr_uid', 'rr_cc'].forEach(function (k) { localStorage.removeItem(k); }); } catch (e) {}
+              clearLocal();
               location.reload(); return;
             }
             b.disabled = false; b.classList.remove('is-sure'); b.textContent = T.del;
-            var ae = $('pfAcctErr'); ae.textContent = r.error === 'network' ? T.eNet : T.eGeneric; ae.hidden = false;
+            var ae = $('pfAcctErr'); ae.textContent = r.error === 'operator' ? T.eOperator : r.error === 'network' ? T.eNet : T.eGeneric; ae.hidden = false;
           });
         });
       }
