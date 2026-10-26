@@ -2,7 +2,7 @@
    :root tokens + body.app-full reset from app-shell.css — this file only styles .cc-*.
    One chat for everyone; booking mode (html.has-trip) swaps the suggestions. */
 
-.cc-screen{ padding:4px 15px calc(150px + env(safe-area-inset-bottom)); }
+.cc-screen{ padding:4px 15px calc(var(--tabbar-space) + 70px); }
 .cc-screen [hidden]{ display:none !important; }
 
 html.has-trip .cc-chip--open,
@@ -172,7 +172,7 @@ html.has-trip .cc-add{ display:none; }
 .cc-compose{
   position:fixed;
   left:0; right:0;
-  bottom:calc(57px + env(safe-area-inset-bottom));
+  bottom:calc(var(--tabbar-h) + var(--tabbar-bottom) + 6px);
   z-index:79;
   display:flex;
   align-items:flex-end;

@@ -1,7 +1,7 @@
 /* Native app "trip" screen (src/components/app/TripScreen.astro). On top of the :root
    tokens + body.app-full reset from app-shell.css — this file only styles .tr-*. */
 
-.tr-screen{ padding:8px 15px calc(92px + env(safe-area-inset-bottom)); }
+.tr-screen{ padding:8px 15px var(--tabbar-space); }
 /* several blocks here set display:flex — keep the hidden attribute winning */
 .tr-screen [hidden], .tr-toast[hidden]{ display:none !important; }
 
@@ -360,7 +360,7 @@
 .tr-toast{
   position:fixed;
   left:50%;
-  bottom:calc(84px + env(safe-area-inset-bottom));
+  bottom:calc(var(--tabbar-h) + var(--tabbar-bottom) + 12px);
   transform:translateX(-50%);
   z-index:90;
   margin:0;

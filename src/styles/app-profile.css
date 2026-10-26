@@ -2,7 +2,7 @@
    Self-contained on top of the :root tokens + body.app-full reset from app-shell.css
    (imported alongside this file) — this file only styles .pf-*. */
 
-.pf-screen{ padding:4px 15px calc(88px + env(safe-area-inset-bottom)); }
+.pf-screen{ padding:4px 15px var(--tabbar-space); }
 
 /* screen-reader-only heading: the avatar + name already carry this visually */
 .pf-screen .sr-only{

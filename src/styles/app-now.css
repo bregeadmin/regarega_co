@@ -2,7 +2,7 @@
    two alternatives, the guide as a filterable horizontal row, and stays. Header and bottom
    bar are the shared AppHeader / TabBar (styles in app-shell.css / tabbar.css). */
 
-.now-screen{ padding:12px 0 calc(76px + env(safe-area-inset-bottom)); }
+.now-screen{ padding:12px 0 var(--tabbar-space); }
 
 /* ---------- moment hero: one confident pick ---------- */
 .now-hero{

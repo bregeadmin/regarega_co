@@ -1,15 +1,51 @@
-/* Native app-shell chrome — thin header only. NO topbar, NO hamburger, NO footer.
-   Tokens copied verbatim from shell.css (kept local so this file never pulls in site chrome styles). */
+/* Native app-shell chrome + design-system tokens. NO site topbar, NO hamburger, NO footer.
+   Visual source of truth: rega-design-panel/r3/style.css (tokens) + r3/01-guide.html (header, menu). */
 :root{
-  --bg:#FAF7F0;
-  --paper:#FDFBF6;
-  --ink:#0A0908;
-  --ink-soft:#6B6862;
-  --faint:#9b9a94;
+  /* ---- rega rega app design system (stage 1) — values verbatim from r3/style.css ----
+     Later screens consume THESE names; the legacy aliases below keep older screen CSS working. */
+  /* основа — бумага, поверхности, чернила, линии */
+  --bg:#FAF7F0;          /* бумага */
+  --surface:#FFFDF9;     /* карточки, пилюли */
+  --sunk:#F1EDE4;        /* утопленные поля, светлые кнопки */
   --line:#ECE8DF;
-  --accent:#FF5E1A;
-  --accent-deep:#C63D0F;
-  --accent-soft:#FBE7DC;
+  --ink:#0A0908;
+  --ink-2:#6B6862;
+  --ink-3:#A29E96;
+  /* мир «жильё» — оранжевый (только жильё: знак, квартиры, бронь, поездка) */
+  --home:#FF5E1A; --home-deep:#D94612; --home-tint:#FFEADF;
+  /* миры гида (категории — src/lib/guideCats.ts) */
+  --eat:#3A4868; --eat-tint:#E8EBF1; --eat-dark:#2C3850;
+  --well:#1F8A5B; --well-tint:#E3F2EB; --well-dark:#176E48;
+  --blue:#3D5AFE; --blue-tint:#E6EAFF; --blue-dark:#2F49D6;
+  /* консьерж — пыльная роза */
+  --rose:#EFE1DC; --rose-ink:#7B5A5E;
+  /* тени */
+  --sh-card:0 0 0 1px rgba(10,9,8,.045),0 1px 2px rgba(10,9,8,.04),0 10px 24px -12px rgba(10,9,8,.12);
+  --sh-float:0 0 0 1px rgba(10,9,8,.06),0 2px 6px rgba(10,9,8,.05),0 20px 44px -14px rgba(10,9,8,.24);
+  /* стекло (плавающее меню, кнопки поверх фото) */
+  --glass-bg:rgba(255,253,249,.7);
+  --glass-blur:blur(22px) saturate(1.6);
+  /* радиусы */
+  --r-card:24px; --r-tile:14px; --r-pill:999px;
+  /* движение */
+  --ease-out:cubic-bezier(.23,1,.32,1);
+  --ease-io:cubic-bezier(.77,0,.175,1);
+  --spring:linear(0,.009,.035 2.1%,.141 4.4%,.723 12.9%,.938 16.7%,1.017 20.1%,1.043 24%,1.035 28.1%,1.007 38.1%,.998 46.3%,1);
+  /* шрифты: латиница/цифры — Bricolage, кириллица — Golos Text; метки — JetBrains Mono */
+  --font:"Bricolage Grotesque","Golos Text",system-ui,sans-serif;
+  --mono:"JetBrains Mono",ui-monospace,monospace;
+  /* плавающее меню: высота и отступ от низа (над safe-area), для отступов контента */
+  --tabbar-h:66px;
+  --tabbar-bottom:max(18px, calc(env(safe-area-inset-bottom) - 8px));
+  --tabbar-space:calc(var(--tabbar-h) + var(--tabbar-bottom) + 24px);
+
+  /* legacy aliases (pre-redesign names, still used by screen CSS) */
+  --paper:var(--surface);
+  --ink-soft:var(--ink-2);
+  --faint:var(--ink-3);
+  --accent:var(--home);
+  --accent-deep:var(--home-deep);
+  --accent-soft:var(--home-tint);
 }
 
 html{ background:var(--bg); }
@@ -17,7 +53,8 @@ body.app-shell{
   margin:0;
   background:var(--bg);
   color:var(--ink);
-  font-family:"Bricolage Grotesque","Helvetica Neue",sans-serif;
+  font-family:var(--font);
+  letter-spacing:-.012em;
   -webkit-font-smoothing:antialiased;
 }
 body.app-shell *{ box-sizing:border-box; }
@@ -30,53 +67,87 @@ body.app-full{
   margin:0;
   background:var(--bg);
   color:var(--ink);
-  font-family:"Bricolage Grotesque","Helvetica Neue",sans-serif;
+  font-family:var(--font);
+  letter-spacing:-.012em;
   -webkit-font-smoothing:antialiased;
 }
 body.app-full *{ box-sizing:border-box; }
 body.app-full a{ color:inherit; text-decoration:none; }
 
-/* ---------- shared header: город pill + right-side icon ----------
-   Visual source of truth: now.astro's inline <header class="now-topbar"> — every screen
-   that renders <AppHeader /> (see components/AppHeader.astro) gets this exact look. */
+/* ---------- shared header: logo (1:1 site) · city pill · search ----------
+   r3/01-guide.html .top: logo left, city pill + round search right. */
 .app-header{
   position:sticky;
   top:0;
   z-index:50;
   background:var(--bg);
-  border-bottom:.5px solid var(--line);
   padding-top:env(safe-area-inset-top);
 }
 .app-header__inner{
   display:flex;
   align-items:center;
   justify-content:space-between;
-  padding:10px 15px;
+  gap:10px;
+  padding:8px 20px 10px;
 }
+/* логотип — 1:1 сайт: знак-дырокол + rega + rega(.36) */
+.app-logo{ display:inline-flex; align-items:center; gap:8px; flex:none; color:var(--ink); }
+.app-logo__sign{ width:26px; height:26px; flex:none; display:block; }
+.app-logo__wm{
+  font-family:"Bricolage Grotesque",sans-serif;
+  font-weight:800;
+  font-size:24px;
+  letter-spacing:-.04em;
+  line-height:1;
+  white-space:nowrap;
+}
+.app-logo__wm .twin{ opacity:.36; margin-left:1px; }
+
+.app-header__actions{ display:flex; align-items:center; gap:8px; min-width:0; }
+/* город — пилюля-карточка «• батуми». Не кликабельна (города — этап 3), поэтому без стрелки. */
 .app-header__citypill{
   display:inline-flex;
   align-items:center;
   gap:6px;
-  background:#F1ECDF;
-  border:none;
-  border-radius:999px;
-  padding:6px 12px;
-}
-.app-header__pin{ width:14px; height:14px; flex:none; display:block; color:var(--accent); }
-.app-header__citylabel{
-  font-family:"Bricolage Grotesque", sans-serif;
-  font-size:13px;
-  font-weight:500;
+  height:42px;
+  padding:0 14px;
+  border-radius:var(--r-pill);
+  background:var(--surface);
+  box-shadow:var(--sh-card);
+  font-family:var(--font);
+  font-weight:800;
+  font-size:15.5px;
+  letter-spacing:-.025em;
+  white-space:nowrap;
   color:var(--ink);
-  text-transform:lowercase;
 }
-.app-header__actions{ display:flex; align-items:center; gap:2px; margin-right:-6px; }
+.app-header__citydot{ width:7px; height:7px; border-radius:50%; background:var(--ink); flex:none; }
+/* круглые кнопки (карта / поиск) */
 .app-header__action{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  width:32px; height:32px;
-  color:var(--ink-soft);
+  display:grid;
+  place-items:center;
+  width:42px; height:42px;
+  flex:none;
+  border-radius:50%;
+  background:var(--surface);
+  box-shadow:var(--sh-card);
+  color:var(--ink);
+  transition:transform .16s var(--ease-out);
 }
-.app-header__actionicon{ width:19px; height:19px; display:block; }
-.app-header__action.is-active{ color:var(--accent); }
+.app-header__action:active{ transform:scale(.94); }
+.app-header__actionicon{ width:20px; height:20px; display:block; }
+.app-header__action.is-active{ background:var(--ink); color:#fff; }
+
+/* узкие экраны (iPhone SE 375): всё в одну строку без обрезки */
+@media (max-width:389.98px){
+  .app-header__inner{ padding-left:16px; padding-right:16px; gap:6px; }
+  .app-logo{ gap:6px; }
+  .app-logo__sign{ width:22px; height:22px; }
+  .app-logo__wm{ font-size:21px; }
+  .app-header__actions{ gap:6px; }
+  .app-header__citypill{ height:38px; padding:0 11px; font-size:14.5px; }
+  .app-header__action{ width:38px; height:38px; }
+}
+@media (prefers-reduced-motion:reduce){
+  .app-header__action{ transition:none; }
+}

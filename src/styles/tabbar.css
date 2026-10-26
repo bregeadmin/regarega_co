@@ -1,68 +1,107 @@
-/* Mobile app-shell bottom tab bar — 4 labeled tabs (гид/жильё/консьерж/профиль).
-   Hidden ≥720px — the existing <header class="topbar"> covers wide screens.
-   Visual source of truth: now.astro's inline .now-tabbar/.now-tab/.now-avatar (see
-   src/pages/georgia/batumi/app/now.astro) — same spacing, type and dot-punch avatar,
-   just reused here as the one shared component (src/components/TabBar.astro). */
+/* Mobile app-shell bottom menu — floating glass bar (r3/01-guide.html .tabbar.glass):
+   4 tabs (guide / stays|trip / concierge / profile). Inactive tabs are icon-only; the active
+   tab is a black capsule with its label. Hidden ≥720px (the site topbar covers wide screens).
+   This file is also loaded by the SITE layouts (tabbar--site), where app-shell.css tokens are
+   absent — every token below therefore carries a literal fallback (r3 values). */
 .tabbar{
   position:fixed;
-  left:0;right:0;bottom:0;
+  left:16px; right:16px;
+  bottom:var(--tabbar-bottom, max(18px, calc(env(safe-area-inset-bottom) - 8px)));
   z-index:80;
+  max-width:420px;
+  margin:0 auto;
+  height:var(--tabbar-h, 66px);
   display:flex;
-  width:100%;
-  background:var(--bg);
-  border-top:.5px solid var(--line);
-  padding:8px 6px calc(11px + env(safe-area-inset-bottom));
+  gap:2px;
+  padding:6px;
+  border-radius:33px;
+  background:var(--glass-bg, rgba(255,253,249,.7));
+  -webkit-backdrop-filter:var(--glass-blur, blur(22px) saturate(1.6));
+  backdrop-filter:var(--glass-blur, blur(22px) saturate(1.6));
+  box-shadow:var(--sh-float, 0 0 0 1px rgba(10,9,8,.06),0 2px 6px rgba(10,9,8,.05),0 20px 44px -14px rgba(10,9,8,.24));
 }
 .tabbar__item{
   flex:1 1 0;
+  min-width:0;
   display:flex;
-  flex-direction:column;
   align-items:center;
   justify-content:center;
-  gap:3px;
-  color:#8a857c;
+  gap:7px;
+  border-radius:27px;
+  color:var(--ink-2, #6B6862);
   text-decoration:none;
+  font-family:var(--font, "Bricolage Grotesque","Golos Text",system-ui,sans-serif);
+  transition:flex-grow .3s var(--ease-out, cubic-bezier(.23,1,.32,1)), background-color .2s var(--ease-out, cubic-bezier(.23,1,.32,1)), color .2s var(--ease-out, cubic-bezier(.23,1,.32,1));
 }
+.tabbar__item:active .tabbar__icon,
+.tabbar__item:active .tabbar__avatar{ transform:scale(.9); }
 .tabbar__icon{
   width:23px;
   height:23px;
   flex:none;
   display:block;
+  transition:transform .16s var(--ease-out, cubic-bezier(.23,1,.32,1));
 }
 .tabbar__label{
-  font-family:"Bricolage Grotesque", sans-serif;
-  font-size:11px;
+  display:none;
+  font-size:14px;
+  font-weight:700;
+  letter-spacing:-.02em;
   line-height:1;
+  white-space:nowrap;
 }
 .tabbar__item.is-active{
-  color:var(--accent);
+  flex-grow:1.8;
+  background:var(--ink, #0A0908);
+  color:#fff;
 }
+.tabbar__item.is-active .tabbar__label{ display:inline; }
 
-/* профиль: dot-punch avatar (small circle warm + a cream "hole" bottom-right corner) in
-   place of a stroke icon — same technique as the large avatar on the profile screen. */
+/* профиль: dot-punch avatar (warm circle + a "hole" bottom-right) — the hole takes the
+   colour of whatever is behind it: glass when idle, the black capsule when active. */
 .tabbar__avatar{
   position:relative;
-  width:23px; height:23px;
+  width:24px; height:24px;
+  flex:none;
   border-radius:50%;
   overflow:hidden;
   display:block;
   background:#a56b3f;
+  transition:transform .16s var(--ease-out, cubic-bezier(.23,1,.32,1));
 }
 .tabbar__avatar__hole{
   position:absolute;
-  right:0; bottom:0;
+  right:1px; bottom:1px;
   width:8px; height:8px;
   border-radius:50%;
-  background:var(--bg);
+  background:var(--surface, #FFFDF9);
+}
+.tabbar__item.is-active .tabbar__avatar__hole{ background:var(--ink, #0A0908); }
+
+/* мягкое затухание контента под меню (r3 .fade-bottom) */
+.tabbar-fade{
+  position:fixed;
+  left:0; right:0; bottom:0;
+  height:calc(110px + env(safe-area-inset-bottom));
+  z-index:79;
+  pointer-events:none;
+  background:linear-gradient(to bottom, rgba(250,247,240,0), rgba(250,247,240,.95) 72%);
 }
 
-body.has-tabbar{ padding-bottom:64px; }
+/* контент не уходит под плавающее меню: высота меню + отступ снизу + воздух */
+body.has-tabbar{ padding-bottom:var(--tabbar-space, calc(66px + max(18px, calc(env(safe-area-inset-bottom) - 8px)) + 24px)); }
+
+@media (prefers-reduced-motion:reduce){
+  .tabbar__item, .tabbar__icon, .tabbar__avatar{ transition:none; }
+}
 
 /* Страница квартиры: главное действие там — бронь (панель «забронировать» прибита к низу,
    z 70). Таб-бар уступает ей место, как у Airbnb на карточке объекта. */
 @media (max-width:719.98px){
   body:has(.apt-book-bar) .tabbar,
-  body:has(.pl-actionbar) .tabbar{ display:none; }
+  body:has(.apt-book-bar) .tabbar-fade,
+  body:has(.pl-actionbar) .tabbar,
+  body:has(.pl-actionbar) .tabbar-fade{ display:none; }
   body.has-tabbar:has(.apt-book-bar){ padding-bottom:0; }
 }
 
@@ -80,18 +119,19 @@ body.has-tabbar{ padding-bottom:64px; }
    (translateY на at-hero-top) не выглядывало поверх бара. */
 /* The site layouts render the same bar (.tabbar--site) for when a site page is opened
    inside the app; in a normal browser it stays hidden and the page gets no bottom gap. */
-html:not(.in-app) .tabbar--site{ display:none; }
+html:not(.in-app) .tabbar--site,
+html:not(.in-app) .tabbar-fade--site{ display:none; }
 html:not(.in-app) body.has-tabbar:has(.tabbar--site){ padding-bottom:0; }
 
 @media (max-width:719.98px){
   html.in-app body.has-tabbar #rr-install{
-    bottom:calc(64px + env(safe-area-inset-bottom) + 10px);
+    bottom:calc(var(--tabbar-h, 66px) + var(--tabbar-bottom, max(18px, calc(env(safe-area-inset-bottom) - 8px))) + 10px);
     z-index:70;
   }
 }
 
 @media (min-width:720px){
-  .tabbar{ display:none; }
+  .tabbar, .tabbar-fade{ display:none; }
   body.has-tabbar{ padding-bottom:0; }
 }
 

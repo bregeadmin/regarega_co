@@ -1,7 +1,7 @@
 /* Native app "search" screen (src/components/app/SearchScreen.astro). Sits inside
    layouts/App.astro, so the :root tokens + body.app-shell reset come from app-shell.css. */
 
-.sr-screen{ padding:12px 15px calc(80px + env(safe-area-inset-bottom)); }
+.sr-screen{ padding:12px 15px 16px; }
 
 .sr-field{
   display:flex;

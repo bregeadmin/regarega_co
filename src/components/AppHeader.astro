@@ -1,9 +1,9 @@
 ---
-// Shared native-app header — city label (map-pin + city) on the left, two actions on the
-// right: the map toggle and search. Rendered by every app screen (guide/stays/map via
+// Shared native-app header (r3/01-guide.html): logo 1:1 with the site on the left (punch
+// sign + "rega" + faded "rega"), on the right the city pill, the map toggle and search. Rendered by every app screen (guide/stays/map via
 // layouts/App.astro; now/concierge/profile/search directly) so the header is identical
 // everywhere. Styles live in styles/app-shell.css (.app-header*).
-// The city is a plain label, not a picker, until a second city goes live.
+// The city is a plain pill, not a picker (no chevron), until city switching ships (stage 3).
 // `view` = which header action the current screen IS: on the map the map toggle flips to a
 // list icon that goes back to the guide; on search the search icon shows as active.
 export interface Props { lang?: 'en' | 'ru'; view?: 'map' | 'search' }
@@ -11,12 +11,11 @@ const { lang = 'en', view } = Astro.props;
 const isRu = lang === 'ru';
 const base = isRu ? '/ru/georgia/batumi' : '/georgia/batumi';
 const L = isRu
-  ? { city: 'батуми', map: 'карта', list: 'списком', search: 'поиск' }
-  : { city: 'batumi', map: 'map', list: 'list view', search: 'search' };
+  ? { city: 'батуми', map: 'карта', list: 'списком', search: 'поиск', home: 'rega rega — гид' }
+  : { city: 'batumi', map: 'map', list: 'list view', search: 'search', home: 'rega rega — guide' };
 
 // Real Tabler-icons "outline" path data (viewBox 0 0 24 24).
 const ICONS = {
-  mapPin: '<path d="M9 11a3 3 0 1 0 6 0a3 3 0 0 0 -6 0" /><path d="M17.657 16.657l-4.243 4.243a2 2 0 0 1 -2.827 0l-4.244 -4.243a8 8 0 1 1 11.314 0z" />',
   map: '<path d="M3 7l6 -3l6 3l6 -3v13l-6 3l-6 -3l-6 3v-13" /><path d="M9 4v13" /><path d="M15 7v13" />',
   list: '<path d="M9 6l11 0" /><path d="M9 12l11 0" /><path d="M9 18l11 0" /><path d="M5 6l0 .01" /><path d="M5 12l0 .01" /><path d="M5 18l0 .01" />',
   search: '<path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0" /><path d="M21 21l-6 -6" />',
@@ -25,11 +24,12 @@ const onMap = view === 'map';
 ---
 <header class="app-header">
   <div class="app-header__inner">
-    <span class="app-header__citypill">
-      <svg class="app-header__pin" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={ICONS.mapPin} />
-      <span class="app-header__citylabel">{L.city}</span>
-    </span>
+    <a class="app-logo" href={`${base}/app/now`} aria-label={L.home}>
+      <svg class="app-logo__sign" viewBox="0 0 100 100" aria-hidden="true"><path fill-rule="evenodd" fill="#FF5E1A" d="M 50,50 m -50,0 a 50,50 0 1,1 100,0 a 50,50 0 1,1 -100,0 z M 64,64 m -12,0 a 12,12 0 1,1 24,0 a 12,12 0 1,1 -24,0 z"/></svg>
+      <span class="app-logo__wm" aria-hidden="true">rega<span class="twin">rega</span></span>
+    </a>
     <div class="app-header__actions">
+      <span class="app-header__citypill"><span class="app-header__citydot" aria-hidden="true"></span>{L.city}</span>
       <a class="app-header__action" href={onMap ? `${base}/app/guide` : `${base}/app/map`} aria-label={onMap ? L.list : L.map}>
         <svg class="app-header__actionicon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={onMap ? ICONS.list : ICONS.map} />
       </a>
