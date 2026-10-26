@@ -1,99 +1,113 @@
 /* Native app "search" screen (src/components/app/SearchScreen.astro). Sits inside
-   layouts/App.astro, so the :root tokens + body.app-shell reset come from app-shell.css. */
+   layouts/App.astro, so the :root tokens + body.app-shell reset come from app-shell.css.
+   Visual source: r3 (surface pill field, .kick labels, list card rows with category stamps). */
 
-.sr-screen{ padding:12px 15px 16px; }
+.sr-screen{ padding:8px 16px var(--tabbar-space); }
 
 .sr-field{
   display:flex;
   align-items:center;
-  gap:9px;
-  background:#F1ECDF;
-  border-radius:13px;
-  padding:0 12px;
-  height:46px;
+  gap:10px;
+  height:54px;
+  padding:0 8px 0 18px;
+  border-radius:var(--r-pill);
+  background:var(--surface);
+  box-shadow:var(--sh-card);
 }
-.sr-field__icon{ width:18px; height:18px; flex:none; color:var(--ink-soft); }
+.sr-field:focus-within{ box-shadow:var(--sh-card), 0 0 0 1.5px var(--ink); }
+.sr-field__icon{ width:20px; height:20px; flex:none; color:var(--ink-2); }
 .sr-field__input{
   flex:1;
   min-width:0;
   border:none;
   background:transparent;
   outline:none;
-  font-family:"Bricolage Grotesque", sans-serif;
-  font-size:16px; /* ≥16px keeps iOS from zooming into the field */
+  font-family:var(--font);
+  font-size:16.5px; /* ≥16px keeps iOS from zooming into the field */
+  font-weight:600;
+  letter-spacing:-.015em;
   color:var(--ink);
   -webkit-appearance:none;
   appearance:none;
 }
-.sr-field__input::placeholder{ color:var(--faint); }
+.sr-field__input::placeholder{ color:var(--ink-3); font-weight:500; }
 .sr-field__input::-webkit-search-cancel-button{ display:none; }
 .sr-field__clear{
-  display:flex;
-  align-items:center;
-  justify-content:center;
-  width:28px; height:28px;
+  display:grid;
+  place-items:center;
+  width:38px; height:38px;
+  flex:none;
   border:none;
-  background:transparent;
-  color:var(--ink-soft);
+  border-radius:50%;
+  background:var(--sunk);
+  color:var(--ink-2);
   padding:0;
   cursor:pointer;
 }
 .sr-field__clear[hidden]{ display:none; }
 
-.sr-label{
-  margin:22px 0 10px;
-  font-family:"JetBrains Mono", monospace;
-  font-size:9.5px;
-  letter-spacing:.16em;
-  text-transform:uppercase;
-  color:var(--ink-soft);
-}
-.sr-chips{ display:flex; flex-wrap:wrap; gap:7px; }
-.sr-chip{
-  font-family:"Bricolage Grotesque", sans-serif;
-  font-size:13px;
-  font-weight:500;
-  color:var(--ink);
-  background:var(--paper);
-  border:.5px solid var(--line);
-  border-radius:999px;
-  padding:8px 14px;
-  cursor:pointer;
-}
+.sr-screen .sr-label{ margin:26px 4px 12px; }
+.sr-suggest[hidden]{ display:none; }
+.sr-chips{ display:flex; flex-wrap:wrap; gap:8px; }
 
-.sr-list{ display:flex; flex-direction:column; }
+.sr-group[hidden]{ display:none; }
+.sr-list{
+  display:flex;
+  flex-direction:column;
+  padding:6px 0;
+  border-radius:var(--r-card);
+  background:var(--surface);
+  box-shadow:var(--sh-card);
+}
 .sr-row{
+  position:relative;
   display:flex;
   align-items:center;
-  gap:12px;
-  padding:8px 0;
-  border-bottom:.5px solid var(--line);
+  gap:14px;
+  padding:10px 14px 10px 10px;
+  transition:opacity .16s var(--ease-out);
 }
-.sr-row:last-child{ border-bottom:none; }
+.sr-row:active{ opacity:.6; }
+.sr-row + .sr-row::before{ content:""; position:absolute; left:84px; right:0; top:0; height:1px; background:var(--line); }
 .sr-row__photo{
-  width:52px; height:52px;
+  width:60px; height:60px;
   flex:none;
-  border-radius:10px;
+  border-radius:16px;
   overflow:hidden;
-  background:#EFE9DD;
+  background:var(--sunk);
 }
-.sr-row__photo--stay{ width:68px; }
 .sr-row__photo img{ width:100%; height:100%; object-fit:cover; display:block; }
-.sr-row__body{ min-width:0; display:flex; flex-direction:column; gap:3px; }
-.sr-row__name,
-.sr-row__meta{
-  font-family:"Bricolage Grotesque", sans-serif;
+.sr-row__body{ flex:1; min-width:0; display:flex; flex-direction:column; gap:4px; }
+.sr-row__name{
+  font-size:17px;
+  font-weight:700;
+  letter-spacing:-.025em;
+  color:var(--ink);
+  text-transform:lowercase;
   white-space:nowrap;
   overflow:hidden;
   text-overflow:ellipsis;
 }
-.sr-row__name{ font-size:14px; font-weight:500; color:var(--ink); }
-.sr-row__meta{ font-size:12px; color:var(--ink-soft); }
+.sr-row__meta{ display:flex; align-items:center; gap:8px; min-width:0; }
+.sr-row__meta .rr-tag{ flex:none; max-width:70%; }
+.sr-row__info{
+  min-width:0;
+  font-size:13.5px;
+  color:var(--ink-2);
+  white-space:nowrap;
+  overflow:hidden;
+  text-overflow:ellipsis;
+}
+.sr-row__chev{ flex:none; width:20px; height:20px; fill:none; stroke:var(--ink-3); stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
 
 .sr-none{
-  margin:28px 0 0;
-  font-family:"Bricolage Grotesque", sans-serif;
-  font-size:14px;
-  color:var(--ink-soft);
+  margin:36px 0 0;
+  font-size:15px;
+  color:var(--ink-2);
   text-align:center;
+}
+.sr-none[hidden]{ display:none; }
+
+@media (prefers-reduced-motion:reduce){
+  .sr-row{ transition:none; }
 }

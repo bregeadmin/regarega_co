@@ -4,13 +4,13 @@
 // Order: swipeable photos (back + share over them) → category · area, name, open-now →
 // the editorial take (EN only; RU has no take column yet) → body → hours (today marked) →
 // how to find it → stays nearby → more in this category. ONE primary action, pinned to the
-// bottom: directions. Calling is the only secondary action there. The tab bar steps aside
+// bottom: directions (ink — orange is the home world only). Calling is the only secondary action there. The tab bar steps aside
 // on this screen (tabbar.css), same as on an apartment page.
 import AppFull from '../../layouts/AppFull.astro';
 import '../../styles/app-shell.css';
 import '../../styles/app-place.css';
 import TabBar from '../TabBar.astro';
-import { GUIDE_CATS, catLabel } from '../../lib/guideCats';
+import { catLabel, catColor, catDark, catOutline, catStyle } from '../../lib/guideCats';
 import { priceSym } from '../../lib/price';
 import { thumb } from '../../lib/thumb';
 import type { NearbyApt } from '../../lib/appPlace';
@@ -39,7 +39,6 @@ const T = isRu
     };
 
 const name = p.title || p.name;
-const cat = GUIDE_CATS[p.category];
 const photos: string[] = (p.photos && p.photos.length) ? p.photos : (p.image ? [p.image] : []);
 
 // no dedicated "area" column — derive a short area label from the street address
@@ -114,7 +113,6 @@ const aptTitle = (a: any) => (isRu && a.title_ru) || a.title;
 const ICONS = {
   back: '<path d="M15 6l-6 6l6 6" />',
   share: '<path d="M12 4v11" /><path d="M8 8l4 -4l4 4" /><path d="M6 12v6a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2v-6" />',
-  clock: '<path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" /><path d="M12 7v5l3 3" />',
   pin: '<path d="M9 11a3 3 0 1 0 6 0a3 3 0 0 0 -6 0" /><path d="M17.657 16.657l-4.243 4.243a2 2 0 0 1 -2.827 0l-4.244 -4.243a8 8 0 1 1 11.314 0z" />',
   coin: '<path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" /><path d="M14.8 9a2 2 0 0 0 -1.8 -1h-2a2 2 0 1 0 0 4h2a2 2 0 1 1 0 4h-2a2 2 0 0 1 -1.8 -1" /><path d="M12 7v10" />',
   phone: '<path d="M5 4h4l2 5l-2.5 1.5a11 11 0 0 0 5 5l1.5 -2.5l5 2v4a2 2 0 0 1 -2 2a16 16 0 0 1 -15 -15a2 2 0 0 1 2 -2" />',
@@ -125,7 +123,7 @@ const ICONS = {
 const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
 ---
 <AppFull lang={lang} title={`${name} — rega rega`} description={(isRu ? p.summary_ru : p.take_title || p.summary) ? String(isRu ? p.summary_ru : p.take_title || p.summary).replace(/\*+/g, '').slice(0, 160) : name}>
-  <main class="pl-screen">
+  <main class="pl-screen" style={`--cat-c:${catColor(p.category)};--cat-d:${catDark(p.category)};--accent-c:${catColor(p.category)}`}>
     <div class="pl-gallery">
       <div class="pl-gallery__track" id="plTrack">
         {photos.length ? photos.map((src, i) => (
@@ -143,11 +141,11 @@ const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fi
 
     <div class="pl-sheet">
       <p class="pl-kicker">
-        <span class="pl-kicker__dot" style={`background:${cat?.color || '#3A4868'}`}></span>
-        {catLabel(p.category, lang)}{areaOf(p) ? ` · ${areaOf(p)}` : ''}
+        <span class={`rr-tag${catOutline(p.category) ? ' is-ring' : ''}`} style={catStyle(p.category)}><i></i><span>{catLabel(p.category, lang)}</span></span>
+        {areaOf(p) && <span class="pl-kicker__area">{areaOf(p)}</span>}
       </p>
-      <h1 class="pl-name">{name}</h1>
-      <p class="pl-status" id="plStatus" hidden></p>
+      <h1 class="rr-display pl-name">{name}</h1>
+      <p class="pl-status rr-open is-closed" id="plStatus" hidden><i></i><span id="plStatusText"></span></p>
       <p class="pl-walk" id="plWalk" hidden></p>
 
       {takeHtml && <p class="pl-take" set:html={takeHtml} />}
@@ -155,7 +153,7 @@ const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fi
 
       {hourRows.length > 0 && (
         <section class="pl-section">
-          <h2 class="pl-section__title"><Fragment set:html={svg(ICONS.clock, 'pl-section__icon')} />{T.hours}</h2>
+          <h2 class="rr-display pl-section__title">{T.hours}</h2>
           <ul class="pl-hours">
             {hourRows.map((r) => (
               <li data-days={r.days}><span>{r.label}</span><b>{r.v}</b></li>
@@ -165,7 +163,7 @@ const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fi
       )}
 
       <section class="pl-section">
-        <h2 class="pl-section__title"><Fragment set:html={svg(ICONS.pin, 'pl-section__icon')} />{T.find}</h2>
+        <h2 class="rr-display pl-section__title">{T.find}</h2>
         <div class="pl-rows">
           {p.address && (
             <a class="pl-row" href={mapsUrl || undefined} target="_blank" rel="noopener">
@@ -199,7 +197,7 @@ const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fi
 
       {nearby.length > 0 && (
         <section class="pl-section pl-nearby">
-          <h2 class="pl-section__title">{T.nearby}</h2>
+          <h2 class="rr-display pl-section__title">{T.nearby}</h2>
           <div class="pl-scroller">
             {nearby.map((a) => (
               <a class="pl-stay" href={`${BASE}/app/stays/${a.slug}`}>
@@ -217,7 +215,7 @@ const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fi
 
       {related.length > 0 && (
         <section class="pl-section">
-          <h2 class="pl-section__title">{T.more}</h2>
+          <h2 class="rr-display pl-section__title">{T.more}</h2>
           <div class="pl-scroller">
             {related.map((r) => (
               <a class="pl-more" href={`${BASE}/app/place/${r.slug}`}>
@@ -298,7 +296,7 @@ const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fi
           if (later) text = (RU ? 'закрыто · откроется в ' : 'closed · opens at ') + hhmm(later.o);
           else { for (var k = 1; k <= 7 && !text; k++) { var nx = day((dow + k) % 7)[0]; if (nx) text = (RU ? 'закрыто · откроется ' : 'closed · opens ') + (k === 1 ? (RU ? 'завтра в ' : 'tomorrow at ') : '') + hhmm(nx.o); } }
         }
-        if (text) { st.textContent = text; st.classList.toggle('is-open', open); st.hidden = false; }
+        if (text) { $('plStatusText').textContent = text; st.classList.toggle('is-closed', !open); st.hidden = false; }
         // mark today's row (rows are mon..sun = 0..6; JS getDay is sun = 0)
         var idx = (dow + 6) % 7;
         document.querySelectorAll('.pl-hours li').forEach(function (li) {

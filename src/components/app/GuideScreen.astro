@@ -5,10 +5,13 @@
 // inside the guide, not its own tab): "all" shows one news card on top — the nearest
 // upcoming event, else the latest — and the "news" chip shows every item, upcoming first.
 // "Upcoming" depends on today, so that choice runs client-side.
+// Entry: `?cat=<slug>` (from the category tiles on «гид», or `?cat=news`) pre-selects that chip;
+// an unknown slug falls back to «всё». The chosen chip is written back to the URL (replaceState),
+// so «назад» from a place returns to the same filter. Visual source: r3/01-guide.html.
 import App from '../../layouts/App.astro';
 import '../../styles/app-guide.css';
 import { supabase } from '../../lib/supabase';
-import { catLabel } from '../../lib/guideCats';
+import { catLabel, catColor, catOutline, catStyle } from '../../lib/guideCats';
 import { thumb } from '../../lib/thumb';
 import { loadNews, newsPhotos, newsText, newsDate, newsDay } from '../../lib/appNews';
 
@@ -22,11 +25,24 @@ const T = isRu
       title: 'гид — rega rega',
       desc: 'кафе, велнес, места для работы и как передвигаться по батуми — места, которые мы бы посоветовали другу.',
       cats: 'категории', all: 'всё', news: 'новости', empty: 'здесь пока пусто',
+      read: 'читать',
+      // заголовок по фильтру: курсивное слово — цвета категории
+      h: {
+        all: 'весь <em>гид</em>', 'eat-drink': 'есть <em>и</em> пить', wellness: '<em>велнес</em>',
+        'move-around': '<em>передвижение</em>', work: 'работа <em>и</em> удалёнка', news: 'что <em>в городе</em>',
+      },
+      sub: { news: 'события и новости батуми' },
     }
   : {
       title: 'the guide — rega rega',
       desc: "cafés, wellness, work spots and how to get around batumi — places we'd hand to a friend.",
       cats: 'categories', all: 'all', news: 'news', empty: 'nothing here yet',
+      read: 'read',
+      h: {
+        all: 'the whole <em>guide</em>', 'eat-drink': 'eat <em>&amp;</em> drink', wellness: '<em>wellness</em>',
+        'move-around': 'move <em>around</em>', work: 'work <em>&amp;</em> remote', news: 'in <em>town</em>',
+      },
+      sub: { news: 'events and news in batumi' },
     };
 
 const { data: gp } = await supabase
@@ -40,6 +56,10 @@ const news = await loadNews();
 const CAT_ORDER = ['eat-drink', 'wellness', 'move-around', 'work'];
 const cats = CAT_ORDER.filter((c) => places.some((p) => p.category === c));
 
+// heading colour per filter: the category world; news sit in the eat world (as on «гид»), all = ink
+const ACCENT: Record<string, string> = Object.fromEntries(cats.map((c) => [c, catColor(c)]));
+ACCENT.news = catColor('eat-drink');
+
 const photoOf = (p: any) => (p.photos && p.photos[0]) || p.image || '';
 // no dedicated "area" column on guide_places — derive a short area label from the street address
 const areaOf = (p: any) => {
@@ -47,7 +67,9 @@ const areaOf = (p: any) => {
   if (!a) return '';
   const cleaned = a.replace(/,?\s*Batumi[^,]*,?\s*Georgia\s*$/i, '').replace(/,\s*Georgia\s*$/i, '').trim();
   const first = (cleaned.split(',')[0] || '').trim();
-  if (!first) return '';
+  // Google plus codes ("MPR4+FCW") are not an area
+  if (!first || /^[A-Z0-9]{4,}\+[A-Z0-9]{2,}/.test(first) || /^\d+$/.test(first)) return '';
+  // (a bare postcode like "6010" is not an area either)
   return first.length > 26 ? first.slice(0, 26).replace(/\s+\S*$/, '') + '…' : first;
 };
 // news headlines mark emphasis as *word* — render it as <em>
@@ -55,53 +77,64 @@ const esc = (x: string) => x.replace(/&/g, '&amp;').replace(/</g, '&lt;').replac
 const mdEm = (raw: string) => esc(raw).replace(/\*([^*]+)\*/g, '<em>$1</em>').replace(/\*/g, '');
 ---
 <App lang={lang} title={T.title} description={T.desc}>
-  <nav class="chip-row" aria-label={T.cats}>
-    <button class="chip is-active" data-cat="all" type="button">{T.all}</button>
-    {cats.map((c) => (
-      <button class="chip" data-cat={c} type="button">{catLabel(c, lang)}</button>
-    ))}
-    {news.length > 0 && <button class="chip" data-cat="news" type="button">{T.news}</button>}
-  </nav>
+  <main class="gd-screen">
+    <header class="gd-head" id="gdHead">
+      <h1 class="rr-display gd-head__h" id="gdTitle" set:html={T.h.all} />
+      <p class="gd-head__sub" id="gdSub"></p>
+    </header>
 
-  <div class="place-grid" id="placeGrid">
-    {news.map((n) => {
-      const t = newsText(n, lang);
-      const photo = newsPhotos(n)[0];
-      const when = newsDate(n.date, lang);
-      return (
-        <a class="news-tile" data-day={newsDay(n.date)} href={`${BASE}/app/news/${n.slug}`} hidden>
-          {photo && <div class="news-tile__photo"><img src={thumb(photo, 320)} alt="" loading="lazy" onload="this.classList.add('is-loaded')" /></div>}
-          <div class="news-tile__body">
-            <span class="news-tile__kicker">{T.news}{when ? ` · ${when}` : ''}</span>
-            <h3 class="news-tile__title" set:html={mdEm(String(t.headline || t.title))} />
-          </div>
-        </a>
-      );
-    })}
-    {places.map((p) => {
-      const photo = photoOf(p);
-      const area = areaOf(p);
-      return (
-        <a class="place-tile" data-category={p.category} href={`${BASE}/app/place/${p.slug}`}>
-          <div class="place-tile__photo">
-            {photo && <img src={thumb(photo, 480)} alt="" loading="lazy" onload="this.classList.add('is-loaded')" />}
-          </div>
-          <div class="place-tile__body">
-            <h3 class="place-tile__name">{p.title || p.name}</h3>
-            <p class="place-tile__meta">{catLabel(p.category, lang)}{area ? ` · ${area}` : ''}</p>
-          </div>
-        </a>
-      );
-    })}
-    <p class="place-grid__empty" id="placeGridEmpty" hidden>{T.empty}</p>
-  </div>
+    <nav class="gd-chips" aria-label={T.cats}>
+      <button class="rr-chip is-active" data-cat="all" type="button">{T.all}</button>
+      {cats.map((c) => (
+        <button class={`rr-chip${catOutline(c) ? ' is-ring' : ''}`} data-cat={c} type="button" style={catStyle(c)}><i></i>{catLabel(c, lang)}</button>
+      ))}
+      {news.length > 0 && <button class="rr-chip" data-cat="news" type="button" style={catStyle('eat-drink')}><i></i>{T.news}</button>}
+    </nav>
 
-  <script is:inline>
+    <div class="place-grid" id="placeGrid">
+      {news.map((n) => {
+        const t = newsText(n, lang);
+        const photo = newsPhotos(n)[0];
+        const when = newsDate(n.date, lang);
+        return (
+          <a class={`news-tile${photo ? '' : ' news-tile--plain'}`} data-day={newsDay(n.date)} href={`${BASE}/app/news/${n.slug}`} hidden>
+            <span class="news-tile__body">
+              <span>
+                <span class="rr-tag news-tile__tag"><i></i><span>{T.news}{when ? ` · ${when}` : ''}</span></span>
+                <span class="news-tile__title" set:html={mdEm(String(t.headline || t.title))} />
+              </span>
+              <span class="news-tile__read">{T.read}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6l-6 6" /></svg></span>
+            </span>
+            {photo && <span class="news-tile__photo"><img src={thumb(photo, 320)} alt="" loading="lazy" onload="this.classList.add('is-loaded')" /></span>}
+          </a>
+        );
+      })}
+      {places.map((p) => {
+        const photo = photoOf(p);
+        const area = areaOf(p);
+        return (
+          <a class="place-tile" data-category={p.category} href={`${BASE}/app/place/${p.slug}`}>
+            <span class="place-tile__photo">
+              {photo && <img src={thumb(photo, 480)} alt="" loading="lazy" onload="this.classList.add('is-loaded')" />}
+            </span>
+            <span class={`rr-tag place-tile__tag${catOutline(p.category) ? ' is-ring' : ''}`} style={catStyle(p.category)}><i></i><span>{catLabel(p.category, lang)}</span></span>
+            <span class="place-tile__name">{p.title || p.name}</span>
+            <span class="place-tile__meta">{area}</span>
+          </a>
+        );
+      })}
+      <p class="place-grid__empty" id="placeGridEmpty" hidden>{T.empty}</p>
+    </div>
+  </main>
+
+  <script is:inline define:vars={{ HEADS: T.h, ACCENT, RU: isRu, NEWS_SUB: T.sub.news }}>
     (function () {
       var grid = document.getElementById('placeGrid');
-      var chips = document.querySelectorAll('.chip-row .chip');
+      var chips = document.querySelectorAll('.gd-chips .rr-chip');
       var tiles = document.querySelectorAll('.place-grid .place-tile');
       var empty = document.getElementById('placeGridEmpty');
+      var title = document.getElementById('gdTitle');
+      var sub = document.getElementById('gdSub');
 
       // news order: upcoming (soonest first), then past (latest first) — by Batumi date
       var today = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Tbilisi' }));
@@ -113,24 +146,56 @@ const mdEm = (raw: string) => esc(raw).replace(/\*([^*]+)\*/g, '<em>$1</em>').re
       news.slice().reverse().forEach(function (n) { grid.insertBefore(n, grid.firstChild); });
       if (news[0]) news[0].hidden = false;
 
-      chips.forEach(function (chip) {
-        chip.addEventListener('click', function () {
-          chips.forEach(function (c) { c.classList.remove('is-active'); });
-          chip.classList.add('is-active');
-          chip.scrollIntoView({ inline: 'nearest', block: 'nearest', behavior: 'smooth' });
-          var cat = chip.getAttribute('data-cat');
-          var visible = 0;
-          news.forEach(function (n, i) { n.hidden = cat === 'news' ? false : !(cat === 'all' && i === 0); });
-          tiles.forEach(function (tl) {
-            var match = cat === 'all' || tl.getAttribute('data-category') === cat;
-            tl.classList.toggle('is-hidden', !match);
-            if (match) visible++;
-          });
-          if (cat === 'news') visible = news.length;
-          if (empty) empty.hidden = visible !== 0;
-          window.scrollTo(0, 0);
+      // «12 мест, куда мы ходим сами» / "12 places we go to ourselves"
+      function count(n) {
+        if (!RU) return n + (n === 1 ? ' place we go to ourselves' : ' places we go to ourselves');
+        var m10 = n % 10, m100 = n % 100;
+        var w = m10 === 1 && m100 !== 11 ? 'место' : (m10 >= 2 && m10 <= 4 && (m100 < 12 || m100 > 14) ? 'места' : 'мест');
+        return n + ' ' + w + ', куда мы ходим сами';
+      }
+
+      function select(chip, user) {
+        chips.forEach(function (c) { c.classList.remove('is-active'); });
+        chip.classList.add('is-active');
+        var cat = chip.getAttribute('data-cat');
+        grid.setAttribute('data-cat', cat);
+        var visible = 0;
+        news.forEach(function (n, i) { n.hidden = cat === 'news' ? false : !(cat === 'all' && i === 0); });
+        tiles.forEach(function (tl) {
+          var match = cat === 'all' || tl.getAttribute('data-category') === cat;
+          tl.classList.toggle('is-hidden', !match);
+          if (match) visible++;
         });
+        title.innerHTML = HEADS[cat] || HEADS.all;
+        if (ACCENT[cat]) title.style.setProperty('--accent-c', ACCENT[cat]); else title.style.removeProperty('--accent-c');
+        sub.textContent = cat === 'news' ? NEWS_SUB : count(visible);
+        if (cat === 'news') visible = news.length;
+        if (empty) empty.hidden = visible !== 0;
+        if (user) {
+          chip.scrollIntoView({ inline: 'nearest', block: 'nearest', behavior: 'smooth' });
+          try {
+            var u = new URL(location.href);
+            if (cat === 'all') u.searchParams.delete('cat'); else u.searchParams.set('cat', cat);
+            history.replaceState(history.state, '', u.pathname + u.search + u.hash);
+          } catch (e) {}
+          window.scrollTo(0, 0);
+        }
+      }
+
+      chips.forEach(function (chip) {
+        chip.addEventListener('click', function () { select(chip, true); });
       });
+
+      // ?cat=<slug> entry (category tiles on «гид»); unknown slug → «всё»
+      var want = null;
+      try { want = new URLSearchParams(location.search).get('cat'); } catch (e) {}
+      var start = chips[0];
+      chips.forEach(function (c) { if (want && c.getAttribute('data-cat') === want) start = c; });
+      select(start, false);
+      if (start !== chips[0]) {
+        var row = start.parentNode;
+        row.scrollLeft = Math.max(0, start.offsetLeft - 16);
+      }
     })();
   </script>
 </App>

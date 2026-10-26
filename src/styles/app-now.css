@@ -6,24 +6,6 @@
 
 .now-screen{ padding:0 0 var(--tabbar-space); overflow-x:clip; }
 
-/* display type: Bricolage for latin/digits, Golos 800 for cyrillic (via --font) */
-.now-display{
-  margin:0;
-  font-family:var(--font);
-  font-weight:800;
-  letter-spacing:-.045em;
-  line-height:.9;
-  color:var(--ink);
-  overflow-wrap:break-word;
-}
-.now-display em{
-  font-style:italic;
-  font-weight:800;
-  letter-spacing:-.03em;
-  padding-right:.04em;
-  color:var(--accent-c, var(--ink));
-}
-
 /* ---------- drawn city line + weather ---------- */
 .now-city{ position:relative; height:64px; margin:6px 20px 0; color:var(--ink); }
 .now-city__line{ position:absolute; inset:0; width:100%; height:100%; display:block; }
@@ -138,24 +120,7 @@
 .now-hero__meta span:first-child{ min-width:0; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .now-hero__meta span:last-child{ flex:none; white-space:nowrap; }
 
-/* ---------- category stamp (as on the site): tint + dark text + colour dot ---------- */
-.now-tag{
-  display:inline-flex;
-  align-items:center;
-  gap:7px;
-  height:26px;
-  padding:0 10px 0 9px;
-  border-radius:var(--r-pill);
-  background:var(--tag-t, var(--eat-tint));
-  color:var(--tag-d, var(--eat-dark));
-  font-size:12.5px;
-  font-weight:700;
-  letter-spacing:-.01em;
-  white-space:nowrap;
-  max-width:100%;
-}
-.now-tag i{ width:8px; height:8px; flex:none; border-radius:50%; background:var(--tag-c, var(--eat)); }
-.now-tag.is-ring i{ background:transparent; box-shadow:inset 0 0 0 2px var(--tag-c, var(--eat)); }
+/* display type + category stamp (.now-display / .now-tag) live in app-shell.css — shared by every guide screen */
 
 /* ---------- two more places: list card ---------- */
 .now-list{

@@ -7,7 +7,7 @@
 import App from '../../layouts/App.astro';
 import '../../styles/app-search.css';
 import { supabase, applyNames, type Apartment } from '../../lib/supabase';
-import { GUIDE_CATS, catLabel } from '../../lib/guideCats';
+import { GUIDE_CATS, catLabel, catColor, catTint, catDark, catOutline } from '../../lib/guideCats';
 import { priceSym } from '../../lib/price';
 import { thumb } from '../../lib/thumb';
 
@@ -52,6 +52,7 @@ const places = ((gp || []) as any[]).map((p) => {
     k: 'p',
     n: p.title || p.name,
     m: catLabel(p.category, lang),
+    c: p.category,
     p: thumb((p.photos && p.photos[0]) || p.image, 320),
     u: `${BASE}/app/place/${p.slug}`,
     h: [p.title, p.name, cat?.en, cat?.ru, ...tags, ...tags.map((t) => TAG_RU[t] || ''),
@@ -67,12 +68,16 @@ const stays = ((apts as Apartment[]) || []).map(applyNames).map((a: any) => ({
   k: 's',
   n: (isRu && a.title_ru) || a.title,
   m: `${priceSym(a.price_currency)}${a.price_from}${isRu ? ' / ночь' : ' / night'}${a.neighborhood ? ` · ${a.neighborhood}` : ''}`,
+  c: '',
   p: thumb(a.photos && a.photos[0], 320),
   u: `${BASE}/app/stays/${a.slug}`,
   // no bedroom words here: "спальня" would answer every "спа" query
   h: [a.title, a.title_ru, a.neighborhood, 'apartment flat stay квартира жильё апартаменты',
       a.bedrooms ? '' : 'studio студия'].filter(Boolean).join(' ').toLowerCase(),
 }));
+// category stamp colours for the result rows — from guideCats.ts, never duplicated
+const CAT_STYLE = Object.fromEntries(Object.keys(GUIDE_CATS).map((k) => [k, { c: catColor(k), t: catTint(k), d: catDark(k), o: catOutline(k) }]));
+const STAY_TAG = isRu ? 'жильё' : 'stay';
 ---
 <App lang={lang} view="search" title={T.title} description={T.desc}>
   <main class="sr-screen">
@@ -85,24 +90,24 @@ const stays = ((apts as Apartment[]) || []).map(applyNames).map((a: any) => ({
     </label>
 
     <div class="sr-suggest" id="srSuggest">
-      <p class="sr-label">{T.try}</p>
+      <p class="rr-kick sr-label">{T.try}</p>
       <div class="sr-chips">
-        {T.suggest.map((s) => <button class="sr-chip" type="button" data-q={s}>{s}</button>)}
+        {T.suggest.map((s) => <button class="rr-chip sr-chip" type="button" data-q={s}>{s}</button>)}
       </div>
     </div>
 
     <section class="sr-group" id="srPlaces" hidden>
-      <p class="sr-label">{T.places}</p>
+      <p class="rr-kick sr-label">{T.places}</p>
       <div class="sr-list" id="srPlacesList"></div>
     </section>
     <section class="sr-group" id="srStays" hidden>
-      <p class="sr-label">{T.stays}</p>
+      <p class="rr-kick sr-label">{T.stays}</p>
       <div class="sr-list" id="srStaysList"></div>
     </section>
     <p class="sr-none" id="srNone" hidden>{T.none}</p>
   </main>
 
-  <script is:inline define:vars={{ ROWS: places.concat(stays) }}>
+  <script is:inline define:vars={{ ROWS: places.concat(stays), CATS: CAT_STYLE, STAY_TAG }}>
     (function () {
       var input = document.getElementById('srInput');
       var clear = document.getElementById('srClear');
@@ -114,8 +119,20 @@ const stays = ((apts as Apartment[]) || []).map(applyNames).map((a: any) => ({
         if (r.p) { var img = document.createElement('img'); img.src = r.p; img.alt = ''; img.loading = 'lazy'; ph.appendChild(img); }
         var body = document.createElement('span'); body.className = 'sr-row__body';
         var n = document.createElement('span'); n.className = 'sr-row__name'; n.textContent = r.n;
-        var m = document.createElement('span'); m.className = 'sr-row__meta'; m.textContent = r.m;
-        body.appendChild(n); body.appendChild(m); a.appendChild(ph); a.appendChild(body);
+        // meta: category stamp (tint + dark text + dot; ring = outline category), stays = the home stamp + price
+        var m = document.createElement('span'); m.className = 'sr-row__meta';
+        var cs = CATS[r.c];
+        var tag = document.createElement('span');
+        tag.className = 'rr-tag' + (r.k === 's' ? ' rr-tag--home' : '') + (cs && cs.o ? ' is-ring' : '');
+        if (cs) tag.setAttribute('style', '--tag-c:' + cs.c + ';--tag-t:' + cs.t + ';--tag-d:' + cs.d);
+        tag.appendChild(document.createElement('i'));
+        var tl = document.createElement('span'); tl.textContent = r.k === 's' ? STAY_TAG : r.m; tag.appendChild(tl);
+        m.appendChild(tag);
+        if (r.k === 's') { var info = document.createElement('span'); info.className = 'sr-row__info'; info.textContent = r.m; m.appendChild(info); }
+        var chev = document.createElementNS('http://www.w3.org/2000/svg', 'svg');
+        chev.setAttribute('class', 'sr-row__chev'); chev.setAttribute('viewBox', '0 0 24 24'); chev.setAttribute('aria-hidden', 'true');
+        var path = document.createElementNS('http://www.w3.org/2000/svg', 'path'); path.setAttribute('d', 'M9 6l6 6l-6 6'); chev.appendChild(path);
+        body.appendChild(n); body.appendChild(m); a.appendChild(ph); a.appendChild(body); a.appendChild(chev);
         return a;
       }
 

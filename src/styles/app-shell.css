@@ -38,6 +38,8 @@
   --tabbar-h:66px;
   --tabbar-bottom:max(18px, calc(env(safe-area-inset-bottom) - 8px));
   --tabbar-space:calc(var(--tabbar-h) + var(--tabbar-bottom) + 24px);
+  /* высота общей шапки (без safe-area) — для липких полос под ней */
+  --app-header-h:60px;
 
   /* legacy aliases (pre-redesign names, still used by screen CSS) */
   --paper:var(--surface);
@@ -140,6 +142,7 @@ body.app-full a{ color:inherit; text-decoration:none; }
 
 /* узкие экраны (iPhone SE 375): всё в одну строку без обрезки */
 @media (max-width:389.98px){
+  :root{ --app-header-h:56px; }
   .app-header__inner{ padding-left:16px; padding-right:16px; gap:6px; }
   .app-logo{ gap:6px; }
   .app-logo__sign{ width:22px; height:22px; }
@@ -150,4 +153,103 @@ body.app-full a{ color:inherit; text-decoration:none; }
 }
 @media (prefers-reduced-motion:reduce){
   .app-header__action{ transition:none; }
+}
+
+/* ================= shared guide pieces (now / guide / place / search / map / news) =================
+   r3/style.css: .display, .tag + .dot(.ring), .open, .card. Category colours arrive inline from
+   src/lib/guideCats.ts (catStyle → --tag-c / --tag-t / --tag-d, --accent-c for the italic word). */
+
+/* display type: Bricolage for latin/digits, Golos 800 for cyrillic (via --font) */
+.now-display, .rr-display{
+  margin:0;
+  font-family:var(--font);
+  font-weight:800;
+  letter-spacing:-.045em;
+  line-height:.9;
+  color:var(--ink);
+  overflow-wrap:break-word;
+}
+.now-display em, .rr-display em{
+  font-style:italic;
+  font-weight:800;
+  letter-spacing:-.03em;
+  padding-right:.04em;
+  color:var(--accent-c, var(--ink));
+}
+
+/* category stamp (as on the site): tint + dark text + colour dot (ring = outline category) */
+.now-tag, .rr-tag{
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  height:26px;
+  padding:0 10px 0 9px;
+  border-radius:var(--r-pill);
+  background:var(--tag-t, var(--eat-tint));
+  color:var(--tag-d, var(--eat-dark));
+  font-size:12.5px;
+  font-weight:700;
+  letter-spacing:-.01em;
+  white-space:nowrap;
+  max-width:100%;
+}
+.now-tag i, .rr-tag i{ width:8px; height:8px; flex:none; border-radius:50%; background:var(--tag-c, var(--eat)); }
+.now-tag.is-ring i, .rr-tag.is-ring i{ background:transparent; box-shadow:inset 0 0 0 2px var(--tag-c, var(--eat)); }
+.rr-tag > span{ min-width:0; overflow:hidden; text-overflow:ellipsis; }
+/* жильё — единственный оранжевый штамп */
+.rr-tag--home{ --tag-c:var(--home); --tag-t:var(--home-tint); --tag-d:var(--home-deep); }
+
+/* «открыто сейчас» — точка цвета категории в тонком кольце (не оранжевая, без пульса) */
+.rr-open{ display:inline-flex; align-items:center; gap:8px; }
+.rr-open i{
+  width:7px; height:7px;
+  flex:none;
+  border-radius:50%;
+  background:var(--c, var(--ink-3));
+  box-shadow:0 0 0 3px color-mix(in srgb, var(--c, var(--ink-3)) 28%, transparent);
+}
+.rr-open.is-closed i{ background:var(--ink-3); box-shadow:none; }
+
+/* filter chips: surface pill + category dot; active = black capsule (as the tab bar) */
+.rr-chip{
+  flex:none;
+  display:inline-flex;
+  align-items:center;
+  gap:7px;
+  height:38px;
+  padding:0 15px;
+  border:0;
+  border-radius:var(--r-pill);
+  background:var(--surface);
+  box-shadow:var(--sh-card);
+  color:var(--ink);
+  font-family:var(--font);
+  font-size:14px;
+  font-weight:700;
+  letter-spacing:-.02em;
+  white-space:nowrap;
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+  transition:transform .16s var(--ease-out), background .2s var(--ease-out), color .2s var(--ease-out);
+}
+.rr-chip:active{ transform:scale(.96); }
+.rr-chip i{ width:8px; height:8px; flex:none; border-radius:50%; background:var(--tag-c, var(--ink)); }
+.rr-chip.is-ring i{ background:transparent; box-shadow:inset 0 0 0 2px var(--tag-c, var(--ink)); }
+.rr-chip.is-active{ background:var(--ink); color:var(--surface); }
+/* on the black capsule the category colour is lifted so the dot still reads */
+.rr-chip.is-active i{ background:color-mix(in srgb, var(--tag-c, var(--ink)) 45%, white); }
+.rr-chip.is-active.is-ring i{ background:transparent; box-shadow:inset 0 0 0 2px color-mix(in srgb, var(--tag-c, var(--ink)) 45%, white); }
+
+/* small mono kicker (r3 .kick) */
+.rr-kick{
+  margin:0;
+  font-family:var(--mono);
+  font-size:10.5px;
+  font-weight:500;
+  letter-spacing:.14em;
+  text-transform:uppercase;
+  color:var(--ink-2);
+}
+@media (prefers-reduced-motion:reduce){
+  .rr-chip{ transition:none; }
 }

@@ -21,3 +21,5 @@ export const catOutline = (c: string): boolean => GUIDE_CATS[c]?.outline || fals
 // fill value for the "background:var(--cat-fill);border:... var(--cat-color)" pattern
 export const catFill = (c: string): string => (GUIDE_CATS[c]?.outline ? 'transparent' : (GUIDE_CATS[c]?.color || '#3A4868'));
 export const catLabel = (c: string, lang: Lang): string => GUIDE_CATS[c]?.label[lang] || c;
+// inline vars for a category stamp / chip / pin: style={catStyle(k)} + class "is-ring" when catOutline(k)
+export const catStyle = (c: string): string => `--tag-c:${catColor(c)};--tag-t:${catTint(c)};--tag-d:${catDark(c)}`;

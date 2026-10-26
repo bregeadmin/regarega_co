@@ -6,7 +6,7 @@ import App from '../../../../../layouts/App.astro';
 import '../../../../../styles/app-map.css';
 import { supabase, applyNames, type Apartment } from '../../../../../lib/supabase';
 import { GMAPS_KEY } from '../../../../../lib/maps';
-import { catLabel } from '../../../../../lib/guideCats';
+import { catLabel, catColor, catOutline } from '../../../../../lib/guideCats';
 import { priceFrom } from '../../../../../lib/price';
 
 const LANG = 'ru' as const;
@@ -64,8 +64,10 @@ const placeItems = places
       href: `${BASE}/app/place/${p.slug}`,
       sub: catLabel(p.category, LANG) + (area ? ` · ${area}` : ''),
       cta: 'смотреть',
-      color: '#0A0908',
+      // pins carry the category world (solid / outline), never orange — orange = stays
+      color: catColor(p.category),
       ring: '#ffffff',
+      outline: catOutline(p.category),
     };
   });
 
@@ -91,9 +93,9 @@ const initJs = "window.__initGMap=function(){"
 <App lang={LANG} view="map" title="карта — rega rega" description="все проверенные квартиры и места, которые мы бы посоветовали другу, на одной карте.">
   <div class="app-map-screen">
     <nav class="map-chips" aria-label="фильтр">
-      <button class="map-chip is-active" data-filter="all" type="button">всё</button>
-      <button class="map-chip" data-filter="place" type="button">места</button>
-      <button class="map-chip" data-filter="stay" type="button">жильё</button>
+      <button class="rr-chip map-chip is-active" data-filter="all" type="button">всё</button>
+      <button class="rr-chip map-chip" data-filter="place" type="button" style="--tag-c:var(--eat)"><i></i>места</button>
+      <button class="rr-chip map-chip" data-filter="stay" type="button" style="--tag-c:var(--home)"><i></i>жильё</button>
     </nav>
     <div id="appMap"></div>
     <button class="map-near-btn" id="mapNearBtn" type="button" aria-label="рядом со мной">
