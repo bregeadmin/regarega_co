@@ -1,203 +1,290 @@
-/* Native app "concierge" screen (src/components/app/ConciergeScreen.astro). On top of the
-   :root tokens + body.app-full reset from app-shell.css — this file only styles .cc-*.
+/* Native app "concierge" screen (src/components/app/ConciergeScreen.astro) — r3/04-concierge.html.
+   On top of the :root tokens + body.app-full reset + shared .rr-display/.rr-kick/.rr-tag/.rr-chip
+   from app-shell.css — this file only styles .cc-*. Colours are tokens only (no new hex).
    One chat for everyone; booking mode (html.has-trip) swaps the suggestions. */
 
-.cc-screen{ padding:4px 15px calc(var(--tabbar-space) + 70px); }
+/* composer (56) + its gap (12) above the floating tab bar */
+.cc-screen{ padding:0 0 calc(var(--tabbar-space) + 72px); }
 .cc-screen [hidden]{ display:none !important; }
 
 html.has-trip .cc-chip--open,
 html:not(.has-trip) .cc-chip--trip,
 html.has-trip .cc-add{ display:none; }
 
-/* ---------- chat ---------- */
+/* ---------- hello: «спроси у местного» ---------- */
+.cc-hello{ padding:14px 20px 0; }
 .cc-head{
   display:flex;
   align-items:center;
   justify-content:space-between;
   gap:10px;
-  padding:10px 0 14px;
+  min-height:34px;
+  margin-bottom:10px;
 }
 .cc-head__who{
-  display:inline-flex;
-  align-items:center;
-  gap:7px;
   min-width:0;
-  font-family:"JetBrains Mono", monospace;
-  font-size:10.5px;
-  letter-spacing:.12em;
-  text-transform:uppercase;
-  color:var(--accent-deep);
   white-space:nowrap;
   overflow:hidden;
   text-overflow:ellipsis;
 }
-.cc-head__icon{ width:16px; height:16px; flex:none; color:var(--accent); }
 .cc-head__clear{
   flex:none;
-  padding:0;
-  border:none;
-  background:none;
-  font-family:"Bricolage Grotesque", sans-serif;
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  height:34px;
+  padding:0 13px 0 10px;
+  border:0;
+  border-radius:var(--r-pill);
+  background:var(--surface);
+  box-shadow:var(--sh-card);
+  font-family:var(--font);
+  font-size:13.5px;
+  font-weight:700;
+  letter-spacing:-.02em;
+  color:var(--ink);
+  cursor:pointer;
+  transition:transform .16s var(--ease-out);
+}
+.cc-head__clear svg{ width:16px; height:16px; flex:none; }
+.cc-head__clear:active{ transform:scale(.96); }
+/* the italic «местного» stays ink — the concierge has no world colour of its own */
+/* r3: one line, 40px at 393 — «спроси у местного» is ~8.8em wide, so it scales with the screen */
+.cc-h1{ font-size:clamp(30px, calc((100vw - 42px) / 8.9), 40px); --accent-c:var(--ink); }
+.cc-meta{
+  margin:12px 0 0;
+  font-size:14.5px;
+  line-height:1.4;
+  letter-spacing:-.005em;
+  color:var(--ink-2);
+}
+.cc-note{
+  margin:8px 0 0;
   font-size:12.5px;
-  color:var(--ink-soft);
+  line-height:1.4;
+  color:var(--ink-3);
+}
+/* body.app-full a{color:inherit} (app-shell.css) outranks a bare class — scope the link */
+.cc-screen a.cc-add{
+  display:inline-block;
+  margin:10px 0 0;
+  font-size:13.5px;
+  font-weight:700;
+  line-height:1.4;
+  color:var(--home-deep);
   text-decoration:underline;
   text-underline-offset:3px;
-  cursor:pointer;
 }
 
-.cc-log{ display:flex; flex-direction:column; gap:10px; }
-.cc-msg{ display:flex; flex-direction:column; gap:6px; max-width:88%; }
-.cc-msg--bot{ align-self:flex-start; }
-.cc-msg--me{ align-self:flex-end; align-items:flex-end; }
+/* ---------- suggestions before the first question ---------- */
+.cc-chat{ padding:0 16px; }
+.cc-chips{ display:flex; flex-wrap:wrap; gap:8px; padding:20px 0 0; }
+.cc-chip{ height:40px; text-transform:lowercase; }
+
+/* ---------- the thread ---------- */
+.cc-log{ display:flex; flex-direction:column; gap:18px; padding:20px 0 0; }
+.cc-log:empty{ padding:0; }
+.cc-msg{ display:flex; min-width:0; }
 .cc-bubble{
   margin:0;
-  padding:10px 13px;
-  border-radius:16px;
-  font-family:"Bricolage Grotesque", sans-serif;
-  font-size:14.5px;
+  font-family:var(--font);
+  font-size:17px;
   line-height:1.42;
+  letter-spacing:-.02em;
   color:var(--ink);
   overflow-wrap:anywhere;
 }
-.cc-msg--bot .cc-bubble{ background:var(--paper); border:.5px solid var(--line); border-top-left-radius:5px; }
-.cc-msg--me .cc-bubble{ background:var(--accent-soft); color:var(--accent-deep); border-top-right-radius:5px; white-space:pre-wrap; }
-.cc-msg--bot .cc-bubble + .cc-bubble{ border-top-left-radius:16px; }
-.cc-bubble b{ font-weight:600; }
+.cc-bubble b{ font-weight:800; }
 
-.cc-note{
-  margin:0 0 4px 2px;
-  font-family:"Bricolage Grotesque", sans-serif;
-  font-size:11.5px;
-  line-height:1.4;
-  color:var(--faint);
+/* me: black capsule on the right (r3 .me) */
+.cc-msg--me{ justify-content:flex-end; padding-left:15%; }
+.cc-msg--me .cc-bubble{
+  padding:12px 17px;
+  border-radius:24px 24px 8px 24px;
+  background:var(--ink);
+  color:var(--bg);
+  font-weight:600;
+  white-space:pre-wrap;
 }
 
-/* place / event card inside a reply */
-.cc-card{
-  display:flex;
-  align-items:center;
-  gap:10px;
-  width:min(280px, 100%);
-  padding:7px 12px 7px 7px;
-  border:.5px solid var(--line);
-  border-radius:13px;
-  background:var(--bg);
-  text-decoration:none;
-}
-.cc-card__photo{
-  width:52px; height:52px;
+/* concierge: the punch mark on dusty rose + plain text, no bubble (r3 .ai) */
+.cc-msg--bot{ gap:10px; align-items:flex-start; }
+.cc-who{
+  width:30px; height:30px;
   flex:none;
-  border-radius:9px;
+  margin-top:2px;
+  border-radius:50%;
+  background:var(--rose);
+  color:var(--rose-ink);
+  display:grid;
+  place-items:center;
+}
+.cc-who svg{ width:16px; height:16px; display:block; }
+.cc-body{ flex:1 1 auto; min-width:0; display:flex; flex-direction:column; gap:10px; }
+
+/* place / stay / news cards inside a reply — a horizontal strip to the screen edge (r3 .places) */
+.cc-places{
+  display:flex;
+  gap:10px;
+  /* room for the card shadow inside the scroller, given back with the negative margin */
+  margin:0 -16px -14px 0;
+  padding:4px 16px 18px 0;
+  overflow-x:auto;
+  scrollbar-width:none;
+  scroll-snap-type:x proximity;
+}
+.cc-places::-webkit-scrollbar{ display:none; }
+.cc-card{
+  flex:none;
+  width:188px;
+  display:flex;
+  flex-direction:column;
+  align-items:flex-start;
+  padding:6px 6px 14px;
+  border-radius:var(--r-card);
+  background:var(--surface);
+  box-shadow:var(--sh-card);
+  scroll-snap-align:start;
+  transition:transform .16s var(--ease-out);
+}
+.cc-card:active{ transform:scale(.98); }
+.cc-card__photo{
+  width:100%;
+  height:112px;
+  border-radius:19px;
   overflow:hidden;
-  background:#EFE9DD;
+  background:var(--sunk);
 }
 .cc-card__photo img{ width:100%; height:100%; object-fit:cover; display:block; }
-.cc-card__body{ min-width:0; display:flex; flex-direction:column; gap:2px; }
-.cc-card__name,
-.cc-card__meta{
-  font-family:"Bricolage Grotesque", sans-serif;
-  white-space:nowrap;
+.cc-card__tag{ margin:11px 6px 0; max-width:calc(100% - 12px); }
+.cc-card__name{
+  max-width:calc(100% - 16px);
+  margin:7px 8px 0;
+  font-size:18px;
+  font-weight:800;
+  letter-spacing:-.035em;
+  line-height:1.15;
   overflow:hidden;
   text-overflow:ellipsis;
+  display:-webkit-box;
+  -webkit-line-clamp:2;
+  -webkit-box-orient:vertical;
 }
-.cc-card__name{ font-size:13.5px; font-weight:600; color:var(--ink); }
-.cc-card__meta{ font-size:11.5px; color:var(--ink-soft); }
-
-/* suggestions before the first question */
-.cc-chips{ display:flex; flex-wrap:wrap; gap:7px; padding:14px 0 0; }
-.cc-chip{
-  font-family:"Bricolage Grotesque", sans-serif;
-  font-size:13px;
-  font-weight:500;
-  color:var(--ink);
-  background:#F1ECDF;
-  border:none;
-  border-radius:999px;
-  padding:8px 14px;
-  cursor:pointer;
-  text-transform:lowercase;
+.cc-card__meta{
+  margin:5px 8px 0;
+  font-size:13.5px;
+  font-weight:600;
+  line-height:1.3;
+  color:var(--ink-2);
 }
-.cc-chip:active{ background:var(--accent-soft); color:var(--accent-deep); }
+/* body.app-full a{color:inherit} outranks a bare class */
+.cc-screen a.cc-card{ color:var(--ink); }
 
-/* typing / error / info */
-.cc-status{ align-self:flex-start; }
-.cc-status--typing{
+/* ---------- typing / error / info ---------- */
+.cc-status--typing{ display:flex; gap:10px; align-items:center; }
+.cc-dots{
   display:flex;
   gap:5px;
-  padding:13px 14px;
-  border-radius:16px;
-  border-top-left-radius:5px;
-  background:var(--paper);
-  border:.5px solid var(--line);
+  padding:12px 14px;
+  border-radius:var(--r-pill);
+  background:var(--surface);
+  box-shadow:var(--sh-card);
 }
-.cc-status--typing span{
+.cc-dots span{
   width:6px; height:6px;
   border-radius:50%;
-  background:var(--ink-soft);
+  background:var(--ink-2);
   opacity:.25;
   animation:cc-dot 1.2s ease-in-out infinite;
 }
-.cc-status--typing span:nth-child(2){ animation-delay:.2s; }
-.cc-status--typing span:nth-child(3){ animation-delay:.4s; }
+.cc-dots span:nth-child(2){ animation-delay:.2s; }
+.cc-dots span:nth-child(3){ animation-delay:.4s; }
 @keyframes cc-dot{ 0%, 100%{ opacity:.25; } 40%{ opacity:.9; } }
-@media (prefers-reduced-motion:reduce){ .cc-status--typing span{ animation:none; opacity:.6; } }
 .cc-status--err,
-.cc-status--info{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; padding:2px 2px; }
+.cc-status--info{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  flex-wrap:wrap;
+  gap:10px 12px;
+  margin-left:40px;
+  padding:12px 12px 12px 16px;
+  border-radius:18px;
+  background:var(--sunk);
+}
 .cc-status p{
   margin:0;
-  font-family:"Bricolage Grotesque", sans-serif;
-  font-size:13px;
-  color:var(--ink-soft);
-}
-.cc-status--err p{ color:var(--accent-deep); }
-.cc-status__retry{
-  padding:6px 12px;
-  border:.5px solid var(--line);
-  border-radius:999px;
-  background:var(--paper);
-  font-family:"Bricolage Grotesque", sans-serif;
-  font-size:12.5px;
-  font-weight:500;
+  flex:1 1 180px;
+  font-size:14.5px;
+  line-height:1.38;
   color:var(--ink);
-  cursor:pointer;
 }
+.cc-status__retry{
+  flex:none;
+  height:38px;
+  padding:0 16px;
+  border:0;
+  border-radius:var(--r-pill);
+  background:var(--ink);
+  color:var(--surface);
+  font-family:var(--font);
+  font-size:14px;
+  font-weight:700;
+  letter-spacing:-.02em;
+  cursor:pointer;
+  transition:transform .16s var(--ease-out);
+}
+.cc-status__retry:active{ transform:scale(.96); }
 .cc-left{
-  margin:12px 0 0 2px;
-  font-family:"JetBrains Mono", monospace;
+  margin:14px 0 0 40px;
+  font-family:var(--mono);
   font-size:10.5px;
-  color:var(--ink-soft);
+  letter-spacing:.06em;
+  color:var(--ink-2);
 }
 
-/* ---------- composer, pinned above the tab bar ---------- */
+/* a new message appears in place (opacity/blur + a short rise) — once, never on restore */
+.cc-msg.is-new{ animation:cc-in .45s var(--ease-out) both; }
+@keyframes cc-in{ from{ opacity:0; filter:blur(4px); transform:translateY(6px); } }
+
+/* ---------- composer: a glass pill pinned above the glass tab bar (r3 .compose) ----------
+   It sits ABOVE .tabbar-fade (z 79) so the fade never washes it out, and its bottom edge is
+   the tab bar's top + 12px, so it never covers the bar (the bar itself stays z 80). */
 .cc-compose{
   position:fixed;
-  left:0; right:0;
-  bottom:calc(var(--tabbar-h) + var(--tabbar-bottom) + 6px);
-  z-index:79;
+  left:16px; right:16px;
+  bottom:calc(var(--tabbar-bottom) + var(--tabbar-h) + 12px);
+  z-index:81;
+  max-width:420px;
+  margin:0 auto;
   display:flex;
   align-items:flex-end;
   gap:8px;
-  padding:8px 12px;
-  background:var(--bg);
-  border-top:.5px solid var(--line);
+  min-height:56px;
+  padding:7px 7px 7px 20px;
+  border-radius:28px;
+  background:var(--glass-bg);
+  -webkit-backdrop-filter:var(--glass-blur);
+  backdrop-filter:var(--glass-blur);
+  box-shadow:var(--sh-float);
 }
 .cc-compose__field{
   flex:1 1 auto;
   min-width:0;
   min-height:42px;
   max-height:120px;
-  padding:10px 14px;
-  border:.5px solid var(--line);
-  border-radius:21px;
-  background:var(--paper);
-  font-family:"Bricolage Grotesque", sans-serif;
+  padding:10px 0;
+  border:0;
+  background:transparent;
+  font-family:var(--font);
   font-size:16px; /* 16px: iOS doesn't zoom on focus */
-  line-height:1.3;
+  line-height:1.375;
+  letter-spacing:-.012em;
   color:var(--ink);
   resize:none;
   outline:none;
 }
-.cc-compose__field:focus{ border-color:var(--accent); }
+.cc-compose__field::placeholder{ color:var(--ink-3); opacity:1; }
 .cc-compose__send{
   flex:none;
   width:42px; height:42px;
@@ -205,22 +292,31 @@ html.has-trip .cc-add{ display:none; }
   place-items:center;
   border:none;
   border-radius:50%;
-  background:var(--accent);
-  color:#fff;
+  background:var(--ink);
+  color:var(--surface);
   cursor:pointer;
+  transition:transform .16s var(--ease-out), opacity .2s var(--ease-out);
 }
 .cc-compose__send svg{ width:20px; height:20px; }
-.cc-compose__send:disabled{ background:#E6DFD2; color:#fff; cursor:default; }
-@media (min-width:720px){ .cc-compose{ bottom:0; } }
+.cc-compose__send:active{ transform:scale(.94); }
+.cc-compose__send:disabled{ opacity:.18; cursor:default; transform:none; }
+.cc-compose:focus-within{ box-shadow:var(--sh-float), inset 0 0 0 1.5px var(--ink); }
 
-/* body.app-full a{color:inherit} (app-shell.css) outranks a bare class — scope the link */
-.cc-screen a.cc-add{
-  display:block;
-  margin:0 0 4px 2px;
-  font-family:"Bricolage Grotesque", sans-serif;
-  font-size:12.5px;
-  line-height:1.4;
-  color:var(--accent-deep);
-  text-decoration:underline;
-  text-underline-offset:3px;
+/* a taller fade on this screen: content scrolls out under both the composer and the bar */
+body:has(.cc-compose) .tabbar-fade{ height:calc(180px + env(safe-area-inset-bottom)); }
+
+@media (min-width:720px){
+  .cc-compose{ bottom:16px; }
+  .cc-screen{ padding-bottom:96px; }
+}
+@media (max-width:389.98px){
+  .cc-hello{ padding-left:16px; padding-right:16px; }
+  .cc-chat{ padding:0 14px; }
+  .cc-places{ margin-right:-14px; padding-right:14px; }
+  .cc-bubble{ font-size:16px; }
+}
+@media (prefers-reduced-motion:reduce){
+  .cc-msg.is-new{ animation:none; }
+  .cc-dots span{ animation:none; opacity:.6; }
+  .cc-head__clear, .cc-card, .cc-status__retry, .cc-compose__send{ transition:none; }
 }

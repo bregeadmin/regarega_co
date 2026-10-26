@@ -1,10 +1,13 @@
-/* Native app "profile" screen (src/components/app/ProfileScreen.astro).
-   Self-contained on top of the :root tokens + body.app-full reset from app-shell.css
-   (imported alongside this file) — this file only styles .pf-*. */
+/* Native app "profile" screen (src/components/app/ProfileScreen.astro). No r3 mock — built from
+   the r3 system: surface cards with --sh-card, .rr-display name, .rr-kick section labels, black
+   primary capsule, light (sunk) secondary. On top of the :root tokens + body.app-full reset from
+   app-shell.css — this file only styles .pf-*. Tokens only (no new hex).
+   Orange appears only on the trip/booking rows (the «жильё» world). */
 
-.pf-screen{ padding:4px 15px var(--tabbar-space); }
+.pf-screen{ padding:6px 16px var(--tabbar-space); }
+.pf-screen [hidden]{ display:none !important; }
 
-/* screen-reader-only heading: the avatar + name already carry this visually */
+/* screen-reader-only heading: the kicker + name already carry this visually */
 .pf-screen .sr-only{
   position:absolute;
   width:1px; height:1px;
@@ -15,112 +18,129 @@
   border:0;
 }
 
-/* ---------- hero: large dot-punch avatar + name ---------- */
-.pf-hero{
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  text-align:center;
-  padding:22px 0 24px;
-}
+/* ---------- hero: dot-punch avatar · kicker · big name · contacts ---------- */
+.pf-hero{ padding:10px 4px 22px; }
+.pf-hero__top{ display:flex; align-items:center; justify-content:space-between; gap:12px; }
 .pf-avatar{
   position:relative;
-  width:72px; height:72px;
+  width:64px; height:64px;
+  flex:none;
   border-radius:50%;
   overflow:hidden;
   display:block;
-  background:#a56b3f;
+  background:#a56b3f; /* same warm avatar as the tab bar (tabbar.css .tabbar__avatar) */
 }
 .pf-avatar__hole{
   position:absolute;
-  right:0; bottom:0;
-  width:24px; height:24px;
+  right:2px; bottom:2px;
+  width:20px; height:20px;
   border-radius:50%;
   background:var(--bg);
 }
+.pf-kick{ margin:20px 0 10px; }
 .pf-name{
-  margin:14px 0 2px;
-  font-family:"Bricolage Grotesque", sans-serif;
-  font-size:19px;
-  font-weight:600;
-  color:var(--ink);
+  font-size:clamp(36px, 11vw, 46px);
   text-transform:lowercase;
+  overflow-wrap:anywhere;
 }
-.pf-since{
-  margin:0;
-  font-family:"JetBrains Mono", monospace;
-  font-size:11px;
-  letter-spacing:.02em;
-  color:var(--ink-soft);
-  text-transform:lowercase;
+.pf-contact{
+  margin:10px 0 0;
+  font-size:15px;
+  line-height:1.3;
+  color:var(--ink-2);
+  overflow-wrap:anywhere;
 }
+.pf-contact + .pf-contact{ margin-top:3px; }
 
-/* ---------- shared section header ---------- */
-.pf-section{ padding:0 0 22px; }
-.pf-section__title{
-  margin:0 0 10px;
-  font-family:"Bricolage Grotesque", sans-serif;
+/* light pill (edit) — r3 .btn.light, small */
+.pf-edit{
+  display:inline-flex;
+  align-items:center;
+  gap:6px;
+  height:38px;
+  padding:0 15px 0 12px;
+  border:0;
+  border-radius:var(--r-pill);
+  background:var(--surface);
+  box-shadow:var(--sh-card);
+  font-family:var(--font);
   font-size:14px;
-  font-weight:500;
+  font-weight:700;
+  letter-spacing:-.02em;
   color:var(--ink);
-  text-transform:lowercase;
+  cursor:pointer;
+  transition:transform .16s var(--ease-out);
 }
+.pf-edit:active{ transform:scale(.96); }
+.pf-edit__icon{ width:16px; height:16px; flex:none; display:block; }
 
-/* ---------- твой вкус: chips ---------- */
-.pf-chips{ display:flex; flex-wrap:wrap; gap:7px; }
-.pf-chip{
-  font-family:"Bricolage Grotesque", sans-serif;
-  font-size:12.5px;
-  font-weight:500;
-  color:var(--accent-deep);
-  background:var(--accent-soft);
-  border-radius:999px;
-  padding:7px 14px;
-  white-space:nowrap;
-  text-transform:lowercase;
+/* ---------- cards + sections ---------- */
+.pf-card{
+  background:var(--surface);
+  border-radius:var(--r-card);
+  box-shadow:var(--sh-card);
+  padding:18px;
 }
+.pf-section{ margin:0 0 24px; }
+.pf-section__title{ margin:0 4px 10px; }
 
-/* ---------- твои города: rows ---------- */
+/* icon tile (r3 key tile): home tint for the trip world, sunk for neutral rows */
+.pf-tile{
+  display:grid;
+  place-items:center;
+  width:40px; height:40px;
+  flex:none;
+  border-radius:var(--r-tile);
+  background:var(--home-tint);
+  color:var(--home-deep);
+}
+.pf-tile--neutral{ background:var(--sunk); color:var(--ink); }
+.pf-tile__icon{ width:20px; height:20px; display:block; }
+
+/* ---------- «у меня есть бронь» / «моя поездка» ---------- */
 .pf-city{
   display:flex;
   align-items:center;
-  gap:10px;
-  border:.5px solid var(--line);
-  border-radius:13px;
-  padding:12px 14px;
-  margin-bottom:8px;
+  gap:12px;
+  padding:10px 14px 10px 10px;
+  border-radius:20px;
+  background:var(--surface);
+  box-shadow:var(--sh-card);
+  transition:transform .16s var(--ease-out);
 }
-.pf-city:last-child{ margin-bottom:0; }
-.pf-city__icon{ flex:none; width:18px; height:18px; color:var(--ink-soft); }
+.pf-city:active{ transform:scale(.98); }
 .pf-city__label{
-  font-family:"Bricolage Grotesque", sans-serif;
-  font-size:13px;
-  font-weight:500;
-  color:var(--ink);
+  flex:1 1 auto;
+  min-width:0;
+  font-size:16.5px;
+  font-weight:700;
+  letter-spacing:-.025em;
   text-transform:lowercase;
 }
-.pf-city--accent{
-  border-color:transparent;
-  background:var(--accent-soft);
-}
-.pf-city--accent .pf-city__icon{ color:var(--accent); }
-.pf-city--accent .pf-city__label{ color:var(--accent-deep); }
+.pf-city .pf-row__chevron{ color:var(--ink-3); }
+/* a trip saved on this phone: the tile turns solid orange (the «жильё» world) */
+.pf-city--accent .pf-tile{ background:var(--home); color:var(--surface); }
 
 /* ---------- settings list ---------- */
-.pf-list{ border-top:.5px solid var(--line); }
+.pf-list{
+  background:var(--surface);
+  border-radius:20px;
+  box-shadow:var(--sh-card);
+  overflow:hidden;
+}
 .pf-row{
   display:flex;
   align-items:center;
-  justify-content:space-between;
-  gap:10px;
-  padding:14px 2px;
-  border-bottom:.5px solid var(--line);
+  gap:12px;
+  padding:10px 14px 10px 10px;
 }
+.pf-row + .pf-row{ border-top:1px solid var(--line); }
 .pf-row__label{
-  font-family:"Bricolage Grotesque", sans-serif;
-  font-size:13.5px;
-  font-weight:500;
-  color:var(--ink);
+  flex:1 1 auto;
+  min-width:0;
+  font-size:16.5px;
+  font-weight:700;
+  letter-spacing:-.025em;
   text-transform:lowercase;
 }
 .pf-row__right{
@@ -128,125 +148,167 @@
   align-items:center;
   gap:6px;
   flex:none;
-  color:var(--ink-soft);
+  color:var(--ink-3);
 }
-.pf-row__value{
-  font-family:"JetBrains Mono", monospace;
-  font-size:11.5px;
-  color:var(--ink-soft);
-}
-.pf-row__chevron{ width:16px; height:16px; flex:none; display:block; }
+.pf-row__value{ font-size:14.5px; font-weight:600; color:var(--ink-2); }
+.pf-row__chevron{ width:18px; height:18px; flex:none; display:block; }
 
-.pf-row{ color:inherit; text-decoration:none; }
-a.pf-city{ text-decoration:none; }
 .pf-soon{
-  margin:14px 0 0;
-  font-family:"Bricolage Grotesque", sans-serif;
-  font-size:12.5px;
+  margin:0 4px;
+  font-size:14.5px;
   line-height:1.4;
-  color:var(--ink-soft);
+  color:var(--ink-2);
 }
 
-/* ---------- guest account: contact lines, edit form, trips, account actions ---------- */
-.pf-screen [hidden]{ display:none !important; }
-.pf-contact{ margin-top:2px; overflow-wrap:anywhere; text-transform:none; }
-.pf-edit, .pf-text{
-  padding:6px 0;
-  border:none;
-  background:none;
-  font-family:"Bricolage Grotesque", sans-serif;
-  font-size:13px;
-  color:var(--ink-soft);
-  text-decoration:underline;
-  text-underline-offset:3px;
-  cursor:pointer;
-}
-.pf-edit{ margin-top:6px; }
-.pf-form{ display:flex; flex-direction:column; gap:10px; padding:0 0 24px; }
-.pf-field{
-  width:100%;
-  height:48px;
-  padding:0 14px;
-  border:.5px solid var(--line);
-  border-radius:12px;
-  background:var(--paper);
-  font-family:"Bricolage Grotesque", sans-serif;
-  font-size:16px; /* 16px: iOS doesn't zoom the page on focus */
+/* ---------- signed out ---------- */
+.pf-signin__p, .pf-fail__p{
+  margin:0 0 16px;
+  font-size:15.5px;
+  line-height:1.4;
+  letter-spacing:-.012em;
   color:var(--ink);
-  outline:none;
-  box-sizing:border-box;
 }
-.pf-field:focus{ border-color:var(--accent); }
-.pf-err{
-  margin:0;
-  font-family:"Bricolage Grotesque", sans-serif;
-  font-size:12.5px;
-  color:var(--accent-deep);
-}
+
+/* ---------- buttons ---------- */
+/* primary: black capsule (r3 .btn) */
 .pf-primary{
   display:flex;
   align-items:center;
   justify-content:center;
   width:100%;
-  height:48px;
+  height:54px;
   border:none;
-  border-radius:12px;
-  background:var(--accent);
-  font-family:"Bricolage Grotesque", sans-serif;
-  font-size:15px;
-  font-weight:600;
+  border-radius:var(--r-pill);
+  background:var(--ink);
+  font-family:var(--font);
+  font-size:16.5px;
+  font-weight:700;
+  letter-spacing:-.02em;
   text-decoration:none;
   cursor:pointer;
+  transition:transform .16s var(--ease-out);
 }
-.pf-primary:active{ background:var(--accent-deep); }
-.pf-primary:disabled{ opacity:.6; cursor:default; }
-.pf-form .pf-text{ align-self:center; }
-
-.pf-trips{ display:flex; flex-direction:column; gap:8px; }
-.pf-trip{
-  display:flex;
-  align-items:center;
-  justify-content:space-between;
-  gap:10px;
-  padding:13px 14px;
-  border:.5px solid var(--line);
-  border-radius:13px;
-  text-decoration:none;
-}
-.pf-trip__main{ display:flex; flex-direction:column; gap:2px; min-width:0; }
-.pf-trip__name{
-  font-family:"Bricolage Grotesque", sans-serif;
-  font-size:14px;
-  font-weight:500;
+.pf-primary:active{ transform:scale(.97); }
+.pf-primary:disabled{ opacity:.55; cursor:default; transform:none; }
+/* light: sunk capsule (r3 .btn.light) */
+.pf-light{
+  width:100%;
+  height:54px;
+  border:none;
+  border-radius:var(--r-pill);
+  background:var(--sunk);
   color:var(--ink);
+  font-family:var(--font);
+  font-size:16.5px;
+  font-weight:700;
+  letter-spacing:-.02em;
+  cursor:pointer;
+  transition:transform .16s var(--ease-out);
 }
-.pf-trip__dates{
-  font-family:"JetBrains Mono", monospace;
-  font-size:11.5px;
-  color:var(--ink-soft);
-}
-.pf-trip__pending{
-  font-family:"Bricolage Grotesque", sans-serif;
-  font-size:12px;
-  color:var(--accent-deep);
-}
-.pf-trip__chev{ flex:none; width:16px; height:16px; color:var(--ink-soft); }
-.pf-trip__chev svg{ width:16px; height:16px; display:block; }
-
-.pf-account{ display:flex; flex-direction:column; align-items:flex-start; gap:12px; padding:6px 0 0; }
-.pf-forget{
-  padding:6px 0;
+.pf-light:active{ transform:scale(.97); }
+.pf-text{
+  padding:8px 4px;
   border:none;
   background:none;
-  font-family:"Bricolage Grotesque", sans-serif;
-  font-size:12.5px;
-  color:var(--faint);
+  font-family:var(--font);
+  font-size:14.5px;
+  font-weight:700;
+  letter-spacing:-.02em;
+  color:var(--ink-2);
   text-decoration:underline;
   text-underline-offset:3px;
   cursor:pointer;
 }
-.pf-forget.is-sure{ color:var(--accent-deep); }
+
+/* ---------- edit form ---------- */
+.pf-form{ display:flex; flex-direction:column; gap:10px; margin:0 0 24px; }
+.pf-field{
+  width:100%;
+  height:54px;
+  padding:0 18px;
+  border:0;
+  border-radius:var(--r-pill);
+  background:var(--sunk);
+  font-family:var(--font);
+  font-size:16px; /* 16px: iOS doesn't zoom the page on focus */
+  color:var(--ink);
+  outline:none;
+}
+.pf-field::placeholder{ color:var(--ink-3); opacity:1; }
+.pf-field:focus{ box-shadow:inset 0 0 0 2px var(--ink); }
+.pf-form .pf-text{ align-self:center; }
+
+/* errors: a neutral note (orange is the «жильё» world, not an alarm colour) */
+.pf-err{
+  margin:0;
+  padding:11px 14px;
+  border-radius:16px;
+  background:var(--sunk);
+  font-size:14px;
+  font-weight:600;
+  line-height:1.38;
+  color:var(--ink);
+}
+.pf-card .pf-err{ background:var(--bg); }
+.pf-err .pf-text{ padding:0 0 0 4px; font-size:14px; color:var(--ink); }
+
+/* ---------- my trips ---------- */
+.pf-trips{ display:flex; flex-direction:column; gap:10px; }
+.pf-trip{
+  display:flex;
+  align-items:center;
+  gap:12px;
+  padding:10px 14px 10px 10px;
+  border-radius:20px;
+  background:var(--surface);
+  box-shadow:var(--sh-card);
+  transition:transform .16s var(--ease-out);
+}
+.pf-trip:active{ transform:scale(.98); }
+.pf-trip__main{ flex:1 1 auto; display:flex; flex-direction:column; gap:2px; min-width:0; }
+.pf-trip__name{
+  font-size:16.5px;
+  font-weight:700;
+  letter-spacing:-.025em;
+  color:var(--ink);
+  overflow:hidden;
+  text-overflow:ellipsis;
+  white-space:nowrap;
+}
+.pf-trip__dates{
+  font-family:var(--mono);
+  font-size:11.5px;
+  letter-spacing:.02em;
+  color:var(--ink-2);
+}
+.pf-trip__pending{ font-size:13px; font-weight:700; color:var(--home-deep); }
+.pf-trip__chev{ flex:none; width:18px; height:18px; color:var(--ink-3); }
+.pf-trip__chev svg{ width:18px; height:18px; display:block; }
+
+/* ---------- account ---------- */
+.pf-account{ display:flex; flex-direction:column; align-items:center; gap:8px; padding:4px 0 0; }
+.pf-account .pf-err{ align-self:stretch; }
+.pf-forget{
+  padding:10px 4px;
+  border:none;
+  background:none;
+  font-family:var(--font);
+  font-size:13.5px;
+  font-weight:600;
+  color:var(--ink-3);
+  text-decoration:underline;
+  text-underline-offset:3px;
+  cursor:pointer;
+}
+.pf-forget.is-sure{ color:var(--ink); font-weight:700; }
 
 /* body.app-full a{color:inherit} (app-shell.css) outranks a bare class — scope the colours */
-.pf-screen a.pf-primary, .pf-screen button.pf-primary{ color:#fff; }
-.pf-screen a.pf-trip{ color:inherit; }
+.pf-screen a.pf-primary, .pf-screen button.pf-primary{ color:var(--surface); }
+.pf-screen a.pf-trip, .pf-screen a.pf-city, .pf-screen a.pf-row{ color:var(--ink); }
+
+@media (max-width:389.98px){
+  .pf-screen{ padding-left:14px; padding-right:14px; }
+}
+@media (prefers-reduced-motion:reduce){
+  .pf-edit, .pf-city, .pf-primary, .pf-light, .pf-trip{ transition:none; }
+}

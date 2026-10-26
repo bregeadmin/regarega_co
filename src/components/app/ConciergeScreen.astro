@@ -13,7 +13,7 @@ import '../../styles/app-concierge.css';
 import AppHeader from '../AppHeader.astro';
 import TabBar from '../TabBar.astro';
 import { supabase } from '../../lib/supabase';
-import { catLabel } from '../../lib/guideCats';
+import { catLabel, catColor, catTint, catDark, catOutline, GUIDE_CATS } from '../../lib/guideCats';
 import { thumb } from '../../lib/thumb';
 import { loadNews, newsPhotos, newsText, newsDate } from '../../lib/appNews';
 
@@ -27,11 +27,13 @@ const T = isRu
       title: 'консьерж — rega rega',
       desc: 'консьерж rega для гостей с бронью — коды, wifi и куда пойти рядом с квартирой.',
       h: 'консьерж',
+      hH: 'спроси у <em>местного</em>',
       note: 'ии-консьерж: советует только места из гида. то, что решает хозяин, — к хозяину.',
       chips: ['как попасть в квартиру', 'где позавтракать рядом', 'что сегодня в городе', 'куда сходить вечером', 'что сделать при выезде'],
       chipsOpen: ['где позавтракать', 'что сегодня в городе', 'куда сходить вечером', 'где остановиться у моря'],
       add: 'есть бронь? добавь её — консьерж узнает твою квартиру и коды.',
-      field: 'спроси консьержа', send: 'отправить', clear: 'новый разговор',
+      field: 'спроси что угодно о батуми', send: 'отправить', clear: 'новый разговор',
+      news: 'новость', stay: 'жильё',
       err: 'не получилось ответить. попробуй ещё раз.', retry: 'повторить',
       limit: 'на сегодня вопросы закончились — завтра снова.',
       gone: 'бронь больше не активна — консьерж для неё закрыт.',
@@ -40,11 +42,13 @@ const T = isRu
       title: 'concierge — rega rega',
       desc: 'the rega concierge for guests with a booking — codes, wifi and where to go near your apartment.',
       h: 'concierge',
+      hH: 'ask a <em>local</em>',
       note: 'ai concierge: recommends only places from the guide. things your host decides go to your host.',
       chips: ['how do i get in', 'breakfast nearby', "what's on in town today", 'where to go tonight', 'what to do at checkout'],
       chipsOpen: ['where to have breakfast', "what's on in town today", 'where to go tonight', 'a stay by the sea'],
       add: 'have a booking? add it — the concierge will know your apartment and codes.',
-      field: 'ask the concierge', send: 'send', clear: 'new chat',
+      field: 'ask anything about batumi', send: 'send', clear: 'new chat',
+      news: 'news', stay: 'stay',
       err: "couldn't answer. try again.", retry: 'retry',
       limit: "that's all the questions for today — back tomorrow.",
       gone: 'this booking is no longer active — the concierge is closed for it.',
@@ -58,7 +62,7 @@ const { data: gp } = await supabase
 const PLACES: Record<string, any> = {};
 for (const p of (gp || []) as any[]) {
   const photo = (p.photos && p.photos[0]) || p.image || '';
-  PLACES[p.slug] = { n: p.title || p.name, c: catLabel(p.category, lang), p: photo ? thumb(photo, 320) : '', la: p.lat, lo: p.lng };
+  PLACES[p.slug] = { n: p.title || p.name, k: p.category, c: catLabel(p.category, lang), p: photo ? thumb(photo, 320) : '', la: p.lat, lo: p.lng };
 }
 const { data: ap } = await supabase
   .from('apartments_public')
@@ -75,30 +79,38 @@ for (const n of await loadNews()) {
   NEWS[n.slug] = { n: String(newsText(n, lang).title).replace(/\*+/g, ''), c: newsDate(n.date, lang), p: photo ? thumb(photo, 320) : '' };
 }
 
+// category colours for the stamps on place cards — from guideCats.ts, never duplicated
+const CATS = Object.fromEntries(Object.keys(GUIDE_CATS).map((k) => [k, { c: catColor(k), t: catTint(k), d: catDark(k), o: catOutline(k) }]));
+const NEWS_CAT = { c: catColor('eat-drink'), t: catTint('eat-drink'), d: catDark('eat-drink'), o: false };
+
 const ICONS = {
   sparkle: '<path d="M16 3l1.106 3.79a2 2 0 0 0 1.104 1.105l3.79 1.105l-3.79 1.106a2 2 0 0 0 -1.105 1.104l-1.105 3.79l-1.106 -3.79a2 2 0 0 0 -1.104 -1.105l-3.79 -1.105l3.79 -1.106a2 2 0 0 0 1.105 -1.104z" /><path d="M6 15l.673 2.303a1.5 1.5 0 0 0 1.024 1.024l2.303 .673l-2.303 .673a1.5 1.5 0 0 0 -1.024 1.024l-.673 2.303l-.673 -2.303a1.5 1.5 0 0 0 -1.024 -1.024l-2.303 -.673l2.303 -.673a1.5 1.5 0 0 0 1.024 -1.024z" />',
   send: '<path d="M12 5l0 14" /><path d="M18 11l-6 -6" /><path d="M6 11l6 -6" />',
+  plus: '<path d="M12 5l0 14" /><path d="M5 12l14 0" />',
 };
 const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
 ---
 <AppFull lang={lang} title={T.title} description={T.desc}>
   <AppHeader lang={lang} />
   <main class="cc-screen">
-    <!-- the chat — booking mode or open (no booking) -->
-    <section class="cc-chat" aria-label={T.h}>
+    <!-- r3/04-concierge.html: «спроси у местного» + the chat — booking mode or open (no booking) -->
+    <section class="cc-hello" aria-label={T.h}>
       <div class="cc-head">
-        <span class="cc-head__who"><Fragment set:html={svg(ICONS.sparkle, 'cc-head__icon')} /><span id="ccWho">{T.h}</span></span>
-        <button class="cc-head__clear" id="ccClear" type="button" hidden>{T.clear}</button>
+        <p class="rr-kick cc-head__who" id="ccWho">{T.h}</p>
+        <button class="cc-head__clear" id="ccClear" type="button" hidden><Fragment set:html={svg(ICONS.plus)} />{T.clear}</button>
       </div>
-      <div class="cc-log" id="ccLog" aria-live="polite">
-        <div class="cc-msg cc-msg--bot"><p class="cc-bubble" id="ccHello"></p></div>
-        <p class="cc-note">{T.note}</p>
-        <a class="cc-add" href={`${BASE}/app/trip`}>{T.add}</a>
-      </div>
+      <h1 class="rr-display cc-h1" set:html={T.hH} />
+      <p class="cc-meta" id="ccHello"></p>
+      <p class="cc-note">{T.note}</p>
+      <a class="cc-add" href={`${BASE}/app/trip`}>{T.add}</a>
+    </section>
+
+    <section class="cc-chat">
       <div class="cc-chips" id="ccChips">
-        {T.chips.map((c) => <button class="cc-chip cc-chip--trip" type="button">{c}</button>)}
-        {T.chipsOpen.map((c) => <button class="cc-chip cc-chip--open" type="button">{c}</button>)}
+        {T.chips.map((c) => <button class="rr-chip cc-chip cc-chip--trip" type="button">{c}</button>)}
+        {T.chipsOpen.map((c) => <button class="rr-chip cc-chip cc-chip--open" type="button">{c}</button>)}
       </div>
+      <div class="cc-log" id="ccLog" aria-live="polite"></div>
       <p class="cc-left" id="ccLeft" hidden></p>
     </section>
   </main>
@@ -110,7 +122,7 @@ const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fi
 
   <TabBar lang={lang} />
 
-  <script is:inline define:vars={{ LANG: lang, BASE, PLACES, NEWS, STAYS, T: { err: T.err, retry: T.retry, limit: T.limit, gone: T.gone, h: T.h } }}>
+  <script is:inline define:vars={{ LANG: lang, BASE, PLACES, NEWS, STAYS, CATS, NEWS_CAT, T: { err: T.err, retry: T.retry, limit: T.limit, gone: T.gone, h: T.h, news: T.news, stay: T.stay } }}>
     (function () {
       var RU = LANG === 'ru';
       var FN = 'https://qkzinjawtumhjbezlyog.supabase.co/functions/v1/concierge';
@@ -150,6 +162,7 @@ const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fi
       function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
       function inline(s) { return esc(s).replace(/\*\*([^*]+)\*\*/g, '<b>$1</b>').replace(/\*([^*\n]+)\*/g, '<em>$1</em>'); }
 
+      // r3 .pl card: photo · category stamp (guideCats colours) · name · walk/meta
       function card(kind, slug) {
         var d = kind === 'place' ? PLACES[slug] : kind === 'stay' ? STAYS[slug] : NEWS[slug];
         if (!d) return null;
@@ -158,25 +171,45 @@ const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fi
         a.href = BASE + '/app/' + (kind === 'stay' ? 'stays' : kind) + '/' + slug;
         var ph = document.createElement('span'); ph.className = 'cc-card__photo';
         if (d.p) { var img = document.createElement('img'); img.src = d.p; img.alt = ''; img.loading = 'lazy'; img.onerror = function () { this.remove(); }; ph.appendChild(img); }
-        var body = document.createElement('span'); body.className = 'cc-card__body';
-        var nm = document.createElement('span'); nm.className = 'cc-card__name'; nm.textContent = d.n;
+        a.appendChild(ph);
+        var tag = document.createElement('span'); tag.className = 'rr-tag cc-card__tag';
+        if (kind === 'stay') tag.className += ' rr-tag--home';
+        else {
+          var cat = kind === 'place' ? CATS[d.k] : NEWS_CAT;
+          if (cat) { tag.style.setProperty('--tag-c', cat.c); tag.style.setProperty('--tag-t', cat.t); tag.style.setProperty('--tag-d', cat.d); if (cat.o) tag.className += ' is-ring'; }
+        }
+        tag.appendChild(document.createElement('i'));
+        var tl = document.createElement('span'); tl.textContent = kind === 'place' ? d.c : kind === 'stay' ? T.stay : T.news; tag.appendChild(tl);
+        a.appendChild(tag);
+        var nm = document.createElement('b'); nm.className = 'cc-card__name'; nm.textContent = d.n;
+        a.appendChild(nm);
         var walk = kind === 'place' && window.rrTrip ? window.rrTrip.from(d.la, d.lo, RU) : '';
-        var meta = document.createElement('span'); meta.className = 'cc-card__meta'; meta.textContent = walk ? d.c + ' · ' + walk : d.c;
-        body.appendChild(nm); body.appendChild(meta);
-        a.appendChild(ph); a.appendChild(body);
+        var metaText = kind === 'place' ? walk : d.c;
+        if (metaText) { var meta = document.createElement('span'); meta.className = 'cc-card__meta'; meta.textContent = metaText; a.appendChild(meta); }
         return a;
       }
 
-      // bot text → paragraphs + cards (markers may sit on their own line or inline)
-      function renderBot(text) {
+      // the concierge's mark: the punch sign on dusty rose (r3 .ai .who)
+      var WHO = '<svg viewBox="0 0 100 100" aria-hidden="true"><path fill-rule="evenodd" fill="currentColor" d="M 50,50 m -50,0 a 50,50 0 1,1 100,0 a 50,50 0 1,1 -100,0 z M 64,64 m -12,0 a 12,12 0 1,1 24,0 a 12,12 0 1,1 -24,0 z"/></svg>';
+      function botShell() {
         var wrap = document.createElement('div'); wrap.className = 'cc-msg cc-msg--bot';
+        var who = document.createElement('span'); who.className = 'cc-who'; who.innerHTML = WHO;
+        var body = document.createElement('div'); body.className = 'cc-body';
+        wrap.appendChild(who); wrap.appendChild(body);
+        return { wrap: wrap, body: body };
+      }
+
+      // bot text → paragraphs + cards (markers may sit on their own line or inline);
+      // cards in a row share one horizontal strip
+      function renderBot(text) {
+        var sh = botShell(), body = sh.body, strip = null;
         var buf = [];
         var flush = function () {
           var t = buf.join('\n').trim(); buf = [];
           if (!t) return;
           var p = document.createElement('p'); p.className = 'cc-bubble';
           p.innerHTML = inline(t).replace(/\n/g, '<br>');
-          wrap.appendChild(p);
+          body.appendChild(p); strip = null;
         };
         String(text).split('\n').forEach(function (line) {
           var re = /\[\[(place|news|stay):([a-z0-9-]+)\]\]/gi, m, last = 0, rest = '';
@@ -186,20 +219,26 @@ const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fi
           if (rest.trim() || !cards.length) buf.push(rest.replace(/\s+$/, ''));
           if (cards.length) {
             flush();
-            cards.forEach(function (c) { var el = card(c[0], c[1]); if (el) wrap.appendChild(el); });
+            cards.forEach(function (c) {
+              var el = card(c[0], c[1]); if (!el) return;
+              if (!strip) { strip = document.createElement('div'); strip.className = 'cc-places'; body.appendChild(strip); }
+              strip.appendChild(el);
+            });
           }
         });
         flush();
-        return wrap;
+        return sh.wrap;
       }
       function renderUser(text) {
         var wrap = document.createElement('div'); wrap.className = 'cc-msg cc-msg--me';
         var p = document.createElement('p'); p.className = 'cc-bubble'; p.textContent = text;
         wrap.appendChild(p); return wrap;
       }
+      // a message added now (not restored history) appears in place
+      function fresh(el) { el.classList.add('is-new'); return el; }
       function renderAll() {
         var log = $('ccLog');
-        [].slice.call(log.querySelectorAll('.cc-msg:not(:first-child), .cc-status')).forEach(function (n) { n.remove(); });
+        [].slice.call(log.querySelectorAll('.cc-msg, .cc-status')).forEach(function (n) { n.remove(); });
         state.msgs.forEach(function (m) { log.appendChild(m.role === 'user' ? renderUser(m.content) : renderBot(m.content)); });
         $('ccChips').hidden = state.msgs.length > 0;
         $('ccClear').hidden = state.msgs.length === 0;
@@ -208,7 +247,7 @@ const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fi
 
       function status(kind, text, retry) {
         var s = document.createElement('div'); s.className = 'cc-status cc-status--' + kind;
-        if (kind === 'typing') { s.innerHTML = '<span></span><span></span><span></span>'; s.setAttribute('aria-label', '…'); }
+        if (kind === 'typing') { s.innerHTML = '<span class="cc-who">' + WHO + '</span><span class="cc-dots"><span></span><span></span><span></span></span>'; s.setAttribute('aria-label', '…'); }
         else {
           var p = document.createElement('p'); p.textContent = text; s.appendChild(p);
           if (retry) { var b = document.createElement('button'); b.type = 'button'; b.className = 'cc-status__retry'; b.textContent = T.retry; b.onclick = function () { s.remove(); ask(); }; s.appendChild(b); }
@@ -232,7 +271,7 @@ const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fi
             if (res.ok && res.j.reply) {
               state.msgs.push({ role: 'assistant', content: res.j.reply });
               persist();
-              $('ccLog').appendChild(renderBot(res.j.reply));
+              $('ccLog').appendChild(fresh(renderBot(res.j.reply)));
               if (typeof res.j.left === 'number' && res.j.left <= 5) { $('ccLeft').textContent = (RU ? 'осталось вопросов сегодня: ' : 'questions left today: ') + res.j.left; $('ccLeft').hidden = false; }
               bottom();
             } else if (res.j && res.j.error === 'limit') {
@@ -253,7 +292,7 @@ const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fi
         if (state.msgs.length && state.msgs[state.msgs.length - 1].role === 'user') state.msgs.pop(), renderAll();
         state.msgs.push({ role: 'user', content: text });
         persist();
-        $('ccLog').appendChild(renderUser(text));
+        $('ccLog').appendChild(fresh(renderUser(text)));
         $('ccChips').hidden = true; $('ccClear').hidden = false;
         $('ccField').value = ''; grow();
         bottom();

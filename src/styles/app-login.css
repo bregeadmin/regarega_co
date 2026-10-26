@@ -1,102 +1,127 @@
-/* Native app sign-in (src/components/app/LoginScreen.astro). On top of the :root tokens +
-   body.app-full reset from app-shell.css — this file only styles .lg-*. */
+/* Native app sign-in (src/components/app/LoginScreen.astro). No r3 mock — built from the r3
+   system: round surface back button, .rr-kick + .rr-display heading (italic word in ink),
+   surface pill fields with --sh-card, black primary capsule. On top of the :root tokens +
+   body.app-full reset from app-shell.css — this file only styles .lg-*. Tokens only. */
 
-.lg-screen{ padding:28px 20px calc(40px + env(safe-area-inset-bottom)); }
+.lg-screen{ padding:10px 20px calc(40px + env(safe-area-inset-bottom)); }
 .lg-screen [hidden]{ display:none !important; }
 
 .lg-loading{
   margin:60px 0 0;
   text-align:center;
-  font-family:"JetBrains Mono", monospace;
+  font-family:var(--mono);
   font-size:11px;
   letter-spacing:.06em;
-  color:var(--ink-soft);
+  color:var(--ink-2);
 }
-.lg-step{ max-width:380px; margin:0 auto; }
-.lg-h{
-  margin:0 0 8px;
-  font-family:"Bricolage Grotesque", sans-serif;
-  font-size:24px;
-  font-weight:600;
-  line-height:1.15;
-  color:var(--ink);
-}
+.lg-step{ max-width:400px; margin:0 auto; }
+.lg-k{ margin:18px 0 12px; }
+.lg-h{ margin:0; font-size:clamp(36px, 11vw, 46px); --accent-c:var(--ink); }
 .lg-p{
-  margin:0 0 22px;
-  font-family:"Bricolage Grotesque", sans-serif;
-  font-size:14px;
+  margin:14px 0 24px;
+  font-size:15.5px;
   line-height:1.4;
-  color:var(--ink-soft);
+  letter-spacing:-.012em;
+  color:var(--ink-2);
 }
-.lg-mail{ font-weight:600; color:var(--ink); overflow-wrap:anywhere; }
+#lgSE .lg-p{ margin-top:28px; color:var(--ink); }
+.lg-mail{ font-weight:700; color:var(--ink); overflow-wrap:anywhere; }
 
 .lg-form{ display:flex; flex-direction:column; gap:10px; }
 .lg-field{
   width:100%;
-  height:50px;
-  padding:0 14px;
-  border:.5px solid var(--line);
-  border-radius:12px;
-  background:var(--paper);
-  font-family:"Bricolage Grotesque", sans-serif;
+  height:56px;
+  padding:0 20px;
+  border:0;
+  border-radius:var(--r-pill);
+  background:var(--surface);
+  box-shadow:var(--sh-card);
+  font-family:var(--font);
   font-size:16px; /* 16px: iOS doesn't zoom the page on focus */
   color:var(--ink);
   outline:none;
-  box-sizing:border-box;
 }
-.lg-field:focus{ border-color:var(--accent); }
+.lg-field::placeholder{ color:var(--ink-3); opacity:1; }
+.lg-field:focus{ box-shadow:var(--sh-card), inset 0 0 0 2px var(--ink); }
 .lg-field--code{
-  font-family:"JetBrains Mono", monospace;
-  font-size:24px;
+  height:64px;
+  font-family:var(--mono);
+  font-size:26px;
   font-weight:600;
-  letter-spacing:.35em;
+  letter-spacing:.42em;
+  /* the trailing letter-spacing would push the digits off-centre */
+  padding:0 0 0 .42em;
   text-align:center;
+  font-variant-numeric:tabular-nums;
 }
+.lg-field--code::placeholder{ color:var(--line); }
+
+/* errors: a neutral note (orange is the «жильё» world, not an alarm colour) */
 .lg-err{
   margin:0;
-  font-family:"Bricolage Grotesque", sans-serif;
-  font-size:12.5px;
-  line-height:1.35;
-  color:var(--accent-deep);
+  padding:11px 16px;
+  border-radius:16px;
+  background:var(--sunk);
+  font-size:14px;
+  font-weight:600;
+  line-height:1.38;
+  color:var(--ink);
 }
+
+/* primary: black capsule (r3 .btn) */
 .lg-btn{
   width:100%;
-  height:50px;
+  height:54px;
   margin-top:4px;
   border:none;
-  border-radius:12px;
-  background:var(--accent);
-  color:#fff;
-  font-family:"Bricolage Grotesque", sans-serif;
-  font-size:15px;
-  font-weight:600;
+  border-radius:var(--r-pill);
+  background:var(--ink);
+  color:var(--surface);
+  font-family:var(--font);
+  font-size:16.5px;
+  font-weight:700;
+  letter-spacing:-.02em;
   cursor:pointer;
+  transition:transform .16s var(--ease-out);
 }
-.lg-btn:active{ background:var(--accent-deep); }
-.lg-btn:disabled{ opacity:.6; cursor:default; }
+.lg-btn:active{ transform:scale(.97); }
+.lg-btn:disabled{ opacity:.55; cursor:default; transform:none; }
 
-.lg-alt{ display:flex; justify-content:space-between; gap:12px; margin-top:20px; }
+.lg-alt{ display:flex; justify-content:space-between; flex-wrap:wrap; gap:6px 16px; margin-top:18px; }
 .lg-link{
-  padding:6px 0;
+  padding:8px 4px;
   border:none;
   background:none;
-  font-family:"Bricolage Grotesque", sans-serif;
-  font-size:13px;
-  color:var(--ink-soft);
+  font-family:var(--font);
+  font-size:14.5px;
+  font-weight:700;
+  letter-spacing:-.02em;
+  color:var(--ink-2);
   text-decoration:underline;
   text-underline-offset:3px;
   cursor:pointer;
 }
-.lg-link:disabled{ color:var(--faint); text-decoration:none; cursor:default; }
+.lg-link:disabled{ color:var(--ink-3); text-decoration:none; font-weight:600; cursor:default; }
 
+/* back: round surface button (r3 .round.card) */
 .lg-back{
-  display:flex; align-items:center; justify-content:center;
-  width:44px; height:44px; margin:-12px 0 14px -8px;
+  display:grid;
+  place-items:center;
+  width:42px; height:42px;
   border-radius:50%;
-  background:rgba(250,247,240,.92);
-  box-shadow:0 1px 6px rgba(10,9,8,.15);
+  background:var(--surface);
+  box-shadow:var(--sh-card);
   -webkit-tap-highlight-color:transparent;
+  transition:transform .16s var(--ease-out);
 }
+.lg-back:active{ transform:scale(.94); }
 .lg-back svg{ width:20px; height:20px; }
 /* body.app-full a{color:inherit} outranks a bare class */
 .lg-screen a.lg-back{ color:var(--ink); }
+
+@media (max-width:389.98px){
+  .lg-screen{ padding-left:16px; padding-right:16px; }
+}
+@media (prefers-reduced-motion:reduce){
+  .lg-btn, .lg-back{ transition:none; }
+}

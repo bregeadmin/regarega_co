@@ -45,9 +45,13 @@ const T = isRu
     };
 
 const ICONS = {
+  key: '<path d="M16.555 3.843l3.602 3.602a2.877 2.877 0 0 1 0 4.069l-2.643 2.643a2.877 2.877 0 0 1 -4.069 0l-.301 -.301l-6.558 6.558a2 2 0 0 1 -1.239 .578l-.175 .008h-1.172a1 1 0 0 1 -.993 -.883l-.007 -.117v-1.172a2 2 0 0 1 .467 -1.284l.119 -.13l.414 -.414h2v-2h2v-2l2.144 -2.144l-.301 -.301a2.877 2.877 0 0 1 0 -4.069l2.643 -2.643a2.877 2.877 0 0 1 4.069 0z" /><path d="M15 9h.01" />',
+  language: '<path d="M4 5h7" /><path d="M9 3v2c0 4.418 -2.239 8 -5 8" /><path d="M5 9c0 2.144 2.952 3.908 6.7 4" /><path d="M12 20l4 -9l4 9" /><path d="M19.1 18h-6.2" />',
+  pencil: '<path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" /><path d="M13.5 6.5l4 4" />',
   pin: '<path d="M9 11a3 3 0 1 0 6 0a3 3 0 0 0 -6 0" /><path d="M17.657 16.657l-4.243 4.243a2 2 0 0 1 -2.827 0l-4.244 -4.243a8 8 0 1 1 11.314 0z" />',
   chevron: '<path d="M9 6l6 6l-6 6" />',
 };
+const ic = (d: string, cls: string) => `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
 const chev = `<svg class="pf-row__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS.chevron}</svg>`;
 ---
 <AppFull lang={lang} title={T.title} description={T.desc}>
@@ -55,18 +59,21 @@ const chev = `<svg class="pf-row__chevron" viewBox="0 0 24 24" fill="none" strok
   <main class="pf-screen">
     <h1 class="sr-only">{T.h}</h1>
 
-    <div class="pf-hero">
-      <span class="pf-avatar" aria-hidden="true">
-        <span class="pf-avatar__hole"></span>
-      </span>
-      <p class="pf-name" id="pfName">{T.guest}</p>
-      <p class="pf-since pf-contact" id="pfEmail" hidden></p>
-      <p class="pf-since pf-contact" id="pfPhone" hidden></p>
-      <button class="pf-edit" id="pfEdit" type="button" hidden>{T.edit}</button>
-    </div>
+    <section class="pf-hero">
+      <div class="pf-hero__top">
+        <span class="pf-avatar" aria-hidden="true">
+          <span class="pf-avatar__hole"></span>
+        </span>
+        <button class="pf-edit" id="pfEdit" type="button" hidden><Fragment set:html={ic(ICONS.pencil, 'pf-edit__icon')} />{T.edit}</button>
+      </div>
+      <p class="rr-kick pf-kick" aria-hidden="true">{T.h}</p>
+      <p class="rr-display pf-name" id="pfName">{T.guest}</p>
+      <p class="pf-contact" id="pfEmail" hidden></p>
+      <p class="pf-contact" id="pfPhone" hidden></p>
+    </section>
 
     <!-- signed in: edit name / phone inline -->
-    <form class="pf-form" id="pfForm" novalidate hidden>
+    <form class="pf-form pf-card" id="pfForm" novalidate hidden>
       <input class="pf-field" id="pfFName" type="text" autocomplete="name" placeholder={T.name} aria-label={T.name} />
       <input class="pf-field" id="pfFPhone" type="tel" inputmode="tel" autocomplete="tel" placeholder={T.phone} aria-label={T.phone} />
       <p class="pf-err" id="pfErr" role="alert" hidden></p>
@@ -75,14 +82,14 @@ const chev = `<svg class="pf-row__chevron" viewBox="0 0 24 24" fill="none" strok
     </form>
 
     <!-- signed out -->
-    <section class="pf-section" id="pfOut" hidden>
+    <section class="pf-section pf-card pf-signin" id="pfOut" hidden>
+      <p class="pf-signin__p">{T.signInHint}</p>
       <a class="pf-primary" id="pfSignIn" href={`${BASE}/app/login?next=${encodeURIComponent(BASE + '/app/profile')}`}>{T.signIn}</a>
-      <p class="pf-soon">{T.signInHint}</p>
     </section>
 
     <!-- signed in: trips -->
     <section class="pf-section" id="pfTripsSec" aria-label={T.trips} hidden>
-      <h2 class="pf-section__title">{T.trips}</h2>
+      <h2 class="rr-kick pf-section__title">{T.trips}</h2>
       <div class="pf-trips" id="pfTrips"></div>
       <p class="pf-soon" id="pfNoTrips" hidden>{T.noTrips}</p>
       <p class="pf-err" id="pfTripsErr" hidden>{T.eTrips} <button class="pf-text" id="pfTripsRetry" type="button">{T.retry}</button></p>
@@ -91,15 +98,17 @@ const chev = `<svg class="pf-row__chevron" viewBox="0 0 24 24" fill="none" strok
     <!-- signed out: the booking-link way in (hidden once signed in: trips cover it) -->
     <section class="pf-section" id="pfLinkSec">
       <a class="pf-city" id="pfTrip" href={`${BASE}/app/trip`}>
-        <svg class="pf-city__icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={ICONS.pin} />
+        <span class="pf-tile" set:html={ic(ICONS.key, 'pf-tile__icon')} />
         <span class="pf-city__label" id="pfTripLabel">{T.haveBooking}</span>
+        <Fragment set:html={chev} />
       </a>
     </section>
 
     <section class="pf-section" aria-label={T.settings}>
-      <h2 class="pf-section__title">{T.settings}</h2>
+      <h2 class="rr-kick pf-section__title">{T.settings}</h2>
       <div class="pf-list">
         <a class="pf-row" href={OTHER} id="pfLang" data-lang={isRu ? 'en' : 'ru'}>
+          <span class="pf-tile pf-tile--neutral" set:html={ic(ICONS.language, 'pf-tile__icon')} />
           <span class="pf-row__label">{T.lang}</span>
           <span class="pf-row__right">
             <span class="pf-row__value">{T.langValue}</span>
@@ -109,23 +118,23 @@ const chev = `<svg class="pf-row__chevron" viewBox="0 0 24 24" fill="none" strok
       </div>
     </section>
 
-    <!-- signed in: account -->
     <!-- profile lookup failed -->
-    <section class="pf-section" id="pfFail" hidden>
-      <p class="pf-err" id="pfFailMsg">{T.eNet}</p>
+    <section class="pf-section pf-card pf-fail" id="pfFail" hidden>
+      <p class="pf-fail__p" id="pfFailMsg">{T.eNet}</p>
       <button class="pf-primary" id="pfRetry" type="button">{T.retry}</button>
     </section>
 
+    <!-- signed in: account -->
     <section class="pf-account" id="pfAcct" hidden>
       <p class="pf-err" id="pfAcctErr" role="alert" hidden></p>
-      <button class="pf-text" id="pfOutBtn" type="button">{T.signOut}</button>
+      <button class="pf-light" id="pfOutBtn" type="button">{T.signOut}</button>
       <button class="pf-forget" id="pfDel" type="button">{T.del}</button>
     </section>
   </main>
 
   <TabBar lang={lang} />
 
-  <script is:inline define:vars={{ T, BASE, TRIP: T.trip }}>
+  <script is:inline define:vars={{ T, BASE, TRIP: T.trip, KEY: ic(ICONS.key, 'pf-tile__icon') }}>
     (function () {
       function $(id) { return document.getElementById(id); }
       try {
@@ -171,6 +180,8 @@ const chev = `<svg class="pf-row__chevron" viewBox="0 0 24 24" fill="none" strok
           var a = document.createElement('a');
           a.className = 'pf-trip';
           a.href = BASE + '/app/trip?t=' + encodeURIComponent(t.guest_token || '');
+          var tile = document.createElement('span'); tile.className = 'pf-tile'; tile.innerHTML = KEY;
+          a.appendChild(tile);
           var left = document.createElement('span'); left.className = 'pf-trip__main';
           var n = document.createElement('span'); n.className = 'pf-trip__name'; n.textContent = t.apt_title || '';
           var d = document.createElement('span'); d.className = 'pf-trip__dates'; d.textContent = range(t.ci, t.co);
