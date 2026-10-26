@@ -221,6 +221,8 @@ const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fi
         $('trPendingNote').hidden = !pend;
         $('trNote').hidden = true;
         $('trInvite').hidden = true;
+        bookingId = null;
+        $('trFull').hidden = pend;
         $('trName').textContent = t.apt_title || t.apt_name || (RU ? 'квартира' : 'apartment');
         var nights = t.nights || (ci && co ? Math.round((co - ci) / 864e5) : 0);
         var bits = [];
@@ -344,22 +346,23 @@ const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fi
       }
 
       // after a trip is shown: claim a ?t= link once per device, then learn our role (owner → invite)
-      function account(trip, claim) {
+      function account(trip, explicit) {
         authed(function (auth) {
           if (!auth) return;
           var tok = trip.token;
           var lookup = function () {
             auth.trips().then(function (list) {
               var m = (list || []).filter(function (x) { return x.guest_token === tok; })[0];
+              if (m) markClaimed(tok);
               if (m && $('trTrip').hidden === false) setRole(m.role, m.booking_id);
             }).catch(function () {});
           };
-          if (!claim || claimed(tok)) return lookup();
+          if (claimed(tok)) return lookup();
           auth.claim(tok).then(function (r) {
             if (r && r.ok) { markClaimed(tok); setRole(r.role, r.booking_id); if (r.role !== 'owner') lookup(); return; }
             var e = r && r.error;
             if (e === 'taken') { $('trNote').textContent = T.taken; $('trNote').hidden = false; lookup(); }
-            else if (e === 'no_profile') loginTo(BASE + '/app/trip?t=' + tok);
+            else if (e === 'no_profile') { if (explicit) loginTo(BASE + '/app/trip?t=' + tok); }
             // network / not_found: stay quiet, the next visit tries again
           }).catch(function () {});
         });
@@ -400,7 +403,10 @@ const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fi
         if (!code) return joinFail('not_found');
         code = code.toLowerCase();
         $('trLoading').textContent = T.joining;
+        var jdone = false;
+        setTimeout(function () { if (!jdone) joinFail('network'); }, 8000);
         authed(function (auth) {
+          jdone = true;
           if (!auth) return loginTo(BASE + '/app/trip/join?i=' + code);
           auth.accept(code).then(function (r) {
             if (!r || !r.ok) {
@@ -411,6 +417,8 @@ const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fi
               var m = (list || []).filter(function (x) { return String(x.booking_id) === String(r.booking_id); })[0];
               if (!m || !m.guest_token) return joinFail('network');
               if (history.replaceState) history.replaceState(null, '', BASE + '/app/trip');
+              markClaimed(m.guest_token);
+              $('trLoading').textContent = T.loading;
               open(m.guest_token, false, false);
             });
           }).catch(function () { joinFail('network'); });
@@ -432,7 +440,7 @@ const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fi
           if (!auth) return empty();
           auth.trips().then(function (list) {
             var m = pick(list);
-            if (m && !settled) { settled = true; open(m.guest_token, false, false); } else empty();
+            if (m && !settled) { settled = true; markClaimed(m.guest_token); open(m.guest_token, false, false); } else empty();
           }).catch(empty);
         });
       }
