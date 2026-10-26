@@ -23,5 +23,9 @@ test('nextPath', () => {
   assert.equal(nextPath('?next=https://evil.com', '/x'), '/x');
   assert.equal(nextPath('?next=//evil.com', '/x'), '/x');
   assert.equal(nextPath('?next=/\\evil.com', '/x'), '/x');
+  assert.equal(nextPath('?next=' + encodeURIComponent('/\t/evil.com'), '/x'), '/x');
+  assert.equal(nextPath('?next=%2F%09%2Fevil.com', '/x'), '/x');
+  assert.equal(nextPath('?next=' + encodeURIComponent('/\n/evil.com'), '/x'), '/x');
+  assert.equal(nextPath('?next=/a/b%3Fq%3D1%23h', '/x'), '/a/b?q=1#h' === '/a/b?q=1#h' ? '/a/b?q=1#h' : '/x');
   assert.equal(nextPath('', '/x'), '/x');
 });

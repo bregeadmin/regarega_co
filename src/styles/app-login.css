@@ -88,3 +88,15 @@
   cursor:pointer;
 }
 .lg-link:disabled{ color:var(--faint); text-decoration:none; cursor:default; }
+
+.lg-back{
+  display:flex; align-items:center; justify-content:center;
+  width:44px; height:44px; margin:-12px 0 14px -8px;
+  border-radius:50%;
+  background:rgba(250,247,240,.92);
+  box-shadow:0 1px 6px rgba(10,9,8,.15);
+  -webkit-tap-highlight-color:transparent;
+}
+.lg-back svg{ width:20px; height:20px; }
+/* body.app-full a{color:inherit} outranks a bare class */
+.lg-screen a.lg-back{ color:var(--ink); }

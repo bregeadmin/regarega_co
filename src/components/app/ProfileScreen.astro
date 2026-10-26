@@ -28,7 +28,7 @@ const T = isRu
       edit: 'изменить', name: 'имя', phone: 'телефон (необязательно)', save: 'сохранить', saving: 'сохраняем…', cancel: 'отмена',
       eName: 'напиши имя.', eNet: 'нет сети — попробуй ещё раз.', eGeneric: 'что-то пошло не так — попробуй ещё раз.',
       trips: 'мои поездки', pending: 'ждёт подтверждения', noTrips: 'пока нет поездок — они появятся, когда хозяин подтвердит бронь.',
-      signOut: 'выйти', del: 'удалить аккаунт', delSure: 'точно удалить? нажми ещё раз', deleting: 'удаляем…',
+      retry: 'повторить', signOut: 'выйти', del: 'удалить аккаунт', delSure: 'точно удалить? нажми ещё раз', deleting: 'удаляем…',
       months: ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек'],
     }
   : {
@@ -38,7 +38,7 @@ const T = isRu
       edit: 'edit', name: 'name', phone: 'phone (optional)', save: 'save', saving: 'saving…', cancel: 'cancel',
       eName: 'please enter your name.', eNet: "you're offline — try again.", eGeneric: 'something went wrong — please try again.',
       trips: 'my trips', pending: 'awaiting confirmation', noTrips: "no trips yet — they'll show up once your host confirms a booking.",
-      signOut: 'sign out', del: 'delete account', delSure: 'really delete? tap again', deleting: 'deleting…',
+      retry: 'try again', signOut: 'sign out', del: 'delete account', delSure: 'really delete? tap again', deleting: 'deleting…',
       months: ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'],
     };
 
@@ -107,7 +107,14 @@ const chev = `<svg class="pf-row__chevron" viewBox="0 0 24 24" fill="none" strok
     </section>
 
     <!-- signed in: account -->
+    <!-- profile lookup failed -->
+    <section class="pf-section" id="pfFail" hidden>
+      <p class="pf-err" id="pfFailMsg">{T.eNet}</p>
+      <button class="pf-primary" id="pfRetry" type="button">{T.retry}</button>
+    </section>
+
     <section class="pf-account" id="pfAcct" hidden>
+      <p class="pf-err" id="pfAcctErr" role="alert" hidden></p>
       <button class="pf-text" id="pfOutBtn" type="button">{T.signOut}</button>
       <button class="pf-forget" id="pfDel" type="button">{T.del}</button>
     </section>
@@ -169,11 +176,13 @@ const chev = `<svg class="pf-row__chevron" viewBox="0 0 24 24" fill="none" strok
         });
       }
 
-      function init() {
+      function load() {
         var rr = window.rrAuth;
+        $('pfFail').hidden = true;
         rr.session().then(function (s) {
           if (!s) return signedOut();
           return rr.profile().then(function (p) {
+            if (p && p.error) { $('pfFail').hidden = false; return; }
             if (!p) { // signed in but no profile yet → finish it on the sign-in screen
               location.replace(BASE + '/app/login?next=' + encodeURIComponent(BASE + '/app/profile'));
               return;
@@ -184,6 +193,11 @@ const chev = `<svg class="pf-row__chevron" viewBox="0 0 24 24" fill="none" strok
             return rr.trips().then(renderTrips);
           });
         }).catch(signedOut);
+      }
+      function init() {
+        var rr = window.rrAuth;
+        load();
+        $('pfRetry').addEventListener('click', load);
 
         $('pfEdit').addEventListener('click', function () {
           $('pfFName').value = profile.name || ''; $('pfFPhone').value = profile.phone || '';
@@ -215,10 +229,12 @@ const chev = `<svg class="pf-row__chevron" viewBox="0 0 24 24" fill="none" strok
           }
           b.disabled = true; b.textContent = T.deleting;
           rr.deleteAccount().then(function (r) {
-            if (r.ok) { location.reload(); return; }
+            if (r.ok) {
+              try { ['rr_trip', 'rr_trip_token', 'rr_uid', 'rr_cc'].forEach(function (k) { localStorage.removeItem(k); }); } catch (e) {}
+              location.reload(); return;
+            }
             b.disabled = false; b.classList.remove('is-sure'); b.textContent = T.del;
-            err(r.error === 'network' ? T.eNet : T.eGeneric);
-            $('pfForm').hidden = false; $('pfEdit').hidden = true;
+            var ae = $('pfAcctErr'); ae.textContent = r.error === 'network' ? T.eNet : T.eGeneric; ae.hidden = false;
           });
         });
       }

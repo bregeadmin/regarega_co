@@ -13,6 +13,7 @@ export interface Props { lang: 'en' | 'ru' }
 const { lang } = Astro.props;
 const isRu = lang === 'ru';
 const BASE = isRu ? '/ru/georgia/batumi' : '/georgia/batumi';
+const BACK = '<path d="M15 6l-6 6l6 6" />';
 
 const T = isRu
   ? {
@@ -30,7 +31,7 @@ const T = isRu
       eRate: 'слишком много попыток — подожди минуту и попробуй снова.',
       eNet: 'нет сети — проверь соединение и попробуй ещё раз.',
       eGeneric: 'что-то пошло не так — попробуй ещё раз.',
-      eName: 'напиши имя.',
+      eName: 'напиши имя.', back: 'назад', retry: 'повторить',
     }
   : {
       title: 'sign in — rega rega', desc: 'sign in with a code from your email — no password.',
@@ -47,13 +48,22 @@ const T = isRu
       eRate: 'too many tries — wait a minute and try again.',
       eNet: "you're offline — check your connection and try again.",
       eGeneric: 'something went wrong — please try again.',
-      eName: 'please enter your name.',
+      eName: 'please enter your name.', back: 'back', retry: 'try again',
     };
 ---
 <AppFull lang={lang} title={T.title} description={T.desc}>
   <AppHeader lang={lang} />
   <main class="lg-screen">
+    <a class="lg-back" id="lgBack" href={`${BASE}/app/profile`} aria-label={T.back}>
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={BACK} />
+    </a>
     <p class="lg-loading" id="lgLoading">{T.loading}</p>
+
+    <!-- profile lookup failed: retry, never the name form -->
+    <section class="lg-step" id="lgSE" hidden>
+      <p class="lg-p" id="lgEE">{T.eNet}</p>
+      <button class="lg-btn" id="lgRetry" type="button">{T.retry}</button>
+    </section>
 
     <!-- 1: email -->
     <section class="lg-step" id="lgS1" hidden>
@@ -100,14 +110,20 @@ const T = isRu
       // same checks as src/lib/guestCore.js (inline scripts can't import)
       function isEmail(s) { return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(s || '').trim()); }
       function cleanCode(s) { return String(s || '').replace(/\D/g, '').slice(0, 6); }
+      // keep in sync with nextPath() in src/lib/guestCore.js (tested there)
       function nextPath() {
         var fb = BASE + '/app/profile', v = null;
         try { v = new URLSearchParams(location.search).get('next'); } catch (e) {}
-        if (!v || v[0] !== '/' || v[1] === '/' || v[1] === '\\' || /[\r\n]/.test(v)) return fb;
-        return v;
+        if (!v || v[0] !== '/' || /[\u0000-\u001f\u007f\\]/.test(v)) return fb;
+        try {
+          var u = new URL(v, location.origin);
+          if (u.origin !== location.origin) return fb;
+          var out = u.pathname + u.search + u.hash;
+          return out[0] === '/' && out[1] !== '/' ? out : fb;
+        } catch (e) { return fb; }
       }
       function show(id) {
-        ['lgLoading', 'lgS1', 'lgS2', 'lgS3'].forEach(function (x) { $(x).hidden = x !== id; });
+        ['lgLoading', 'lgSE', 'lgS1', 'lgS2', 'lgS3'].forEach(function (x) { $(x).hidden = x !== id; });
       }
       function err(id, msg) { var e = $(id); e.textContent = msg || ''; e.hidden = !msg; }
       function busy(id, on, label, idle) { var b = $(id); b.disabled = on; b.textContent = on ? label : idle; }
@@ -115,7 +131,7 @@ const T = isRu
       function mapErr(r, kind) {
         var m = String((r && r.error) || '').toLowerCase();
         if (m === 'network' || /fetch|network|failed to/.test(m)) return T.eNet;
-        if (/rate|too many|429|security purposes|after \d+ s/.test(m)) return T.eRate;
+        if (/\brate\b|too many|429|security purposes|after \d+ s/.test(m)) return T.eRate;
         if (kind === 'verify' && /expired|invalid|token|otp|code/.test(m)) return T.eCode;
         if (kind === 'send' && /invalid|email/.test(m)) return T.eBadEmail;
         return T.eGeneric;
@@ -139,6 +155,7 @@ const T = isRu
       }
       function after(rr) {
         rr.profile().then(function (p) {
+          if (p && p.error) { show('lgSE'); return; }
           if (p) return go();
           show('lgS3'); $('lgName').focus();
         });
@@ -146,6 +163,8 @@ const T = isRu
 
       function init() {
         var rr = window.rrAuth;
+        $('lgBack').setAttribute('href', nextPath());
+        $('lgRetry').addEventListener('click', function () { show('lgLoading'); after(rr); });
         rr.session().then(function (s) {
           if (!s) { show('lgS1'); return; }
           after(rr);

@@ -48,9 +48,12 @@ const rrAuth = {
       return error ? { ok: false, error: error.message || 'invalid_code' } : { ok: true };
     } catch { return { ...NET }; }
   },
-  async profile() {
+  // Returns the profile object, null ONLY when the guest really has no profile yet,
+  // and { error: 'network' } when the call failed (callers must show a retry, not the name form).
+  async profile(): Promise<any> {
     const r = await rpc('my_guest_profile');
-    return r.fail ? null : r.data;
+    if (r.fail) return { error: 'network' };
+    return r.data ?? null;
   },
   saveProfile(name: string, phone?: string | null) {
     return call('save_guest_profile', { p_name: name, p_phone: phone ?? null });

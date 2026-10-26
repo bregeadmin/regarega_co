@@ -19,9 +19,17 @@ export function inviteFrom(s) {
   return m ? m[1].toLowerCase() : null;
 }
 
+// Keep in sync with the inline copy in src/components/app/LoginScreen.astro.
+// Resolves against a fixed origin and accepts only a same-origin path+search+hash, so tricks
+// like "/\t/evil.com" (the URL parser strips tab/newline -> //evil.com) fall back.
 export function nextPath(search, fallback) {
   let v = null;
   try { v = new URLSearchParams(search || '').get('next'); } catch (e) { v = null; }
-  if (!v || v[0] !== '/' || v[1] === '/' || v[1] === '\\' || /[\r\n]/.test(v)) return fallback;
-  return v;
+  if (!v || v[0] !== '/' || /[\u0000-\u001f\u007f\\]/.test(v)) return fallback;
+  try {
+    const u = new URL(v, 'https://x.invalid');
+    if (u.origin !== 'https://x.invalid') return fallback;
+    const out = u.pathname + u.search + u.hash;
+    return out[0] === '/' && out[1] !== '/' ? out : fallback;
+  } catch (e) { return fallback; }
 }
