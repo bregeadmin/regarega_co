@@ -5,15 +5,19 @@
 // already exist (guest_instruction: dates, steps, codes gated to ci-2…co+1, wifi, operator;
 // guest_guide: the apartment's slug + coordinates) + the apartment photo → cached as
 // localStorage rr_trip (works offline, and switches the whole app into booking mode —
-// see TripFlag.astro). States: empty (paste the link) · loading · the trip · link failed.
+// see TripFlag.astro). States: empty (paste the link) · loading · the trip · pending (request
+// not confirmed yet: hero only) · link failed. Signed in (window.rrAuth): a ?t= link is claimed
+// onto the account once per token per device (rr_claimed); /app/trip with nothing on the phone
+// picks a trip from the account; the owner can invite a companion; mode="join" (app/trip/join)
+// accepts an invite (?i=). Signed out = the plain anonymous flow, untouched.
 import AppFull from '../../layouts/AppFull.astro';
 import '../../styles/app-shell.css';
 import '../../styles/app-trip.css';
 import AppHeader from '../AppHeader.astro';
 import TabBar from '../TabBar.astro';
 
-export interface Props { lang: 'en' | 'ru' }
-const { lang } = Astro.props;
+export interface Props { lang: 'en' | 'ru'; mode?: 'trip' | 'join' }
+const { lang, mode = 'trip' } = Astro.props;
 const isRu = lang === 'ru';
 const BASE = isRu ? '/ru/georgia/batumi' : '/georgia/batumi';
 
@@ -30,6 +34,13 @@ const T = isRu
       parking: 'парковка', out: 'при выезде', host: 'хозяин', full: 'полная инструкция с фото',
       copy: 'нажми, чтобы скопировать', copied: 'скопировано', cached: 'сохранённая копия — нет сети',
       forget: 'убрать поездку с этого телефона', forgetSure: 'точно убрать? нажми ещё раз',
+      pending: 'ждём подтверждения хозяина', pendingP: 'коды и wifi появятся, когда хозяин подтвердит бронь.',
+      taken: 'эта бронь уже добавлена в другой аккаунт.',
+      invite: 'добавить спутника', inviteCopied: 'ссылка-приглашение скопирована', inviteErr: 'не получилось создать приглашение — попробуй ещё раз.',
+      joining: 'добавляем поездку…', toTrip: 'к моей поездке',
+      jUsed: 'это приглашение уже использовано.', jExpired: 'срок приглашения истёк — попроси новое.',
+      jOwn: 'это твоя бронь — приглашение нужно отправить спутнику.', jNotFound: 'приглашение не найдено — проверь ссылку.',
+      jNet: 'нет связи — попробуй ещё раз.', jH: 'не получилось добавить поездку',
     }
   : {
       title: 'trip — rega rega', desc: 'your booking, codes and wifi — all in one place.',
@@ -43,6 +54,13 @@ const T = isRu
       parking: 'parking', out: 'when you leave', host: 'host', full: 'full guide with photos',
       copy: 'tap to copy', copied: 'copied', cached: 'saved copy — no connection',
       forget: 'remove this trip from this phone', forgetSure: 'sure? tap again',
+      pending: 'waiting for the host to confirm', pendingP: 'codes and wifi appear once the host confirms the booking.',
+      taken: 'this booking is already added to another account.',
+      invite: 'add a companion', inviteCopied: 'invite link copied', inviteErr: "couldn't create the invite — try again.",
+      joining: 'adding the trip…', toTrip: 'to my trip',
+      jUsed: 'this invite has already been used.', jExpired: 'this invite has expired — ask for a new one.',
+      jOwn: 'this is your own booking — send the invite to your companion.', jNotFound: "we couldn't find that invite — check the link.",
+      jNet: "you're offline — try again.", jH: "couldn't add the trip",
     };
 
 const ICONS = {
@@ -71,6 +89,14 @@ const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fi
       <a class="tr-empty__alt" href={`${BASE}/app/stays`}>{T.stays}</a>
     </section>
 
+    <!-- join: an invite that could not be accepted -->
+    <section class="tr-empty" id="trJoin" hidden>
+      <Fragment set:html={svg(ICONS.suitcase, 'tr-empty__icon')} />
+      <h1 class="tr-empty__h">{T.jH}</h1>
+      <p class="tr-empty__p" id="trJoinMsg"></p>
+      <a class="tr-empty__alt" href={`${BASE}/app/trip`}>{T.toTrip}</a>
+    </section>
+
     <!-- the trip -->
     <div class="tr-trip" id="trTrip" hidden>
       <section class="tr-hero">
@@ -82,7 +108,10 @@ const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fi
         </div>
       </section>
       <p class="tr-hello" id="trHello" hidden></p>
+      <p class="tr-note" id="trNote" hidden></p>
       <p class="tr-cached" id="trCached" hidden>{T.cached}</p>
+
+      <p class="tr-note" id="trPendingNote" hidden>{T.pendingP}</p>
 
       <section class="tr-sec" id="trHowSec" hidden>
         <h2 class="tr-sec__h">{T.how}</h2>
@@ -118,6 +147,7 @@ const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fi
       <section class="tr-sec tr-foot">
         <p class="tr-host" id="trHost" hidden></p>
         <a class="tr-link" id="trFull" target="_blank" rel="noopener"><Fragment set:html={svg(ICONS.out, 'tr-link__icon')} />{T.full}</a>
+        <button class="tr-act" id="trInvite" type="button" hidden>{T.invite}</button>
         <button class="tr-forget" id="trForget" type="button">{T.forget}</button>
       </section>
     </div>
@@ -126,7 +156,7 @@ const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fi
 
   <TabBar lang={lang} />
 
-  <script is:inline define:vars={{ LANG: lang, T }}>
+  <script is:inline define:vars={{ LANG: lang, T, MODE: mode, BASE }}>
     (function () {
       var RU = LANG === 'ru';
       var SB = 'https://qkzinjawtumhjbezlyog.supabase.co';
@@ -135,7 +165,7 @@ const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fi
       var FULL = 'https://bre-instruction-deploy.vercel.app/?t=';
       var UUID = /[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}/i;
       var $ = function (id) { return document.getElementById(id); };
-      var show = function (id) { ['trLoading', 'trEmpty', 'trTrip'].forEach(function (x) { $(x).hidden = x !== id; }); };
+      var show = function (id) { ['trLoading', 'trEmpty', 'trTrip', 'trJoin'].forEach(function (x) { $(x).hidden = x !== id; }); };
 
       function rpc(name, token) {
         return fetch(SB + '/rest/v1/rpc/' + name, {
@@ -184,9 +214,13 @@ const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fi
       function render(t, cached) {
         var ins = t.instructions || {};
         var open = t.state === 'open';
+        var pend = t.state === 'pending';
         var ci = d(t.ci), co = d(t.co);
 
-        $('trStatus').textContent = window.rrTrip.status(t, RU);
+        $('trStatus').textContent = pend ? T.pending : window.rrTrip.status(t, RU);
+        $('trPendingNote').hidden = !pend;
+        $('trNote').hidden = true;
+        $('trInvite').hidden = true;
         $('trName').textContent = t.apt_title || t.apt_name || (RU ? 'квартира' : 'apartment');
         var nights = t.nights || (ci && co ? Math.round((co - ci) / 864e5) : 0);
         var bits = [];
@@ -200,7 +234,7 @@ const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fi
         $('trCached').hidden = !cached;
 
         // steps: text, code (value only inside the ci-2…co+1 window — the server blanks it otherwise), photos
-        var steps = ins.steps || [], list = $('trSteps');
+        var steps = pend ? [] : (ins.steps || []), list = $('trSteps');
         list.innerHTML = '';
         steps.forEach(function (s) {
           var li = el('li', 'tr-step');
@@ -240,7 +274,7 @@ const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fi
         // wifi: shown in the same window as the codes
         var w = t.wifi || {};
         var net = w.net || w.name || w.ssid, pass = w.pass || w.password;
-        $('trWifiSec').hidden = !(open && (net || pass));
+        $('trWifiSec').hidden = !(open && !pend && (net || pass));
         $('trNet').querySelector('[data-v]').textContent = net || '—';
         $('trPass').querySelector('[data-v]').textContent = pass || '—';
         $('trPass').hidden = !pass;
@@ -267,7 +301,7 @@ const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fi
 
       function fail(msg) { show('trEmpty'); $('trErr').textContent = msg; $('trErr').hidden = false; }
 
-      function open(token, fromField) {
+      function open(token, fromField, claim) {
         show('trLoading');
         load(token).then(function (trip) {
           if (!trip) {
@@ -279,6 +313,7 @@ const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fi
           var co = d(trip.co);
           if (co && now < new Date(co.getFullYear(), co.getMonth(), co.getDate() + 1)) document.documentElement.classList.add('has-trip');
           render(trip, false);
+          account(trip, claim);
         }).catch(function () {
           var cached = null;
           try { cached = JSON.parse(localStorage.getItem('rr_trip') || 'null'); } catch (e) {}
@@ -287,13 +322,120 @@ const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fi
         });
       }
 
-      // token: ?t= in the link, else the one saved on this phone
+      // ---------- account (only when signed in; signed out nothing below runs) ----------
+      function authed(fn) {
+        var go = function () { window.rrAuth.session().then(function (s) { fn(s ? window.rrAuth : null); }).catch(function () { fn(null); }); };
+        if (window.rrAuth) go(); else addEventListener('rr-auth-ready', go, { once: true });
+      }
+      function loginTo(next) { location.href = BASE + '/app/login?next=' + encodeURIComponent(next); }
+      function claimed(tok) { try { return (JSON.parse(localStorage.getItem('rr_claimed') || '[]')).indexOf(tok) > -1; } catch (e) { return false; } }
+      function markClaimed(tok) {
+        try {
+          var a = JSON.parse(localStorage.getItem('rr_claimed') || '[]');
+          if (a.indexOf(tok) < 0) a.push(tok);
+          localStorage.setItem('rr_claimed', JSON.stringify(a.slice(-50)));
+        } catch (e) {}
+      }
+      var bookingId = null;
+      function toast(msg) { var t = $('trToast'); t.textContent = msg; t.hidden = false; clearTimeout(t._h); t._h = setTimeout(function () { t.hidden = true; }, 1800); }
+      function setRole(role, id) {
+        bookingId = id || bookingId;
+        $('trInvite').hidden = !(role === 'owner' && bookingId != null);
+      }
+
+      // after a trip is shown: claim a ?t= link once per device, then learn our role (owner → invite)
+      function account(trip, claim) {
+        authed(function (auth) {
+          if (!auth) return;
+          var tok = trip.token;
+          var lookup = function () {
+            auth.trips().then(function (list) {
+              var m = (list || []).filter(function (x) { return x.guest_token === tok; })[0];
+              if (m && $('trTrip').hidden === false) setRole(m.role, m.booking_id);
+            }).catch(function () {});
+          };
+          if (!claim || claimed(tok)) return lookup();
+          auth.claim(tok).then(function (r) {
+            if (r && r.ok) { markClaimed(tok); setRole(r.role, r.booking_id); if (r.role !== 'owner') lookup(); return; }
+            var e = r && r.error;
+            if (e === 'taken') { $('trNote').textContent = T.taken; $('trNote').hidden = false; lookup(); }
+            else if (e === 'no_profile') loginTo(BASE + '/app/trip?t=' + tok);
+            // network / not_found: stay quiet, the next visit tries again
+          }).catch(function () {});
+        });
+      }
+
+      $('trInvite').addEventListener('click', function () {
+        if (bookingId == null || !window.rrAuth) return;
+        var b = this; b.disabled = true;
+        window.rrAuth.invite(bookingId).then(function (r) {
+          b.disabled = false;
+          if (!r || !r.ok || !r.code) return toast(T.inviteErr);
+          var link = location.origin + BASE + '/app/trip/join?i=' + r.code;
+          var copy = function () {
+            if (navigator.clipboard) navigator.clipboard.writeText(link).then(function () { toast(T.inviteCopied); }).catch(function () { toast(T.inviteErr); });
+            else toast(T.inviteErr);
+          };
+          if (navigator.share) navigator.share({ url: link }).catch(function (e) { if (!e || e.name !== 'AbortError') copy(); });
+          else copy();
+        }).catch(function () { b.disabled = false; toast(T.inviteErr); });
+      });
+
+      // /app/trip with nothing on this phone: the account's own trips — upcoming/current first
+      function pick(list) {
+        var t0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+        var ok = (list || []).filter(function (x) { return x.guest_token && d(x.ci) && d(x.co); });
+        var up = ok.filter(function (x) { return d(x.co) >= t0; }).sort(function (a, b) { return d(a.ci) - d(b.ci); });
+        if (up.length) return up[0];
+        return ok.sort(function (a, b) { return d(b.co) - d(a.co); })[0] || null;
+      }
+
+      function joinFail(code) {
+        var map = { used: T.jUsed, expired: T.jExpired, own: T.jOwn, not_found: T.jNotFound };
+        $('trJoinMsg').textContent = map[code] || T.jNet;
+        show('trJoin');
+      }
+      function runJoin() {
+        var code = (location.search.match(/[?&]i=([0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12})/i) || [])[1];
+        if (!code) return joinFail('not_found');
+        code = code.toLowerCase();
+        $('trLoading').textContent = T.joining;
+        authed(function (auth) {
+          if (!auth) return loginTo(BASE + '/app/trip/join?i=' + code);
+          auth.accept(code).then(function (r) {
+            if (!r || !r.ok) {
+              if (r && r.error === 'no_profile') return loginTo(BASE + '/app/trip/join?i=' + code);
+              return joinFail(r && r.error);
+            }
+            return auth.trips().then(function (list) {
+              var m = (list || []).filter(function (x) { return String(x.booking_id) === String(r.booking_id); })[0];
+              if (!m || !m.guest_token) return joinFail('network');
+              if (history.replaceState) history.replaceState(null, '', BASE + '/app/trip');
+              open(m.guest_token, false, false);
+            });
+          }).catch(function () { joinFail('network'); });
+        });
+      }
+
+      // token: ?t= in the link, else the one saved on this phone, else (signed in) the account's trips
       var q = (new URLSearchParams(location.search).get('t') || '').match(UUID);
       var saved = '';
       try { saved = localStorage.getItem('rr_trip_token') || ''; } catch (e) {}
-      if (q) { open(q[0], false); if (history.replaceState) history.replaceState(null, '', location.pathname); }
-      else if (UUID.test(saved)) open(saved, false);
-      else show('trEmpty');
+      if (MODE === 'join') runJoin();
+      else if (q) { open(q[0], false, true); if (history.replaceState) history.replaceState(null, '', location.pathname); }
+      else if (UUID.test(saved)) open(saved, false, false);
+      else {
+        var settled = false;
+        var empty = function () { if (!settled) { settled = true; show('trEmpty'); } };
+        setTimeout(empty, 4000);
+        authed(function (auth) {
+          if (!auth) return empty();
+          auth.trips().then(function (list) {
+            var m = pick(list);
+            if (m && !settled) { settled = true; open(m.guest_token, false, false); } else empty();
+          }).catch(empty);
+        });
+      }
 
       $('trAdd').addEventListener('submit', function (e) {
         e.preventDefault();
@@ -301,7 +443,7 @@ const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fi
         if (!m) { $('trErr').textContent = T.bad; $('trErr').hidden = false; return; }
         $('trErr').hidden = true;
         $('trField').blur();
-        open(m[0], true);
+        open(m[0], true, true);
       });
 
       // tap to copy: codes, wifi
@@ -311,7 +453,7 @@ const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fi
         var v = b.querySelector('[data-v]');
         if (!v || !navigator.clipboard) return;
         navigator.clipboard.writeText(v.textContent).then(function () {
-          var t = $('trToast'); t.hidden = false; clearTimeout(t._h); t._h = setTimeout(function () { t.hidden = true; }, 1800);
+          toast(T.copied);
         }).catch(function () {});
       });
 
@@ -327,6 +469,7 @@ const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fi
         document.documentElement.classList.remove('has-trip');
         $('trField').value = '';
         $('trErr').hidden = true;
+        setRole(null);
         show('trEmpty');
         window.scrollTo(0, 0);
       });
