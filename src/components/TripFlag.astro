@@ -42,7 +42,11 @@
     },
     // walking minutes from the apartment door to a point (null when either has no coordinates)
     minutes: function (lat, lng) {
-      var t = this.active(), a = t && t.apt;
+      var t = this.active();
+      return this.walkFrom(t && t.apt, lat, lng);
+    },
+    // same, from any apartment ({lat, lng}) — the trip screen measures from the trip it shows
+    walkFrom: function (a, lat, lng) {
       if (!a || a.lat == null || a.lng == null || lat == null || lng == null || lat === '' || lng === '') return null;
       var r = function (x) { return (x * Math.PI) / 180; };
       var dLat = r(lat - a.lat), dLng = r(lng - a.lng);

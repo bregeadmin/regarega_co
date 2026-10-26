@@ -1,20 +1,30 @@
 ---
 // Native app "trip" screen — one component for both languages (pages app/trip.astro and
-// ru/app/trip.astro). Everything is per-device and per-booking, so it all runs client-side:
+// ru/app/trip.astro). Visual source: rega-design-panel r3/03-trip.html (orange = the «home» world).
+// Everything is per-device and per-booking, so it all runs client-side:
 // token from ?t= / the pasted host link / localStorage rr_trip_token → two anon RPCs that
 // already exist (guest_instruction: dates, steps, codes gated to ci-2…co+1, wifi, operator;
 // guest_guide: the apartment's slug + coordinates) + the apartment photo → cached as
 // localStorage rr_trip (works offline, and switches the whole app into booking mode —
 // see TripFlag.astro). States: empty (paste the link) · loading · the trip · pending (request
-// not confirmed yet: hero only) · link failed. Signed in (window.rrAuth): a ?t= link is claimed
-// onto the account once per token per device (rr_claimed); /app/trip with nothing on the phone
-// picks a trip from the account; the owner can invite a companion; mode="join" (app/trip/join)
-// accepts an invite (?i=). Signed out = the plain anonymous flow, untouched.
+// not confirmed yet: hero + status line only) · past (trip over: no codes/steps) · link failed.
+// Signed in (window.rrAuth): a ?t= link is claimed onto the account once per token per device
+// (rr_claimed); /app/trip with nothing on the phone picks a trip from the account (my_trips);
+// the owner can invite a companion; mode="join" (app/trip/join) accepts an invite (?i=).
+// Signed out = the plain anonymous flow, untouched.
+// The status line (заявка → бронь → заезд → в квартире → выезд) uses the same dot vocabulary
+// as the booking track on 08 (StayScreen): done = filled orange, now = orange ring + dot.
+// No «улучши поездку» block: there are no add-on services in the data yet (r3 shows fake ones).
+// «написать хозяину» does not exist yet (messaging = stage 4), so it isn't drawn.
 import AppFull from '../../layouts/AppFull.astro';
 import '../../styles/app-shell.css';
 import '../../styles/app-trip.css';
 import AppHeader from '../AppHeader.astro';
 import TabBar from '../TabBar.astro';
+import { supabase } from '../../lib/supabase';
+import { GUIDE_CATS, catLabel, catColor, catTint, catDark, catOutline } from '../../lib/guideCats';
+import { thumb } from '../../lib/thumb';
+import { icon } from '../../lib/stayUi';
 
 export interface Props { lang: 'en' | 'ru'; mode?: 'trip' | 'join' }
 const { lang, mode = 'trip' } = Astro.props;
@@ -24,52 +34,72 @@ const BASE = isRu ? '/ru/georgia/batumi' : '/georgia/batumi';
 const T = isRu
   ? {
       title: 'поездка — rega rega', desc: 'твоя бронь, коды и wifi — в одном месте.',
-      emptyH: 'твоя поездка появится здесь',
+      emptyH: 'твоя поездка<br><em>появится здесь</em>',
       emptyP: 'открой ссылку на бронь из сообщения хозяина — или вставь её сюда.',
       field: 'ссылка или код брони', open: 'открыть', stays: 'смотреть жильё',
       bad: 'не нашли такую бронь — проверь ссылку из сообщения.',
       offline: 'нет сети — нужна связь, чтобы открыть бронь.',
       loading: 'открываем поездку…',
-      how: 'как попасть', wifi: 'wifi', net: 'сеть', pass: 'пароль', addr: 'адрес',
-      parking: 'парковка', out: 'при выезде', host: 'хозяин', full: 'полная инструкция с фото',
-      copy: 'нажми, чтобы скопировать', copied: 'скопировано', cached: 'сохранённая копия — нет сети',
+      how: 'как <em>попасть</em>', wifi: 'wifi', pass: 'пароль', addr: 'адрес', route: 'как добраться', mapOpen: 'открыть на карте',
+      parking: 'парковка', out: 'при выезде', full: 'инструкция',
+      copy: 'копировать', copied: 'скопировано', cached: 'сохранённая копия — нет сети',
       forget: 'убрать поездку с этого телефона', forgetSure: 'точно убрать? нажми ещё раз',
-      pending: 'ждём подтверждения хозяина', pendingP: 'коды и wifi появятся, когда хозяин подтвердит бронь.',
+      pending: 'ждём подтверждения', pendingP: 'коды и wifi появятся, когда хозяин подтвердит бронь.',
       taken: 'эта бронь уже добавлена в другой аккаунт.',
-      invite: 'добавить спутника', inviteCopied: 'ссылка-приглашение скопирована', inviteErr: 'не получилось создать приглашение — попробуй ещё раз.',
+      invite: 'добавить спутника', inviteP: 'пришлём ссылку — поездка откроется и у твоего спутника',
+      inviteCopied: 'ссылка-приглашение скопирована', inviteErr: 'не получилось создать приглашение — попробуй ещё раз.',
       joining: 'добавляем поездку…', toTrip: 'к моей поездке',
       jUsed: 'это приглашение уже использовано.', jExpired: 'срок приглашения истёк — попроси новое.',
       jOwn: 'это твоя бронь — приглашение нужно отправить спутнику.', jNotFound: 'приглашение не найдено — проверь ссылку.',
-      jNet: 'нет связи — попробуй ещё раз.', jH: 'не получилось добавить поездку',
+      jNet: 'нет связи — попробуй ещё раз.', jH: 'не получилось<br><em>добавить поездку</em>',
+      door: 'код двери', unlocks: 'откроется', ci: 'заезд', co: 'выезд',
+      near: 'рядом<br>с <em>домом</em>', nearP: 'пешком от твоей двери',
+      rail: ['заявка', 'бронь', 'заезд', 'в квартире', 'выезд'],
     }
   : {
       title: 'trip — rega rega', desc: 'your booking, codes and wifi — all in one place.',
-      emptyH: 'your trip will appear here',
+      emptyH: 'your trip<br><em>will appear here</em>',
       emptyP: "open the booking link from your host's message — or paste it here.",
       field: 'booking link or code', open: 'open', stays: 'see stays',
       bad: "we couldn't find that booking — check the link from your message.",
       offline: "you're offline — the booking needs a connection to open.",
       loading: 'opening your trip…',
-      how: 'getting in', wifi: 'wifi', net: 'network', pass: 'password', addr: 'address',
-      parking: 'parking', out: 'when you leave', host: 'host', full: 'full guide with photos',
-      copy: 'tap to copy', copied: 'copied', cached: 'saved copy — no connection',
+      how: 'getting <em>in</em>', wifi: 'wifi', pass: 'password', addr: 'address', route: 'directions', mapOpen: 'open in maps',
+      parking: 'parking', out: 'when you leave', full: 'photo guide',
+      copy: 'copy', copied: 'copied', cached: 'saved copy — no connection',
       forget: 'remove this trip from this phone', forgetSure: 'sure? tap again',
-      pending: 'waiting for the host to confirm', pendingP: 'codes and wifi appear once the host confirms the booking.',
+      pending: 'waiting for confirmation', pendingP: 'codes and wifi appear once the host confirms the booking.',
       taken: 'this booking is already added to another account.',
-      invite: 'add a companion', inviteCopied: 'invite link copied', inviteErr: "couldn't create the invite — try again.",
+      invite: 'add a companion', inviteP: 'we make a link — the trip opens on their phone too',
+      inviteCopied: 'invite link copied', inviteErr: "couldn't create the invite — try again.",
       joining: 'adding the trip…', toTrip: 'to my trip',
       jUsed: 'this invite has already been used.', jExpired: 'this invite has expired — ask for a new one.',
       jOwn: 'this is your own booking — send the invite to your companion.', jNotFound: "we couldn't find that invite — check the link.",
-      jNet: "you're offline — try again.", jH: "couldn't add the trip",
+      jNet: "you're offline — try again.", jH: "couldn't<br><em>add the trip</em>",
+      door: 'door code', unlocks: 'unlocks', ci: 'check-in', co: 'checkout',
+      near: 'near<br><em>home</em>', nearP: 'a walk from your door',
+      rail: ['request', 'booked', 'check-in', 'staying', 'checkout'],
     };
 
-const ICONS = {
-  suitcase: '<path d="M3 9a2 2 0 0 1 2 -2h14a2 2 0 0 1 2 2v9a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2z" /><path d="M8 7v-2a2 2 0 0 1 2 -2h4a2 2 0 0 1 2 2v2" /><path d="M12 12v.01" /><path d="M3 13a20 20 0 0 0 18 0" />',
-  pin: '<path d="M9 11a3 3 0 1 0 6 0a3 3 0 0 0 -6 0" /><path d="M17.657 16.657l-4.243 4.243a2 2 0 0 1 -2.827 0l-4.244 -4.243a8 8 0 1 1 11.314 0z" />',
-  out: '<path d="M12 6h-6a2 2 0 0 0 -2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-6" /><path d="M11 13l9 -9" /><path d="M15 4h5v5" />',
-  chevron: '<path d="M9 6l6 6l-6 6" />',
-};
-const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+// guide places with coordinates → «рядом с домом» (picked client-side by distance from the flat)
+const { data: gp } = await supabase
+  .from('guide_places')
+  .select('slug,title,name,category,photos,image,lat,lng')
+  .eq('status', 'published');
+const NEAR = ((gp || []) as any[])
+  .filter((p) => p.lat != null && p.lng != null && p.slug)
+  .map((p) => ({
+    s: p.slug,
+    n: String(p.title || p.name || '').toLowerCase(),
+    k: p.category,
+    c: catLabel(p.category, lang),
+    q: thumb((p.photos && p.photos[0]) || p.image || '', 320),
+    la: p.lat,
+    lo: p.lng,
+  }));
+// category colours for the stamps — from guideCats.ts, never duplicated
+const CATS = Object.fromEntries(Object.keys(GUIDE_CATS).map((k) => [k, { c: catColor(k), t: catTint(k), d: catDark(k), o: catOutline(k) }]));
+const ICONS = { copy: icon('copy', 17), check: icon('check', 17), arrow: icon('arrowRight', 22) };
 ---
 <AppFull lang={lang} title={T.title} description={T.desc}>
   <AppHeader lang={lang} />
@@ -78,8 +108,8 @@ const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fi
 
     <!-- no booking on this phone yet -->
     <section class="tr-empty" id="trEmpty" hidden>
-      <Fragment set:html={svg(ICONS.suitcase, 'tr-empty__icon')} />
-      <h1 class="tr-empty__h">{T.emptyH}</h1>
+      <span class="tr-empty__ic" set:html={icon('suitcase', 26)} />
+      <h1 class="rr-display tr-empty__h" set:html={T.emptyH} />
       <p class="tr-empty__p">{T.emptyP}</p>
       <form class="tr-add" id="trAdd" novalidate>
         <input class="tr-add__field" id="trField" type="text" inputmode="url" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder={T.field} aria-label={T.field} />
@@ -91,63 +121,99 @@ const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fi
 
     <!-- join: an invite that could not be accepted -->
     <section class="tr-empty" id="trJoin" hidden>
-      <Fragment set:html={svg(ICONS.suitcase, 'tr-empty__icon')} />
-      <h1 class="tr-empty__h">{T.jH}</h1>
+      <span class="tr-empty__ic" set:html={icon('userPlus', 26)} />
+      <h1 class="rr-display tr-empty__h" set:html={T.jH} />
       <p class="tr-empty__p" id="trJoinMsg"></p>
       <a class="tr-empty__alt" href={`${BASE}/app/trip`}>{T.toTrip}</a>
     </section>
 
     <!-- the trip -->
     <div class="tr-trip" id="trTrip" hidden>
-      <section class="tr-hero">
-        <img class="tr-hero__img" id="trPhoto" alt="" hidden onload="this.classList.add('is-loaded')" />
-        <div class="tr-hero__scrim">
-          <p class="tr-hero__status" id="trStatus"></p>
-          <h1 class="tr-hero__name" id="trName"></h1>
-          <p class="tr-hero__dates" id="trDates"></p>
-        </div>
-      </section>
-      <p class="tr-hello" id="trHello" hidden></p>
+      <header class="tr-hello tr-in">
+        <p class="rr-kick" id="trKick"></p>
+        <h1 class="rr-display tr-h1" id="trH1"></h1>
+      </header>
       <p class="tr-note" id="trNote" hidden></p>
       <p class="tr-cached" id="trCached" hidden>{T.cached}</p>
 
-      <p class="tr-note" id="trPendingNote" hidden>{T.pendingP}</p>
-
-      <section class="tr-sec" id="trHowSec" hidden>
-        <h2 class="tr-sec__h">{T.how}</h2>
-        <ol class="tr-steps" id="trSteps"></ol>
+      <!-- status line: заявка → бронь → заезд → в квартире → выезд -->
+      <section class="tr-flow tr-card tr-in tr-d1">
+        <div class="tr-flow__head"><b id="trFlowH"></b><span class="tr-meta" id="trFlowOp"></span></div>
+        <ol class="tr-rail" id="trRail">
+          {T.rail.map((l) => <li><i></i><span>{l}</span></li>)}
+        </ol>
+        <p class="tr-flow__note" id="trPendingNote" hidden>{T.pendingP}</p>
       </section>
 
-      <section class="tr-sec" id="trWifiSec" hidden>
-        <h2 class="tr-sec__h">{T.wifi}</h2>
-        <div class="tr-list">
-          <button class="tr-row tr-copy" type="button" id="trNet"><span class="tr-row__k">{T.net}</span><span class="tr-row__v" data-v></span></button>
-          <button class="tr-row tr-copy" type="button" id="trPass"><span class="tr-row__k">{T.pass}</span><span class="tr-row__v" data-v></span></button>
+      <!-- the apartment + dates -->
+      <a class="tr-stay tr-card tr-in tr-d2" id="trStay">
+        <span class="tr-stay__ph">
+          <img id="trPhoto" alt="" hidden onload="this.classList.add('is-loaded')" />
+          <span class="rr-tag rr-tag--home tr-stay__tag"><i></i><span id="trName"></span></span>
+        </span>
+        <span class="tr-dates">
+          <span class="tr-dates__d"><span class="tr-dates__n"><b id="trCiN"></b><small id="trCiM"></small></span><span class="tr-meta">{T.ci}</span></span>
+          <span class="tr-dates__mid" set:html={ICONS.arrow} />
+          <span class="tr-dates__d tr-dates__d--r"><span class="tr-dates__n"><b id="trCoN"></b><small id="trCoM"></small></span><span class="tr-meta">{T.co}</span></span>
+        </span>
+        <span class="tr-meta tr-stay__sum" id="trDates"></span>
+      </a>
+
+      <!-- dark pass: door code + wifi (only what the backend returned) -->
+      <section class="tr-pass tr-in tr-d3" id="trPass" hidden>
+        <div id="trPassMain" hidden>
+          <p class="tr-pass__k" id="trPassK"></p>
+          <div class="tr-pass__code">
+            <span class="tr-pass__num" id="trPassNum"></span>
+            <button class="tr-cp tr-copy" type="button" id="trPassCp"><Fragment set:html={ICONS.copy} /><span data-l>{T.copy}</span></button>
+          </div>
         </div>
+        <div id="trPassLock" hidden>
+          <p class="tr-pass__k" id="trLockK"></p>
+          <p class="tr-pass__lock" id="trLockV"></p>
+        </div>
+        <div class="tr-kv" id="trKv"></div>
       </section>
 
-      <section class="tr-sec" id="trAddrSec" hidden>
-        <h2 class="tr-sec__h">{T.addr}</h2>
-        <a class="tr-place" id="trAddr" target="_blank" rel="noopener">
-          <Fragment set:html={svg(ICONS.pin, 'tr-place__icon')} />
-          <span class="tr-place__text" id="trAddrText"></span>
-          <Fragment set:html={svg(ICONS.chevron, 'tr-place__chev')} />
-        </a>
+      <!-- address -->
+      <section class="tr-addr tr-card tr-in tr-d4" id="trAddrSec" hidden>
+        <p class="rr-kick">{T.addr}</p>
+        <p class="tr-addr__h" id="trAddrText"></p>
         <div class="tr-sub" id="trParkSec" hidden>
           <p class="tr-sub__h">{T.parking}</p>
           <ul class="tr-bullets" id="trPark"></ul>
         </div>
+        <div class="tr-acts">
+          <a class="tr-btn" id="trAddr" target="_blank" rel="noopener"><Fragment set:html={icon('navigation', 19)} />{T.route}</a>
+          <a class="tr-btn tr-btn--light" id="trFull" target="_blank" rel="noopener"><Fragment set:html={icon('photo', 19)} />{T.full}</a>
+        </div>
+      </section>
+
+      <!-- getting in: the host's steps -->
+      <section class="tr-sec" id="trHowSec" hidden>
+        <h2 class="rr-display tr-h2" set:html={T.how} />
+        <ol class="tr-steps tr-card" id="trSteps"></ol>
       </section>
 
       <section class="tr-sec" id="trOutSec" hidden>
-        <h2 class="tr-sec__h">{T.out}</h2>
-        <p class="tr-text" id="trOut"></p>
+        <div class="tr-card tr-out">
+          <p class="rr-kick">{T.out}</p>
+          <p class="tr-text" id="trOut"></p>
+        </div>
+      </section>
+
+      <!-- near home: guide places a walk from the door -->
+      <section class="tr-sec" id="trNearSec" hidden>
+        <div class="tr-sec__h"><h2 class="rr-display tr-h2" set:html={T.near} /><span class="tr-meta">{T.nearP}</span></div>
+        <div class="tr-list tr-card" id="trNear"></div>
       </section>
 
       <section class="tr-sec tr-foot">
-        <p class="tr-host" id="trHost" hidden></p>
-        <a class="tr-link" id="trFull" target="_blank" rel="noopener"><Fragment set:html={svg(ICONS.out, 'tr-link__icon')} />{T.full}</a>
-        <button class="tr-act" id="trInvite" type="button" hidden>{T.invite}</button>
+        <button class="tr-invite tr-card" id="trInvite" type="button" hidden>
+          <span class="tr-invite__ic" set:html={icon('userPlus', 22)} />
+          <span class="tr-invite__t"><b>{T.invite}</b><span class="tr-meta">{T.inviteP}</span></span>
+          <span class="tr-invite__go" set:html={icon('plus', 18)} />
+        </button>
         <button class="tr-forget" id="trForget" type="button">{T.forget}</button>
       </section>
     </div>
@@ -156,7 +222,7 @@ const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fi
 
   <TabBar lang={lang} />
 
-  <script is:inline define:vars={{ LANG: lang, T, MODE: mode, BASE }}>
+  <script is:inline define:vars={{ LANG: lang, T, MODE: mode, BASE, NEAR, CATS, ICONS }}>
     (function () {
       var RU = LANG === 'ru';
       var SB = 'https://qkzinjawtumhjbezlyog.supabase.co';
@@ -202,57 +268,152 @@ const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fi
       function d(s) { var m = /^(\d{4})-(\d{2})-(\d{2})/.exec(String(s || '')); return m ? new Date(+m[1], m[2] - 1, +m[3]) : null; }
       var MON = RU ? ['января', 'февраля', 'марта', 'апреля', 'мая', 'июня', 'июля', 'августа', 'сентября', 'октября', 'ноября', 'декабря']
                    : ['january', 'february', 'march', 'april', 'may', 'june', 'july', 'august', 'september', 'october', 'november', 'december'];
+      var MON3 = RU ? ['янв', 'фев', 'мар', 'апр', 'мая', 'июн', 'июл', 'авг', 'сен', 'окт', 'ноя', 'дек']
+                    : ['jan', 'feb', 'mar', 'apr', 'may', 'jun', 'jul', 'aug', 'sep', 'oct', 'nov', 'dec'];
       function fmt(x) { return x ? x.getDate() + ' ' + MON[x.getMonth()] : ''; }
       function plural(n, one, few, many) { var a = n % 10, b = n % 100; return a === 1 && b !== 11 ? one : a >= 2 && a <= 4 && (b < 10 || b >= 20) ? few : many; }
       var now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Tbilisi' }));
+      var today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
       function text(o, base) { return (o && (o[base + (RU ? '_ru' : '_en')] || o[RU ? 'ru' : 'en'] || o[base + (RU ? '_en' : '_ru')] || o[RU ? 'en' : 'ru'])) || ''; }
       function strip(s) { return String(s || '').replace(/<br\s*\/?>/gi, ', ').replace(/<[^>]+>/g, '').replace(/\s+/g, ' ').trim(); }
       function el(tag, cls, txt) { var e = document.createElement(tag); if (cls) e.className = cls; if (txt != null) e.textContent = txt; return e; }
       function photoUrl(src) { return /^https?:/.test(src) ? src : 'https://bre-instruction-deploy.vercel.app/' + String(src).replace(/^\//, ''); }
+      // two-line display heading: first line plain, second italic (orange via --accent-c)
+      function display(h, a, b) {
+        h.textContent = a;
+        h.appendChild(document.createElement('br'));
+        h.appendChild(el('em', '', b));
+      }
+      // a copy button: value in data-copy, the label swaps to «скопировано» in place
+      function copyBtn(cls, k, v) {
+        var b = el('button', cls + ' tr-copy'); b.type = 'button'; b.setAttribute('data-copy', v);
+        if (k != null) b.appendChild(el('span', 'tr-kv__k', k));
+        var w = el('span', 'tr-kv__v');
+        w.appendChild(el('span', '', v)).setAttribute('data-l', '');
+        w.insertAdjacentHTML('beforeend', ICONS.copy);
+        b.appendChild(w);
+        return b;
+      }
 
       function render(t, cached) {
         var ins = t.instructions || {};
         var open = t.state === 'open';
         var pend = t.state === 'pending';
         var ci = d(t.ci), co = d(t.co);
+        var past = t.state === 'expired' || (co && today > co);
+        var op = (t.operator && t.operator.name) || '';
 
-        $('trStatus').textContent = pend ? T.pending : window.rrTrip.status(t, RU);
-        $('trPendingNote').hidden = !pend;
         $('trNote').hidden = true;
         $('trInvite').hidden = true;
         bookingId = null;
-        $('trFull').hidden = pend;
-        $('trName').textContent = t.apt_title || t.apt_name || (RU ? 'квартира' : 'apartment');
+        $('trCached').hidden = !cached;
+
+        // --- hello: kick + «батуми через N дней» ---
+        var name = String(t.guest || '').trim().split(/\s+/)[0].toLowerCase();
+        var hi = RU ? (name ? 'привет, ' + name + '!' : 'привет!') : (name ? 'hi, ' + name + '!' : 'hi!');
+        var dCi = ci ? Math.round((ci - today) / 864e5) : null;
+        var dCo = co ? Math.round((co - today) / 864e5) : null;
+        var kick, h;
+        if (past) { kick = hi; h = RU ? ['поездка', 'завершена'] : ['trip', 'completed']; }
+        else if (dCo === 0) { kick = hi; h = RU ? ['сегодня', 'выезд'] : ['checkout', 'today']; }
+        else if (dCi != null && dCi < 0) { kick = hi; h = RU ? ['ты', 'в батуми'] : ["you're", 'in batumi']; }
+        else {
+          kick = pend ? (RU ? 'заявка отправлена' : 'request sent') : hi + (RU ? ' мы тебя ждём' : " we're waiting for you");
+          if (dCi === 0) h = RU ? ['батуми', 'сегодня'] : ['batumi', 'today'];
+          else if (dCi === 1) h = RU ? ['батуми', 'завтра'] : ['batumi', 'tomorrow'];
+          else if (dCi != null) h = RU ? ['батуми через', dCi + ' ' + plural(dCi, 'день', 'дня', 'дней')] : ['batumi in', dCi + ' days'];
+          else h = RU ? ['твоя', 'поездка'] : ['your', 'trip'];
+        }
+        $('trKick').textContent = kick;
+        display($('trH1'), h[0], h[1]);
+
+        // --- status line ---
+        var idx = pend ? 1 : past ? 5 : dCo === 0 ? 4 : (dCi != null && dCi < 0) ? 3 : 2;
+        var head = pend ? T.pending + (op ? ' ' + op : '')
+          : past ? (RU ? 'до встречи в батуми' : 'see you in batumi again')
+          : idx === 4 ? (RU ? 'сегодня выезд' : 'checkout today')
+          : idx === 3 ? (RU ? 'ты в квартире' : "you're in")
+          : dCi === 0 ? (RU ? 'сегодня заезд' : 'check-in today')
+          : (RU ? 'бронь подтверждена' : 'booking confirmed');
+        $('trFlowH').textContent = head;
+        $('trFlowOp').textContent = pend ? '' : op;
+        Array.prototype.forEach.call($('trRail').children, function (li, i) {
+          li.className = i < idx ? 'is-done' : i === idx ? 'is-now' : '';
+        });
+        $('trRail').style.setProperty('--p', String(Math.min(idx, 4) / 4));
+        $('trPendingNote').hidden = !pend;
+
+        // --- the apartment + dates ---
+        $('trName').textContent = String(t.apt_title || t.apt_name || (RU ? 'квартира' : 'apartment')).toLowerCase();
+        $('trCiN').textContent = ci ? ci.getDate() : '';
+        $('trCiM').textContent = ci ? MON3[ci.getMonth()] : '';
+        $('trCoN').textContent = co ? co.getDate() : '';
+        $('trCoM').textContent = co ? MON3[co.getMonth()] : '';
         var nights = t.nights || (ci && co ? Math.round((co - ci) / 864e5) : 0);
         var bits = [];
-        if (ci && co) bits.push(fmt(ci) + ' – ' + fmt(co));
         if (nights) bits.push(RU ? nights + ' ' + plural(nights, 'ночь', 'ночи', 'ночей') : nights + (nights === 1 ? ' night' : ' nights'));
         if (t.adults) bits.push(RU ? t.adults + ' ' + plural(t.adults, 'гость', 'гостя', 'гостей') : t.adults + (t.adults === 1 ? ' guest' : ' guests'));
         $('trDates').textContent = bits.join(' · ');
+        $('trDates').hidden = !bits.length;
         if (t.apt && t.apt.photo) { $('trPhoto').src = t.apt.photo; $('trPhoto').hidden = false; }
-        var name = String(t.guest || '').trim().split(/\s+/)[0];
-        if (name) { $('trHello').textContent = (RU ? 'привет, ' : 'hi, ') + name.toLowerCase(); $('trHello').hidden = false; }
-        $('trCached').hidden = !cached;
+        if (t.apt && t.apt.slug) $('trStay').href = BASE + '/app/stays/' + t.apt.slug; else $('trStay').removeAttribute('href');
 
-        // steps: text, code (value only inside the ci-2…co+1 window — the server blanks it otherwise), photos
-        var steps = pend ? [] : (ins.steps || []), list = $('trSteps');
+        // --- pass: codes (value only inside the ci-2…co+1 window — the server blanks it otherwise) + wifi ---
+        var steps = pend || past ? [] : (ins.steps || []);
+        var codes = steps.filter(function (s) { return s.code; }).map(function (s) {
+          return { k: strip(text(s.code, 'label')), v: s.code.value != null && s.code.value !== '' ? String(s.code.value) : '' };
+        });
+        var withVal = codes.filter(function (c) { return c.v; });
+        var w = t.wifi || {};
+        var net = w.net || w.name || w.ssid, pass = w.pass || w.password;
+        var wifiOn = open && !pend && !past && (net || pass);
+        var kv = $('trKv'); kv.innerHTML = '';
+        $('trPassMain').hidden = !withVal.length;
+        $('trPassLock').hidden = !!withVal.length || !codes.length || t.state !== 'pre';
+        if (withVal.length) {
+          var main = withVal[0];
+          $('trPassK').textContent = main.k || T.door;
+          var num = $('trPassNum');
+          num.textContent = main.v;
+          num.className = 'tr-pass__num' + (main.v.length > 6 ? ' is-long' : main.v.length > 4 ? ' is-mid' : '');
+          $('trPassCp').setAttribute('data-copy', main.v);
+          withVal.slice(1).forEach(function (c) { kv.appendChild(copyBtn('tr-kv__row', c.k || T.door, c.v)); });
+        } else if (codes.length && t.state === 'pre') {
+          $('trLockK').textContent = codes[0].k || T.door;
+          $('trLockV').textContent = T.unlocks + ' ' + fmt(d(t.unlock_date));
+        }
+        if (wifiOn && net) kv.appendChild(copyBtn('tr-kv__row', T.wifi, String(net)));
+        if (wifiOn && pass) kv.appendChild(copyBtn('tr-kv__row', T.pass, String(pass)));
+        kv.hidden = !kv.children.length;
+        $('trPass').hidden = $('trPassMain').hidden && $('trPassLock').hidden && kv.hidden;
+
+        // --- address + parking + directions / full guide ---
+        var addr = strip(text(ins, 'addr'));
+        var map = ins.map_url || (t.apt && t.apt.lat != null ? 'https://www.google.com/maps/dir/?api=1&destination=' + t.apt.lat + ',' + t.apt.lng : '');
+        $('trAddrSec').hidden = pend;
+        $('trAddrText').textContent = addr || T.mapOpen;
+        $('trAddr').hidden = !map;
+        if (map) $('trAddr').href = map; else $('trAddr').removeAttribute('href');
+        var park = $('trPark'); park.innerHTML = '';
+        (ins.parking || []).forEach(function (p) { var x = strip(text(p, '')); if (x) park.appendChild(el('li', '', x)); });
+        $('trParkSec').hidden = !park.children.length;
+        $('trFull').href = FULL + t.token;
+        $('trFull').hidden = pend;
+
+        // --- getting in: text, the code inline, how, photos ---
+        var list = $('trSteps');
         list.innerHTML = '';
         steps.forEach(function (s) {
           var li = el('li', 'tr-step');
           li.appendChild(el('p', 'tr-step__text', strip(text(s, ''))));
           if (s.code) {
             var c = s.code, label = strip(text(c, 'label'));
-            if (c.value != null && c.value !== '') {
-              var b = el('button', 'tr-code tr-copy'); b.type = 'button';
-              b.appendChild(el('span', 'tr-code__k', label));
-              var v = el('span', 'tr-code__v', String(c.value)); v.setAttribute('data-v', ''); b.appendChild(v);
-              b.appendChild(el('span', 'tr-code__hint', T.copy));
-              li.appendChild(b);
-            } else {
+            if (c.value != null && c.value !== '') li.appendChild(copyBtn('tr-code', label, String(c.value)));
+            else if (t.state === 'pre') {
               var lk = el('div', 'tr-code tr-code--locked');
-              lk.appendChild(el('span', 'tr-code__k', label));
-              lk.appendChild(el('span', 'tr-code__lock', (RU ? 'откроется ' : 'unlocks ') + fmt(d(t.unlock_date))));
+              lk.appendChild(el('span', 'tr-kv__k', label));
+              lk.appendChild(el('span', 'tr-code__lock', T.unlocks + ' ' + fmt(d(t.unlock_date))));
               li.appendChild(lk);
             }
             var how = strip(text(c, 'how'));
@@ -273,31 +434,36 @@ const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fi
         });
         $('trHowSec').hidden = !steps.length;
 
-        // wifi: shown in the same window as the codes
-        var w = t.wifi || {};
-        var net = w.net || w.name || w.ssid, pass = w.pass || w.password;
-        $('trWifiSec').hidden = !(open && !pend && (net || pass));
-        $('trNet').querySelector('[data-v]').textContent = net || '—';
-        $('trPass').querySelector('[data-v]').textContent = pass || '—';
-        $('trPass').hidden = !pass;
-
-        var addr = strip(text(ins, 'addr'));
-        var map = ins.map_url || (t.apt && t.apt.lat != null ? 'https://www.google.com/maps/dir/?api=1&destination=' + t.apt.lat + ',' + t.apt.lng : '');
-        $('trAddrSec').hidden = !(addr || map);
-        $('trAddrText').textContent = addr || (RU ? 'открыть на карте' : 'open in maps');
-        if (map) $('trAddr').href = map; else $('trAddr').removeAttribute('href');
-        var park = $('trPark'); park.innerHTML = '';
-        (ins.parking || []).forEach(function (p) { var x = strip(text(p, '')); if (x) park.appendChild(el('li', '', x)); });
-        $('trParkSec').hidden = !park.children.length;
-
-        var out = strip(text(ins, 'checkout_return'));
+        var out = pend || past ? '' : strip(text(ins, 'checkout_return'));
         $('trOut').textContent = out;
         $('trOutSec').hidden = !out;
 
-        var op = t.operator && t.operator.name;
-        $('trHost').textContent = op ? T.host + ': ' + op : '';
-        $('trHost').hidden = !op;
-        $('trFull').href = FULL + t.token;
+        // --- near home: up to 3 guide places within a 20-minute walk of the door ---
+        var nearBox = $('trNear'); nearBox.innerHTML = '';
+        if (!pend && !past && t.apt && t.apt.lat != null && window.rrTrip) {
+          NEAR.map(function (p) { return { p: p, m: window.rrTrip.walkFrom(t.apt, p.la, p.lo) }; })
+            .filter(function (x) { return x.m != null && x.m <= 20; })
+            .sort(function (a, b) { return a.m - b.m; })
+            .slice(0, 3)
+            .forEach(function (x) {
+              var p = x.p, cat = CATS[p.k] || null;
+              var a = el('a', 'tr-row'); a.href = BASE + '/app/place/' + p.s;
+              var th = el('span', 'tr-row__th');
+              if (p.q) { var im = el('img'); im.src = p.q; im.alt = ''; im.loading = 'lazy'; th.appendChild(im); }
+              a.appendChild(th);
+              var tx = el('span', 'tr-row__t');
+              tx.appendChild(el('b', '', p.n));
+              var tag = el('span', 'rr-tag' + (cat && cat.o ? ' is-ring' : ''));
+              if (cat) { tag.style.setProperty('--tag-c', cat.c); tag.style.setProperty('--tag-t', cat.t); tag.style.setProperty('--tag-d', cat.d); }
+              tag.appendChild(el('i')); tag.appendChild(el('span', '', p.c));
+              tx.appendChild(tag);
+              a.appendChild(tx);
+              a.appendChild(el('span', 'tr-row__min', x.m + (RU ? ' мин' : ' min')));
+              nearBox.appendChild(a);
+            });
+        }
+        $('trNearSec').hidden = !nearBox.children.length;
+
         show('trTrip');
       }
 
@@ -386,9 +552,8 @@ const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fi
 
       // /app/trip with nothing on this phone: the account's own trips — upcoming/current first
       function pick(list) {
-        var t0 = new Date(now.getFullYear(), now.getMonth(), now.getDate());
         var ok = (list || []).filter(function (x) { return x.guest_token && d(x.ci) && d(x.co); });
-        var up = ok.filter(function (x) { return d(x.co) >= t0; }).sort(function (a, b) { return d(a.ci) - d(b.ci); });
+        var up = ok.filter(function (x) { return d(x.co) >= today; }).sort(function (a, b) { return d(a.ci) - d(b.ci); });
         if (up.length) return up[0];
         return ok.sort(function (a, b) { return d(b.co) - d(a.co); })[0] || null;
       }
@@ -454,14 +619,25 @@ const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fi
         open(m[0], true, true);
       });
 
-      // tap to copy: codes, wifi
+      // tap to copy: codes, wifi — the label turns into «скопировано» in place
       document.addEventListener('click', function (e) {
         var b = e.target.closest && e.target.closest('.tr-copy');
         if (!b) return;
-        var v = b.querySelector('[data-v]');
+        var v = b.getAttribute('data-copy');
         if (!v || !navigator.clipboard) return;
-        navigator.clipboard.writeText(v.textContent).then(function () {
-          toast(T.copied);
+        navigator.clipboard.writeText(v).then(function () {
+          var l = b.querySelector('[data-l]');
+          if (!l) return;
+          if (b._was == null) b._was = l.textContent;
+          l.textContent = T.copied;
+          b.classList.add('is-copied');
+          var ic = b.querySelector('svg'); if (ic) ic.outerHTML = ICONS.check;
+          clearTimeout(b._t);
+          b._t = setTimeout(function () {
+            l.textContent = b._was; b._was = null;
+            b.classList.remove('is-copied');
+            var ic2 = b.querySelector('svg'); if (ic2) ic2.outerHTML = ICONS.copy;
+          }, 1400);
         }).catch(function () {});
       });
 
