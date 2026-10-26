@@ -55,8 +55,11 @@ const rrAuth = {
     if (r.fail) return { error: 'network' };
     return r.data ?? null;
   },
-  saveProfile(name: string, phone?: string | null) {
-    return call('save_guest_profile', { p_name: name, p_phone: phone ?? null });
+  // save_guest_profile returns the profile row itself (no `ok` field), so wrap it here.
+  async saveProfile(name: string, phone?: string | null): Promise<R> {
+    const r = await rpc('save_guest_profile', { p_name: name, p_phone: phone ?? null });
+    if (r.fail || !r.data || !r.data.id) return { ...NET };
+    return { ok: true, ...r.data };
   },
   // The account's trips; null when the call failed (callers show a retry, not "no trips").
   async trips(): Promise<any[] | null> {
