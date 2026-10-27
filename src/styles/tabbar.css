@@ -148,10 +148,11 @@ body.has-tabbar{ padding-bottom:var(--tabbar-space, calc(66px + max(18px, calc(e
 ::view-transition-group(tabbar), ::view-transition-group(tabbar-fade){ animation:none; }
 ::view-transition-old(tabbar), ::view-transition-old(tabbar-fade){ display:none; }
 ::view-transition-new(tabbar), ::view-transition-new(tabbar-fade){ animation:none; }
-::view-transition-old(tabbar):only-child, ::view-transition-old(tabbar-fade):only-child{ display:block; animation:rr-vt-out .16s cubic-bezier(.23,1,.32,1) both; }
-::view-transition-new(tabbar):only-child, ::view-transition-new(tabbar-fade):only-child{ animation:rr-vt-in .28s cubic-bezier(.23,1,.32,1) both; }
-@keyframes rr-vt-out{ to{ opacity:0; } }
-@keyframes rr-vt-in{ from{ opacity:0; } }
+::view-transition-old(tabbar):only-child, ::view-transition-old(tabbar-fade):only-child{ display:block; animation:rr-vt-out .24s cubic-bezier(.23,1,.32,1) both; }
+::view-transition-new(tabbar):only-child, ::view-transition-new(tabbar-fade):only-child{ animation:rr-vt-in .24s cubic-bezier(.23,1,.32,1) both; }
+/* keyframes rr-vt-in/out live in app-vt.css (the only place that turns view transitions on) */
+/* открыта шторка/диалог → TabBar.astro снимает с меню view-transition-name (pageswap/pagereveal),
+   иначе на время перехода оно легло бы поверх затемнения */
 
 @media (prefers-reduced-motion:reduce){
   .tabbar__pill, .tabbar__pill-inv, .tabbar__pill-bg, .tabbar__icon{ transition:none !important; }

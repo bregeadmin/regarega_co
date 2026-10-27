@@ -130,16 +130,29 @@ const activeI = activeTab ? activeTab.i : -1;
     if (!bar.hasAttribute('data-active') || !bar.offsetWidth) return;
     try { sessionStorage.setItem(KEY, JSON.stringify({ x: cur(), t: Date.now() })); } catch (e) {}
   };
+  var navTimer = 0;
+  // a visible sheet/dialog (aria-modal) during the page transition: keep the menu inside the
+  // page snapshot, otherwise its own VT layer would paint above the dialog's scrim for ~240ms.
+  // (FirstRun's .fr stays in the DOM with aria-modal but display:none — hence the rects check)
+  var fade = bar.previousElementSibling;
+  var vtName = function () {
+    var open = [].some.call(document.querySelectorAll('[aria-modal="true"]:not([hidden])'), function (el) { return el.getClientRects().length > 0; });
+    bar.style.viewTransitionName = open ? 'none' : '';
+    if (fade && fade.classList.contains('tabbar-fade')) fade.style.viewTransitionName = open ? 'none' : '';
+  };
+  addEventListener('pageswap', vtName);
+  addEventListener('pagereveal', vtName);
   addEventListener('pageswap', remember);
-  addEventListener('pagehide', remember);
+  addEventListener('pagehide', function () { clearTimeout(navTimer); remember(); });
   // back/forward cache: the page comes back with the capsule parked on the tab that was tapped
-  addEventListener('pageshow', function (e) {
-    if (!e.persisted) return;
+  function restore(ride) {
+    clearTimeout(navTimer);
     active = home;
     if (home < 0) { bar.removeAttribute('data-active'); snap(function () { set(0); }); return; }
     bar.setAttribute('data-active', String(home));
-    arrive();
-  });
+    if (ride) set(home); else arrive();
+  }
+  addEventListener('pageshow', function (e) { if (e.persisted) restore(false); });
 
   function go(i) {
     var a = links()[i];
@@ -147,15 +160,20 @@ const activeI = activeTab ? activeTab.i : -1;
     if (!bar.hasAttribute('data-active')) snap(function () { set(i); }); // no tab here: appear in place
     bar.setAttribute('data-active', String(i));
     set(i);
-    if (a.pathname === location.pathname) {
+    if (a.pathname === location.pathname) { // already here (e.g. both stays/trip slots): stay put
       if (i === active) window.scrollTo({ top: 0, behavior: RM ? 'auto' : 'smooth' });
+      settle();
       return;
     }
     active = i;
+    // navigation aborted (offline, cancelled) and the page is still alive: go back to this page's tab
+    clearTimeout(navTimer);
+    navTimer = setTimeout(function () { restore(true); }, 8000);
     location.href = a.href;
   }
   function settle() { // back to the tab of this page (drag released on it / cancelled)
     if (active < 0) { bar.removeAttribute('data-active'); return; }
+    bar.setAttribute('data-active', String(active));
     set(active);
   }
 
@@ -170,10 +188,11 @@ const activeI = activeTab ? activeTab.i : -1;
   });
 
   // drag: the capsule follows the finger, release → nearest tab
-  var p0 = null, dragging = false, base = 0, pressed = null;
+  var p0 = null, dragging = false, base = 0, pressed = null, dragTimer = 0;
   var clear = function (cls) { [].forEach.call(bar.querySelectorAll('.' + cls), function (el) { el.classList.remove(cls); }); };
   bar.addEventListener('pointerdown', function (e) {
-    if (e.button > 0 || e.clientX < EDGE) return; // left 20px = native back swipe
+    // one finger at a time; left 20px = native back swipe
+    if (p0 || !e.isPrimary || e.button > 0 || e.clientX < EDGE) return;
     var r = row.getBoundingClientRect(), w = r.width / 4;
     var i = Math.min(3, Math.max(0, Math.floor((e.clientX - r.left) / w)));
     p0 = { x: e.clientX, left: r.left, w: w, id: e.pointerId };
@@ -193,7 +212,8 @@ const activeI = activeTab ? activeTab.i : -1;
       base = (p0.x - p0.left) / p0.w - 0.5; // capsule centred under the finger
       if (!bar.hasAttribute('data-active')) { snap(function () { set(base); }); bar.setAttribute('data-active', ''); }
       // started off the capsule: it first springs under the finger (~140ms), then tracks it 1:1
-      setTimeout(function () { if (dragging) bar.classList.add('is-drag'); }, RM ? 0 : 140);
+      clearTimeout(dragTimer);
+      dragTimer = setTimeout(function () { if (dragging) bar.classList.add('is-drag'); }, RM ? 0 : 140);
     }
     var v = base + dx / p0.w, max = 3;
     if (v < 0) v = -Math.pow(-v * p0.w, 0.7) / p0.w;          // rubber band at the ends
@@ -204,18 +224,23 @@ const activeI = activeTab ? activeTab.i : -1;
     invs().forEach(function (b, k) { b.classList.toggle('is-near', k === n); });
   });
   var up = function (e) {
-    if (!p0 || e.pointerId !== p0.id) return;
-    clear('is-press'); clear('is-near');
-    if (dragging) {
-      muteClick = Date.now() + 400;
-      bar.classList.remove('is-drag', 'is-lift');
-      var n = Math.round(Math.min(3, Math.max(0, x)));
-      if (e.type === 'pointercancel' || n === active) settle(); else go(n);
-    }
+    if (!p0 || (e && e.pointerId !== p0.id)) return;
+    var wasDrag = dragging, cancel = !e || e.type !== 'pointerup';
     p0 = null; dragging = false;
+    clearTimeout(dragTimer);
+    clear('is-press'); clear('is-near');
+    bar.classList.remove('is-drag', 'is-lift');
+    if (wasDrag) {
+      muteClick = Date.now() + 400;
+      var n = Math.round(Math.min(3, Math.max(0, x)));
+      if (cancel || n === active) settle(); else go(n);
+    }
   };
   bar.addEventListener('pointerup', up);
   bar.addEventListener('pointercancel', up);
+  // our capture lost without pointerup → treat as cancel (ignore the link's implicit touch capture handing over)
+  bar.addEventListener('lostpointercapture', function (e) { if (e.target === bar) up(e); });
+  addEventListener('blur', function () { up(null); });
   bar.addEventListener('dragstart', function (e) { e.preventDefault(); });
 })();
 </script>
