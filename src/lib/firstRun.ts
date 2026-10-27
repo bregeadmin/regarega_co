@@ -98,6 +98,9 @@ function run(root: HTMLElement) {
     const all = new Set<string>(readJSON('rr_punched'));
     root.querySelectorAll<HTMLElement>('.fr-punch').forEach((b) => { if (b.classList.contains('done')) all.add(b.dataset.slug!); else all.delete(b.dataset.slug!); });
     writeJSON('rr_punched', [...all]);
+    // and into «мой батуми» (public/app-saves.js → rr_saves + the account when signed in)
+    const rs = (window as any).rrSaves;
+    if (rs) root.querySelectorAll<HTMLElement>('.fr-punch').forEach((b) => { if (rs.has('place', b.dataset.slug) !== b.classList.contains('done')) rs.set('place', b.dataset.slug, b.classList.contains('done'), 'batumi'); });
     setTimeout(() => {
       pocketN.textContent = n ? String(n) : '';
       pocketSub.textContent = n ? `${n} ${plural(n)}` : pocketSub.dataset.empty || '';
@@ -145,7 +148,11 @@ function run(root: HTMLElement) {
     sync(700);
   }));
   // already punched on this device (a second onboarding via ?welcome)
-  const had = new Set(readJSON('rr_punched'));
+  // rr_saves (public/app-saves.js) is the truth once it exists; rr_punched only as a fallback
+  const rs0 = (window as any).rrSaves;
+  const had = new Set<string | undefined>(rs0
+    ? [...root.querySelectorAll<HTMLElement>('.fr-punch')].map((b) => b.dataset.slug).filter((sl) => rs0.has('place', sl))
+    : readJSON('rr_punched'));
   root.querySelectorAll<HTMLElement>('.fr-punch').forEach((b) => { if (had.has(b.dataset.slug)) { b.classList.add('done'); b.setAttribute('aria-pressed', 'true'); } });
   if (had.size || !hasCards) sync(0); // no cards fetched at build → «дальше» is never locked
 

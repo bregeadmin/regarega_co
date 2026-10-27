@@ -1,6 +1,7 @@
 ---
 import TripFlag from '../components/TripFlag.astro';
 import '../styles/app-vt.css';
+import '../styles/app-saves.css';
 // Full-bleed native app-shell layout: edge-to-edge screens that draw their OWN chrome
 // (hero top bar, bottom nav, etc). NO site topbar, NO hamburger, NO black footer, and
 // unlike layouts/App.astro also NO app-header / TabBar — the page owns 100% of the frame.
@@ -32,6 +33,8 @@ const {
   <script is:inline>/* iOS «потянуть-обновить» спрашивает: можно ли перезагрузить? Нельзя, пока открыта шторка/диалог или карта. */Object.defineProperty(window,'rrNoPullRefresh',{configurable:true,get:function(){var m=document.querySelectorAll('[aria-modal="true"]');for(var i=0;i<m.length;i++){if(m[i].getClientRects().length)return true;}return document.documentElement.hasAttribute('data-no-ptr');}});</script>
   <script is:inline>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){});});}</script>
   <TripFlag />
+  <!-- «мой батуми»: save marks on cards + sync (bump ?v= on change) -->
+  <script is:inline src="/app-saves.js?v=1" defer></script>
 </head>
 <body class="app-full">
   <slot />

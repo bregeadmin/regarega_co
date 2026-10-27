@@ -23,7 +23,7 @@ const OTHER = isRu ? '/georgia/batumi/app/profile' : '/ru/georgia/batumi/app/pro
 const T = isRu
   ? {
       title: 'профиль — rega rega', desc: 'твой профиль rega rega — поездки и настройки.',
-      h: 'профиль', guest: 'гость', trip: 'моя поездка', haveBooking: 'у меня есть бронь', settings: 'настройки', lang: 'язык',
+      h: 'профиль', my: 'мой батуми', myEmpty: 'сохраняй места кружком в углу карточки', guest: 'гость', trip: 'моя поездка', haveBooking: 'у меня есть бронь', settings: 'настройки', lang: 'язык',
       langValue: 'русский', signIn: 'войти', signInHint: 'войди по коду из письма — твои поездки будут везде с тобой.',
       edit: 'изменить', name: 'имя', phone: 'телефон (необязательно)', save: 'сохранить', saving: 'сохраняем…', cancel: 'отмена',
       eName: 'напиши имя.', eNet: 'нет сети — попробуй ещё раз.', eGeneric: 'что-то пошло не так — попробуй ещё раз.',
@@ -34,7 +34,7 @@ const T = isRu
     }
   : {
       title: 'profile — rega rega', desc: 'your rega rega profile — trips and settings.',
-      h: 'profile', guest: 'guest', trip: 'my trip', haveBooking: 'i have a booking', settings: 'settings', lang: 'language',
+      h: 'profile', my: 'my batumi', myEmpty: 'save places with the circle on a card', guest: 'guest', trip: 'my trip', haveBooking: 'i have a booking', settings: 'settings', lang: 'language',
       langValue: 'english', signIn: 'sign in', signInHint: 'sign in with a code from your email — your trips follow you everywhere.',
       edit: 'edit', name: 'name', phone: 'phone (optional)', save: 'save', saving: 'saving…', cancel: 'cancel',
       eName: 'please enter your name.', eNet: "you're offline — try again.", eGeneric: 'something went wrong — please try again.',
@@ -70,6 +70,15 @@ const chev = `<svg class="pf-row__chevron" viewBox="0 0 24 24" fill="none" strok
       <p class="rr-display pf-name" id="pfName">{T.guest}</p>
       <p class="pf-contact" id="pfEmail" hidden></p>
       <p class="pf-contact" id="pfPhone" hidden></p>
+    </section>
+
+    <!-- «мой батуми»: everything saved with the mark on cards (public/app-saves.js) -->
+    <section class="pf-section pf-my-sec">
+      <a class="pf-city pf-my" href={`${BASE}/app/my`}>
+        <span class="pf-tile pf-my__tile"><svg viewBox="-6 -6 112 112" aria-hidden="true"><path fill-rule="evenodd" d="M 50,50 m -50,0 a 50,50 0 1,1 100,0 a 50,50 0 1,1 -100,0 z M 64,64 m -12,0 a 12,12 0 1,1 24,0 a 12,12 0 1,1 -24,0 z" /></svg></span>
+        <span class="pf-city__label">{T.my}<span class="pf-my__n" id="pfMyN"></span><small class="pf-my__hint" id="pfMyHint">{T.myEmpty}</small></span>
+        <Fragment set:html={chev} />
+      </a>
     </section>
 
     <!-- signed in: edit name / phone inline -->
@@ -168,6 +177,7 @@ const chev = `<svg class="pf-row__chevron" viewBox="0 0 24 24" fill="none" strok
       // this phone's trip/concierge state — cleared on sign-out and delete so the next account starts clean
       function clearLocal() {
         try { ['rr_trip', 'rr_trip_token', 'rr_claimed', 'rr_cc', 'rr_uid'].forEach(function (k) { localStorage.removeItem(k); }); } catch (e) {}
+        if (window.rrSaves) window.rrSaves.forget(); // the account's saves leave with it (a phone-only list stays)
       }
       function renderTrips(list) {
         var box = $('pfTrips');
@@ -215,8 +225,15 @@ const chev = `<svg class="pf-row__chevron" viewBox="0 0 24 24" fill="none" strok
           });
         }).catch(signedOut);
       }
+      function myN() {
+        var n = window.rrSaves ? window.rrSaves.count('batumi') : 0;
+        $('pfMyN').textContent = n ? ' · ' + n : '';
+        $('pfMyHint').hidden = n > 0;
+      }
+      addEventListener('rr-saves', myN);
       function init() {
         var rr = window.rrAuth;
+        myN();
         load();
         $('pfRetry').addEventListener('click', load);
         $('pfTripsRetry').addEventListener('click', function () {

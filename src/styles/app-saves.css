@@ -1,0 +1,81 @@
+/* «мой батуми» — the save mark on cards (public/app-saves.js) + its toast + the flying disc.
+   Unsaved: the brand mark (circle with a hole) as an outline on a frosted disc. Saved: the mark
+   fills orange. 44px hit area; the visible disc is 36px. Imported by layouts/App + AppFull. */
+.rr-punch{
+  position:absolute; top:6px; right:6px; z-index:5;
+  width:44px; height:44px; padding:0; margin:0; border:0; background:none; cursor:pointer;
+  display:grid; place-items:center; -webkit-tap-highlight-color:transparent;
+  color:var(--ink, #0A0908);
+}
+.rr-punch::before{
+  content:""; position:absolute; inset:4px; border-radius:50%;
+  background:rgba(255,253,249,.84); -webkit-backdrop-filter:blur(12px); backdrop-filter:blur(12px);
+  box-shadow:0 2px 10px rgba(10,9,8,.16);
+  transition:transform .16s cubic-bezier(.23,1,.32,1);
+}
+.rr-punch svg{ position:relative; width:19px; height:19px; display:block; overflow:visible; transition:transform .16s cubic-bezier(.23,1,.32,1); }
+.rr-punch path{ fill:transparent; stroke:currentColor; stroke-width:9; transition:fill .28s cubic-bezier(.23,1,.32,1), stroke .28s cubic-bezier(.23,1,.32,1); }
+.rr-punch.is-on path{ fill:var(--home, #FF5E1A); stroke:var(--home, #FF5E1A); stroke-width:0; }
+.rr-punch:active::before, .rr-punch:active svg{ transform:scale(.88); }
+/* the moment of saving: the mark presses in and settles (no bounce, no shake) */
+.rr-punch.is-punch svg{ animation:rr-press .42s cubic-bezier(.23,1,.32,1); }
+@keyframes rr-press{ 0%{ transform:scale(.8); } 100%{ transform:scale(1); } }
+.rr-punch:focus-visible{ outline:none; }
+.rr-punch:focus-visible::before{ box-shadow:0 0 0 2px var(--surface, #FFFDF9), 0 0 0 4px var(--ink, #0A0908); }
+/* on plain (non-photo) surfaces: no frosted disc, a quiet sunk one */
+.rr-punch--flat::before{ background:var(--sunk, #F1EDE4); -webkit-backdrop-filter:none; backdrop-filter:none; box-shadow:none; }
+/* inline (not absolutely placed) — e.g. in a header row */
+.rr-punch--inline{ position:relative; top:auto; right:auto; flex:none; }
+
+.rr-piece{
+  position:fixed; left:0; top:0; z-index:340; width:18px; height:18px; border-radius:50%;
+  background:var(--home, #FF5E1A); box-shadow:0 0 0 2px var(--surface, #FFFDF9), 0 6px 14px rgba(10,9,8,.24);
+  pointer-events:none; will-change:transform, opacity;
+}
+.tabbar a.rr-got .tabbar__icon{ transition:transform .3s cubic-bezier(.23,1,.32,1); transform:scale(1.14); }
+
+.rr-stoast{
+  position:fixed; left:50%; z-index:330;
+  bottom:calc(var(--tabbar-h, 66px) + var(--tabbar-bottom, 18px) + 14px);
+  transform:translateX(-50%); display:flex; align-items:center; gap:10px;
+  height:46px; padding:0 6px 0 8px; border-radius:999px; max-width:calc(100% - 32px);
+  background:var(--ink, #0A0908); color:#fff; font:600 14.5px/1 var(--font, system-ui); letter-spacing:-.01em; white-space:nowrap;
+  opacity:0; filter:blur(4px); pointer-events:none;
+  transition:opacity .28s cubic-bezier(.23,1,.32,1), filter .28s cubic-bezier(.23,1,.32,1);
+}
+.rr-stoast.on{ opacity:1; filter:none; pointer-events:auto; }
+.rr-stoast svg{ width:28px; height:28px; flex:none; overflow:visible; }
+.rr-stoast path{ fill:var(--home, #FF5E1A); }
+.rr-stoast span{ overflow:hidden; text-overflow:ellipsis; }
+.rr-stoast a{
+  flex:none; height:34px; padding:0 14px; border-radius:999px; display:grid; place-items:center;
+  background:rgba(255,255,255,.14); color:#fff; font-weight:700; text-decoration:none;
+}
+.rr-stoast a:active{ background:rgba(255,255,255,.24); }
+
+@media (prefers-reduced-motion:reduce){
+  .rr-punch::before, .rr-punch svg, .rr-punch path, .rr-stoast{ transition:none !important; }
+  .rr-punch.is-punch svg{ animation:none; }
+}
+
+/* ---- where the mark sits on existing cards ---- */
+.news-tile{ position:relative; }
+.news-tile > .rr-punch{ top:8px; right:8px; }
+.news-tile--plain .news-tile__body{ padding-right:40px; }
+.now-hero > .rr-punch{ top:8px; right:8px; }
+.now-hero .now-hero__tags{ right:62px; }
+.now-pc__th{ position:relative; }
+.now-pc__th > .rr-punch{ top:2px; right:2px; }
+.rr-punch[hidden]{ display:none; }
+/* big cards (place / flat / news): the mark joins the round glass buttons over the gallery */
+.gal .gal__start > .rr-punch{ width:42px; height:42px; }
+.gal .gal__start > .rr-punch::before{ display:none; }
+.gal .gal__start > .rr-punch:not(.is-on) path{ stroke:#fff; }
+.gal--none .gal__start > .rr-punch:not(.is-on) path{ stroke:var(--ink); }
+.gal .gal__start > .rr-punch:focus-visible{ box-shadow:0 0 0 2px #fff; }
+/* map sheet: rows (the mark is a span inside the row button) + the place card */
+.mp-row .now-pc__th > .rr-punch{ top:2px; right:2px; }
+.mp-det__ph > .rr-punch{ top:8px; right:8px; }
+/* map sheet: rows (the mark is a span inside the row button) + the place card */
+.mp-row .now-pc__th > .rr-punch{ top:2px; right:2px; }
+.mp-det__ph > .rr-punch{ top:8px; right:8px; }

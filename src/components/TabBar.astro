@@ -43,7 +43,7 @@ const TABS = [
   { key: 'stays', i: 1, href: `${base}/app/stays`, active: isActive('/app/stays', '/stays'), icon: ICONS.bed, label: L.stays },
   { key: 'trip', i: 1, href: `${base}/app/trip`, active: isActive('/app/trip'), icon: ICONS.key, label: L.trip, dot: true },
   { key: 'concierge', i: 2, href: `${base}/app/concierge`, active: isActive('/app/concierge'), icon: ICONS.sparkles, label: L.concierge },
-  { key: 'profile', i: 3, href: `${base}/app/profile`, active: isActive('/app/profile'), icon: ICONS.user, label: L.profile },
+  { key: 'profile', i: 3, href: `${base}/app/profile`, active: isActive('/app/profile', '/app/my'), icon: ICONS.user, label: L.profile },
 ];
 const activeTab = TABS.find((t) => t.active);
 const activeI = activeTab ? activeTab.i : -1;

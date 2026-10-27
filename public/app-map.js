@@ -97,10 +97,15 @@
       ? '<span class="now-tag rr-tag--home"><i></i>' + esc(L.stay) + '</span>'
       : '<span class="now-tag" style="' + esc(D.cats[it.k].st) + '"><i></i>' + esc(it.c) + '</span>';
     return '<button type="button" class="now-pc mp-row" data-i="' + it.i + '" data-k="' + k + '">' +
-      '<span class="now-pc__th">' + (it.q ? '<img src="' + esc(it.q) + '" alt="" loading="lazy" decoding="async" onload="this.classList.add(\'is-loaded\')">' : '') + '</span>' +
+      '<span class="now-pc__th">' + (it.q ? '<img src="' + esc(it.q) + '" alt="" loading="lazy" decoding="async" onload="this.classList.add(\'is-loaded\')">' : '') + punchHTML(it, true) + '</span>' +
       '<span class="now-pc__tx">' + tag + '<b class="now-pc__name">' + esc(it.n) + '</b>' +
       '<span class="now-pc__hrs">' + hrsHTML(it) + '</span>' +
       (it.w ? '<span class="now-pc__say">' + esc(it.w) + '</span>' : '') + '</span></button>';
+  }
+  // «мой батуми» mark (public/app-saves.js fills it in). Rows are <button>s → a span with role=button there.
+  function punchHTML(it, inRow) {
+    var d = ' data-k="' + (it.kind === 'stay' ? 'stay' : 'place') + '" data-s="' + esc(it.s) + '" data-n="' + esc(it.n) + '" data-c="batumi"';
+    return inRow ? '<span class="rr-punch" role="button" tabindex="0"' + d + '></span>' : '<button class="rr-punch" type="button"' + d + '></button>';
   }
   function hrsHTML(it) {
     var w = walkTxt(it), out = '';
@@ -270,7 +275,7 @@
     det.innerHTML = '<div class="mp-det">' +
       '<button class="mp-back" type="button" id="mpBack">' + svg(ICO.chevL) + esc(stay ? L.allFlats : L.all) + '</button>' +
       '<a class="mp-det__ph" href="' + esc(it.href) + '" aria-label="' + esc(it.n) + '" tabindex="-1">' +
-        (it.P ? '<img src="' + esc(it.P) + '" alt="" decoding="async" onload="this.classList.add(\'is-loaded\')">' : '') + '</a>' +
+        (it.P ? '<img src="' + esc(it.P) + '" alt="" decoding="async" onload="this.classList.add(\'is-loaded\')">' : '') + punchHTML(it, false) + '</a>' +
       (stay ? '<span class="now-tag rr-tag--home"><i></i>' + esc(L.stay) + '</span>'
             : '<span class="now-tag" style="' + esc(D.cats[it.k].st) + '"><i></i>' + esc(it.c) + '</span>') +
       '<h2 class="now-display mp-det__name">' + esc(it.n) + '</h2>' +

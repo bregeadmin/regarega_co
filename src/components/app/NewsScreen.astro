@@ -11,6 +11,7 @@ import '../../styles/app-place.css';
 import '../../styles/app-news.css';
 import TabBar from '../TabBar.astro';
 import Gallery from './Gallery.astro';
+import Punch from './Punch.astro';
 import { catLabel, catColor, catDark, catStyle, newsStyle } from '../../lib/guideCats';
 import { thumb } from '../../lib/thumb';
 import { newsPhotos, newsText, newsDate } from '../../lib/appNews';
@@ -45,6 +46,7 @@ const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fi
   <main class="pl-screen nw-screen" style={`--cat-c:${catColor('eat-drink')};--cat-d:${catDark('eat-drink')};--accent-c:${catColor('eat-drink')}`}>
     <Gallery photos={photos} slug={n.slug} lang={lang} home={`${BASE}/app/now`} alt={t.title} variant="poster">
       <button slot="start" class="pl-round" id="plShare" type="button" aria-label={T.share} set:html={svg(ICONS.share)} />
+      <Punch slot="start" k="news" s={n.slug} n={String(t.title || '').replace(/\*/g, '')} cls="rr-punch--inline" />
     </Gallery>
 
     <div class="pl-sheet">

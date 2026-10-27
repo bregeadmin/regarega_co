@@ -312,3 +312,12 @@
 @media (prefers-reduced-motion:reduce){
   .pf-edit, .pf-city, .pf-primary, .pf-light, .pf-trip{ transition:none; }
 }
+
+/* ---------- «мой батуми» row (top of the screen) ---------- */
+.pf-my-sec{ margin-top:0; }
+.pf-my__tile{ background:var(--ink); }
+.pf-my__tile svg{ width:20px; height:20px; display:block; overflow:visible; }
+.pf-my__tile path{ fill:var(--home); }
+.pf-my__n{ color:var(--ink-3); font-weight:700; }
+.pf-my__hint{ display:block; margin-top:2px; font-size:13px; font-weight:500; letter-spacing:-.01em; color:var(--ink-2); }
+.pf-my__hint[hidden]{ display:none; }

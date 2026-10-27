@@ -7,6 +7,7 @@ import '../../../../styles/app-stays.css';
 import { supabase, applyNames, type Apartment } from '../../../../lib/supabase';
 import { priceSym } from '../../../../lib/price';
 import { thumb } from '../../../../lib/thumb';
+import Punch from '../../../../components/app/Punch.astro';
 
 const LANG = 'en' as const;
 const BASE = '/georgia/batumi';
@@ -36,6 +37,7 @@ const n = apartments.length;
           <span class="sl-card__photo">
             <img src={ph(a)} alt="" loading={i < 2 ? 'eager' : 'lazy'} decoding="async" />
             <span class="sl-card__price">{a.price_from ? <><small>from</small> {priceSym(a.price_currency)}{a.price_from}<small> / night</small></> : 'on request'}</span>
+            <Punch k="stay" s={a.slug} n={a.title} />
           </span>
           <span class="sl-card__body">
             <span class="sl-card__name">{a.title.toLowerCase()}</span>

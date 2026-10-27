@@ -75,6 +75,20 @@ const rrAuth = {
       p_amount: p.amount ?? null, p_currency: p.currency || 'usd',
     });
   },
+  // «мой батуми» (migration 088). Each call → { ok, data } | { ok:false, missing } — missing = the
+  // RPCs are not in the database yet (PostgREST 404 / PGRST202): callers stay local-only.
+  saves: {
+    async call(fn: string, args?: Record<string, unknown>): Promise<{ ok: boolean; data?: any; missing?: boolean }> {
+      try {
+        const { data, error, status } = await sb.rpc(fn, args);
+        if (error) return { ok: false, missing: status === 404 || error.code === 'PGRST202' || error.code === '42883' };
+        return { ok: true, data };
+      } catch { return { ok: false }; }
+    },
+    list() { return rrAuth.saves.call('my_saves'); },
+    set(k: string, s: string, c: string, on: boolean) { return rrAuth.saves.call('set_save', { p_kind: k, p_slug: s, p_city: c, p_on: on }); },
+    merge(items: unknown[]) { return rrAuth.saves.call('merge_saves', { p_items: items }); },
+  },
   async signOut(): Promise<R> {
     try { await sb.auth.signOut(); } catch {}
     mirror('');

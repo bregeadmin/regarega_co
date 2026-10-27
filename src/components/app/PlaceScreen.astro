@@ -11,6 +11,7 @@ import '../../styles/app-shell.css';
 import '../../styles/app-place.css';
 import TabBar from '../TabBar.astro';
 import Gallery from './Gallery.astro';
+import Punch from './Punch.astro';
 import { catLabel, catColor, catDark, catStyle } from '../../lib/guideCats';
 import { priceSym } from '../../lib/price';
 import { thumb } from '../../lib/thumb';
@@ -126,6 +127,7 @@ const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fi
   <main class="pl-screen" style={`--cat-c:${catColor(p.category)};--cat-d:${catDark(p.category)};--accent-c:${catColor(p.category)}`}>
     <Gallery photos={photos} slug={p.slug} lang={lang} home={`${BASE}/app/now`} alt={name}>
       <button slot="start" class="pl-round" id="plShare" type="button" aria-label={T.share} set:html={svg(ICONS.share)} />
+      <Punch slot="start" k="place" s={p.slug} n={name} cls="rr-punch--inline" />
     </Gallery>
 
     <div class="pl-sheet">

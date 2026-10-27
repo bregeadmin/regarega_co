@@ -162,6 +162,7 @@ const CP_PHOTO = 'https://qkzinjawtumhjbezlyog.supabase.co/storage/v1/object/pub
 
     <a class="now-hero" id="nowHero" href={`${BASE}/app/guide`}>
       <img class="now-hero__img" id="nowHeroImg" alt="" onload="this.classList.add('is-loaded')" />
+      <button class="rr-punch" id="nowHeroPunch" type="button" data-k="place" data-c="batumi" hidden></button>
       <span class="now-hero__tags" id="nowHeroTags" hidden>
         <span class="now-tag now-tag--photo" id="nowHeroTag"><i></i><span id="nowHeroCat"></span></span>
         <span class="now-hero__pick" id="nowPick"></span>
@@ -329,6 +330,7 @@ const CP_PHOTO = 'https://qkzinjawtumhjbezlyog.supabase.co/storage/v1/object/pub
 
       if (hero) {
         $('nowHero').href = BASE + '/app/place/' + hero.p.s;
+        var hp = $('nowHeroPunch'); hp.dataset.s = hero.p.s; hp.dataset.n = hero.p.n; hp.hidden = false;
         $('nowHeroImg').src = hero.p.p;
         var nm = $('nowName');
         nm.textContent = hero.p.n;
@@ -354,6 +356,8 @@ const CP_PHOTO = 'https://qkzinjawtumhjbezlyog.supabase.co/storage/v1/object/pub
         var img = document.createElement('img'); img.src = x.p.q; img.alt = ''; img.loading = 'lazy'; img.decoding = 'async';
         img.onload = function () { img.classList.add('is-loaded'); };
         th.appendChild(img);
+        var pb = el('button', 'rr-punch'); pb.type = 'button'; pb.dataset.k = 'place'; pb.dataset.s = x.p.s; pb.dataset.n = x.p.n; pb.dataset.c = 'batumi';
+        th.appendChild(pb);
         var tx = el('span', 'now-pc__tx');
         var cs = catOf(x.p.k);
         var tag = el('span', 'now-tag'); if (cs) tag.setAttribute('style', cs.s);

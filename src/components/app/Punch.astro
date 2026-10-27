@@ -1,0 +1,8 @@
+---
+// The «мой батуми» save mark for a card / screen. Behaviour, the mark itself, aria-pressed and
+// aria-label are filled in by public/app-saves.js (styles: styles/app-saves.css). Put it inside a
+// position:relative card; the click never reaches the card's link.
+export interface Props { k: 'place' | 'stay' | 'news'; s: string; n?: string; c?: string; cls?: string }
+const { k, s, n = '', c = 'batumi', cls = '' } = Astro.props;
+---
+<button class={`rr-punch${cls ? ' ' + cls : ''}`} type="button" data-k={k} data-s={s} data-n={n} data-c={c}></button>

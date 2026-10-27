@@ -15,6 +15,7 @@
 // guest is still on step 08 (guest_instruction(token) leaves 'pending').
 import AppFull from '../../layouts/AppFull.astro';
 import Gallery from './Gallery.astro';
+import Punch from './Punch.astro';
 import '../../styles/app-shell.css';
 import '../../styles/app-apt.css';
 import type { Apartment } from '../../lib/supabase';
@@ -171,6 +172,7 @@ const sign = `<svg viewBox="0 0 100 100" aria-hidden="true"><path fill-rule="eve
   <main class="st-page" id="stPage">
     <Gallery photos={photos} slug={apt.slug} lang={lang} home={`${BASE}/app/stays`} alt={title}>
       <button slot="start" class="st-round" id="stShare" type="button" aria-label={T.share} hidden set:html={icon('share')} />
+      <Punch slot="start" k="stay" s={apt.slug} n={title} cls="rr-punch--inline" />
     </Gallery>
 
     <div class="st-sheet">

@@ -13,6 +13,7 @@ import '../../styles/app-guide.css';
 import { supabase } from '../../lib/supabase';
 import { catLabel, catColor, catStyle, newsStyle } from '../../lib/guideCats';
 import { thumb } from '../../lib/thumb';
+import Punch from './Punch.astro';
 import { loadNews, newsPhotos, newsText, newsDate, newsDay } from '../../lib/appNews';
 
 export interface Props { lang: 'en' | 'ru' }
@@ -106,6 +107,7 @@ const mdEm = (raw: string) => esc(raw).replace(/\*([^*]+)\*/g, '<em>$1</em>').re
               <span class="news-tile__read">{T.read}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 6l6 6l-6 6" /></svg></span>
             </span>
             {photo && <span class="news-tile__photo"><img src={thumb(photo, 320)} alt="" loading="lazy" onload="this.classList.add('is-loaded')" /></span>}
+            <Punch k="news" s={n.slug} n={String(t.title || '').replace(/\*/g, '')} />
           </a>
         );
       })}
@@ -116,6 +118,7 @@ const mdEm = (raw: string) => esc(raw).replace(/\*([^*]+)\*/g, '<em>$1</em>').re
           <a class="place-tile" data-category={p.category} href={`${BASE}/app/place/${p.slug}`}>
             <span class="place-tile__photo">
               {photo && <img src={thumb(photo, 480)} alt="" loading="lazy" onload="this.classList.add('is-loaded')" />}
+              <Punch k="place" s={p.slug} n={p.title || p.name} />
             </span>
             <span class="rr-tag place-tile__tag" style={catStyle(p.category)}><i></i><span>{catLabel(p.category, lang)}</span></span>
             <span class="place-tile__name">{p.title || p.name}</span>
