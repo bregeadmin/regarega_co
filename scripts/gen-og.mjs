@@ -1,17 +1,17 @@
 // Build-time generator: branded EDITORIAL link-preview cards (1200x630) per place & apartment.
 // Written to dist/og/*.png; pages reference them as og:image. Runs after `astro build`.
-import { createCanvas, GlobalFonts, loadImage } from '@napi-rs/canvas';
+import { createCanvas, GlobalFonts, loadImage, Path2D } from '@napi-rs/canvas';
 import { writeFileSync, mkdirSync, readFileSync } from 'node:fs';
 import { join, dirname } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { createClient } from '@supabase/supabase-js';
+import { WORDMARK_PATHS } from '../src/lib/wordmark.js';
 
 const __dir = dirname(fileURLToPath(import.meta.url));
 const F = (n) => join(__dir, 'og-fonts', n);
-GlobalFonts.registerFromPath(F('bricolage-800.woff'), 'BricolageBold');
 GlobalFonts.registerFromPath(F('mono-700.woff'), 'MonoBold');
 GlobalFonts.registerFromPath(F('mono-600.woff'), 'MonoSemi');
-// Card type = Geologica (the site/app font; latin + cyrillic in one face). Bricolage stays only in the wordmark.
+// Card type = Geologica (the site/app font; latin + cyrillic in one face). The wordmark is drawn paths (src/lib/wordmark.js).
 GlobalFonts.registerFromPath(F('geologica-800.ttf'), 'GeoBold');
 GlobalFonts.registerFromPath(F('geologica-400.ttf'), 'GeoReg');
 GlobalFonts.registerFromPath(F('jbm-bold.woff2'), 'JBM');
@@ -85,11 +85,9 @@ async function card(d) {
 
   // header: mark + wordmark
   mark(x, px + 22, 92, 22);
-  x.font = '34px BricolageBold'; x.fillStyle = '#0A0908';
-  const wmX = px + 22 + 22 + 18;
-  x.fillText('rega', wmX, 103);
-  const w1 = x.measureText('rega').width;
-  x.fillStyle = 'rgba(10,9,8,0.38)'; x.fillText('rega', wmX + w1, 103);
+  const wmX = px + 22 + 22 + 18, wmS = 34 * 0.528 / 100;
+  x.save(); x.translate(wmX, 103 - 100 * wmS); x.scale(wmS, wmS); x.fillStyle = '#0A0908';
+  WORDMARK_PATHS.forEach((d) => x.fill(new Path2D(d))); x.restore();
   // kicker right
   x.font = '17px ' + fMonoS; x.fillStyle = '#6B6862'; x.textAlign = 'right';
   x.fillText(String(d.kicker).toUpperCase(), pr, 99); x.textAlign = 'left';

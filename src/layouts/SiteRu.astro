@@ -1,6 +1,7 @@
 ---
 import TripFlag from '../components/TripFlag.astro';
 import '../styles/shell.css';
+import { WORDMARK_SVG, WORDMARK_PATHS } from '../lib/wordmark.js';
 import '../styles/date-sheet.css';
 import '../styles/tabbar.css';
 import TabBar from '../components/TabBar.astro';
@@ -47,7 +48,7 @@ const ogImage = new URL(image, Astro.site).href;
   <meta name="twitter:image" content={ogImage} />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Geologica:wght@300..900&family=Bricolage+Grotesque:opsz,wght@12..96,800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Geologica:wght@300..900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="icon" href="/favicon.ico?v=2" sizes="48x48" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2" />
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=2" />
@@ -97,7 +98,7 @@ const ogImage = new URL(image, Astro.site).href;
     <a href="/ru/georgia/batumi/stays">квартиры</a>
     <a href="/ru/georgia/batumi/guide">гайд</a>
   </div>
-  <a href="/ru/georgia/batumi" class="ctr">rega<span class="twin">rega</span></a>
+  <a href="/ru/georgia/batumi" class="ctr" aria-label="rega rega"><Fragment set:html={WORDMARK_SVG} /></a>
   <div class="right">
     <a href="#" class="city">батуми <span class="arr">▾</span></a>
     <a href={enHref} class="lang" title="english">en</a>
@@ -231,13 +232,13 @@ const ogImage = new URL(image, Astro.site).href;
     });
   })();
 </script>
-<script is:inline>
+<script is:inline define:vars={{ RR_WM_PATHS: WORDMARK_PATHS }}>
 // Branded Instagram-Story image generator (client-side canvas, 1080x1920).
 // This is the function that will live in the site shell. Developed here in a harness.
 window.__rrBuildStory = async function (d) {
   const W = 1080, H = 1920;
   await Promise.all([
-    document.fonts.load('800 96px "Geologica"'), document.fonts.load('800 54px "Bricolage Grotesque"'),
+    document.fonts.load('800 96px "Geologica"'),
     document.fonts.load('400 36px "Geologica"'),
     document.fonts.load('700 26px "JetBrains Mono"'),
     document.fonts.load('500 26px "JetBrains Mono"'),
@@ -301,11 +302,10 @@ window.__rrBuildStory = async function (d) {
   const MY = 110;
   mark(pad + 26, MY, 26);
   x.textBaseline = 'alphabetic';
-  x.font = '800 54px "Bricolage Grotesque"'; // wordmark stays Bricolage (logo)
-  const wmX = pad + 26 + 26 + 22;
-  x.fillStyle = '#FAF7F0'; x.fillText('rega', wmX, MY + 18);
-  const w1 = x.measureText('rega').width;
-  x.fillStyle = 'rgba(250,247,240,0.5)'; x.fillText('rega', wmX + w1, MY + 18);
+  // wordmark = drawn paths (same x-height as the old 54px type), both words one colour
+  const wmX = pad + 26 + 26 + 22, wmS = 54 * 0.528 / 100;
+  x.save(); x.translate(wmX, MY + 18 - 100 * wmS); x.scale(wmS, wmS); x.fillStyle = '#FAF7F0';
+  RR_WM_PATHS.forEach((d) => x.fill(new Path2D(d))); x.restore();
   x.font = '600 23px "JetBrains Mono"'; x.fillStyle = 'rgba(250,247,240,0.82)';
   x.textAlign = 'right'; x.fillText(String(d.kicker).toUpperCase(), W - pad, MY + 10); x.textAlign = 'left';
 

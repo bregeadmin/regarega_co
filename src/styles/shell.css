@@ -109,11 +109,13 @@ button:active,.btn:active,.act:active,.cta:active,.story-btn:active,.share-btn:a
 .menu-overlay .menu-close svg{width:20px;height:20px}
 .apt .fav.on{color:var(--accent)}
 .apt .fav.on:hover{color:var(--accent-deep)}
-.topbar .ctr{justify-self:center;display:flex;align-items:flex-end;gap:3px;font-family:"Bricolage Grotesque",sans-serif;font-size:24px;font-weight:800;letter-spacing:-.04em;text-transform:none;line-height:1}
+.topbar .ctr{justify-self:center;display:flex;align-items:flex-end;gap:3px;font-size:24px;text-transform:none;line-height:1}
+/* вордмарк — нарисованная надпись (src/lib/wordmark.js); .528em = высота строчных прежнего шрифта при том же кегле */
+.rr-wm{display:inline-block;height:.528em;width:auto;overflow:visible;flex:none}
+.topbar .ctr .rr-wm{margin-bottom:-.07em} /* базовая линия на месте прежней текстовой */
 .topbar .ctr .d{width:10px;height:10px;border-radius:50%;background:var(--accent);mix-blend-mode:normal;margin-bottom:2px;margin-left:5px}
 .topbar .ctr{gap:0}
 .topbar .ctr .d{width:9px;height:9px;margin-left:5px;margin-bottom:0}
-.topbar .ctr .twin{opacity:.38;margin-left:1px}
 .topbar a:hover{opacity:.6}
 @keyframes slowzoom{to{transform:scale(1.14)}}
 @keyframes rise{from{opacity:0;transform:translateY(24px)}to{opacity:1;transform:none}}
