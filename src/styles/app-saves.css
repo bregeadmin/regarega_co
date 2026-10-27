@@ -79,3 +79,16 @@
 /* map sheet: rows (the mark is a span inside the row button) + the place card */
 .mp-row .now-pc__th > .rr-punch{ top:2px; right:2px; }
 .mp-det__ph > .rr-punch{ top:8px; right:8px; }
+
+/* size pass (owner: the disc read as a big white blob on small photos): the hit area stays 44px,
+   the visible disc is 28px (24px on small thumbnails), the mark is drawn with a crisp
+   non-scaling 1.8px line so it reads on a phone */
+.rr-punch{ top:0; right:0; }
+.rr-punch::before{ inset:8px; background:rgba(255,253,249,.92); box-shadow:0 1px 6px rgba(10,9,8,.18); }
+.rr-punch svg{ width:15px; height:15px; }
+.rr-punch path{ stroke-width:1.8px; vector-effect:non-scaling-stroke; }
+.rr-punch.is-on::before{ background:rgba(255,253,249,.96); }
+/* on list thumbnails (everything except the big hero card and the inline header marks) — smaller */
+.rr-punch:not(.rr-punch--inline):not(#nowHeroPunch){ top:-4px; right:-4px; }
+.rr-punch:not(.rr-punch--inline):not(#nowHeroPunch)::before{ inset:10px; }
+.rr-punch:not(.rr-punch--inline):not(#nowHeroPunch) svg{ width:13px; height:13px; }
