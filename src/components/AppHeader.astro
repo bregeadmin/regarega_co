@@ -4,23 +4,23 @@
 // Rendered by every app screen (guide/stays/map via layouts/App.astro; now/concierge/profile/
 // search directly) so the header is identical everywhere. Styles: styles/app-shell.css.
 // The city pill lives under the logo on the home screen only (NowScreen #cityPill).
-// `view` = which header action the current screen IS: on the map the map toggle flips to a
-// list icon that goes back to the guide; on search the search icon shows as active.
-export interface Props { lang?: 'en' | 'ru'; view?: 'map' | 'search' }
+// `view` = which header action the current screen IS: on search the search icon shows as active.
+// The map (components/app/MapScreen.astro) is its own full screen without this header: the
+// script below remembers which button / tile opened it (circle reveal) and plays the reverse
+// circle when the map closes back onto this page (styles/app-vt.css).
+export interface Props { lang?: 'en' | 'ru'; view?: 'search' }
 const { lang = 'en', view } = Astro.props;
 const isRu = lang === 'ru';
 const base = isRu ? '/ru/georgia/batumi' : '/georgia/batumi';
 const L = isRu
-  ? { map: 'карта', list: 'список', search: 'поиск', home: 'rega rega — гид' }
-  : { map: 'map', list: 'list', search: 'search', home: 'rega rega — guide' };
+  ? { map: 'карта', search: 'поиск', home: 'rega rega — гид' }
+  : { map: 'map', search: 'search', home: 'rega rega — guide' };
 
 // Real Tabler-icons "outline" path data (viewBox 0 0 24 24).
 const ICONS = {
   map: '<path d="M3 7l6 -3l6 3l6 -3v13l-6 3l-6 -3l-6 3v-13" /><path d="M9 4v13" /><path d="M15 7v13" />',
-  list: '<path d="M9 6l11 0" /><path d="M9 12l11 0" /><path d="M9 18l11 0" /><path d="M5 6l0 .01" /><path d="M5 12l0 .01" /><path d="M5 18l0 .01" />',
   search: '<path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0" /><path d="M21 21l-6 -6" />',
 };
-const onMap = view === 'map';
 ---
 <header class="app-header">
   <div class="app-header__inner">
@@ -29,9 +29,9 @@ const onMap = view === 'map';
       <span class="app-logo__wm" aria-hidden="true">rega<span class="twin">rega</span></span>
     </a>
     <div class="app-header__actions">
-      <a class="app-header__mapbtn" href={onMap ? `${base}/app/guide` : `${base}/app/map`}>
-        <svg class="app-header__actionicon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={onMap ? ICONS.list : ICONS.map} />
-        <span>{onMap ? L.list : L.map}</span>
+      <a class="app-header__mapbtn" href={`${base}/app/map`}>
+        <svg class="app-header__actionicon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={ICONS.map} />
+        <span>{L.map}</span>
       </a>
       <a class={`app-header__action${view === 'search' ? ' is-active' : ''}`} href={`${base}/app/search`} aria-label={L.search} aria-current={view === 'search' ? 'page' : undefined}>
         <svg class="app-header__actionicon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={ICONS.search} />
@@ -39,3 +39,49 @@ const onMap = view === 'map';
     </div>
   </div>
 </header>
+
+<script is:inline>
+  // Map circle reveal (MapScreen + app-vt.css). 1) Tap on anything that opens the map (this
+  // header button, the home tiles): remember its centre → the map grows out of it.
+  // 2) Leaving to the map: the tab bar stays inside this page's snapshot so the circle covers it.
+  // 3) Coming back from the map by X: the map shrinks back into the same spot.
+  (function () {
+    if (window.rrMapOrigin) return;
+    window.rrMapOrigin = true;
+    var html = document.documentElement;
+    var isMap = function (u) { try { u = new URL(u, location.href); return u.origin === location.origin && /\/app\/map\/?$/.test(u.pathname); } catch (e) { return false; } };
+    document.addEventListener('click', function (e) {
+      if (e.defaultPrevented || e.button !== 0 || e.metaKey || e.ctrlKey || e.shiftKey || e.altKey) return;
+      var a = e.target.closest && e.target.closest('a[href]');
+      if (!a || !isMap(a.href)) return;
+      var r = a.getBoundingClientRect();
+      try {
+        sessionStorage.setItem('rr_map_from', JSON.stringify({
+          x: Math.round(r.left + r.width / 2), y: Math.round(r.top + r.height / 2), r: Math.round(Math.min(r.width, r.height) / 2),
+          to: new URL(a.href, location.href).pathname, from: location.pathname + location.search, t: Date.now(),
+        }));
+      } catch (x) {}
+    });
+    // registered after TabBar's own pageswap handler (which resets the name) → ours wins
+    var hideBar = function (e) {
+      var to = e.activation && e.activation.entry && e.activation.entry.url;
+      if (!to || !isMap(to)) return;
+      [].forEach.call(document.querySelectorAll('.tabbar, .tabbar-fade'), function (el) { el.style.viewTransitionName = 'none'; });
+    };
+    var late = function () { addEventListener('pageswap', hideBar); };
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', late); else late();
+    addEventListener('pagereveal', function (e) {
+      var b = null;
+      try { b = JSON.parse(sessionStorage.getItem('rr_map_back') || 'null'); sessionStorage.removeItem('rr_map_back'); } catch (x) {}
+      var vt = e.viewTransition;
+      if (!vt || !b || b.to !== location.pathname + location.search || Date.now() - b.t > 6000) return;
+      html.style.setProperty('--rr-mx', b.x + 'px');
+      html.style.setProperty('--rr-my', b.y + 'px');
+      html.style.setProperty('--rr-mr', b.r + 'px');
+      html.style.setProperty('--rr-mR', b.R + 'px');
+      html.classList.add('rr-vt-mapback');
+      var off = function () { html.classList.remove('rr-vt-mapback'); };
+      vt.finished.then(off, off);
+    });
+  })();
+</script>

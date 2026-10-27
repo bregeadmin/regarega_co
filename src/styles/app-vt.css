@@ -46,3 +46,24 @@ html.rr-vt-back::view-transition-group(*.rr-ph){ animation-duration:.42s; animat
 ::view-transition-old(rr-gal-top):only-child, ::view-transition-old(rr-gal-cnt):only-child, ::view-transition-old(rr-gal-segs):only-child{
   animation:rr-vt-out .12s cubic-bezier(.23,1,.32,1) both;
 }
+
+/* ---- map (Task 5): the map opens as a circle growing out of the tapped button / tile and closes
+   back into it. Centre + radii: --rr-mx/--rr-my (centre), --rr-mr (the button), --rr-mR (cover
+   the screen / where a header swipe-down left it) — set on <html> by MapScreen (open) and
+   AppHeader (close) from sessionStorage. The page underneath stays still; only the circle moves. */
+html.rr-vt-map::view-transition-old(root){ animation:none; }
+html.rr-vt-map::view-transition-new(root){ animation:rr-map-in .64s cubic-bezier(.32,.72,0,1) both; }
+html.rr-vt-mapback::view-transition-new(root){ animation:none; }
+html.rr-vt-mapback::view-transition-old(root){ z-index:1; animation:rr-map-out .5s cubic-bezier(.4,0,.2,1) both; }
+/* the tab bar of the page we return to appears once the circle is nearly closed */
+html.rr-vt-mapback::view-transition-new(tabbar):only-child,
+html.rr-vt-mapback::view-transition-new(tabbar-fade):only-child{ animation:rr-vt-in .2s cubic-bezier(.23,1,.32,1) .34s both; }
+@keyframes rr-map-in{
+  from{ clip-path:circle(var(--rr-mr) at var(--rr-mx) var(--rr-my)); }
+  to{ clip-path:circle(var(--rr-mR) at var(--rr-mx) var(--rr-my)); }
+}
+@keyframes rr-map-out{
+  0%{ clip-path:circle(var(--rr-mR) at var(--rr-mx) var(--rr-my)); opacity:1; }
+  82%{ clip-path:circle(var(--rr-mr) at var(--rr-mx) var(--rr-my)); opacity:1; }
+  100%{ clip-path:circle(var(--rr-mr) at var(--rr-mx) var(--rr-my)); opacity:0; }
+}

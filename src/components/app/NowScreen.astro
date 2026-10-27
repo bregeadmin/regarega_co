@@ -23,6 +23,7 @@ import FirstRun from './FirstRun.astro';
 import { supabase } from '../../lib/supabase';
 import { GUIDE_CATS, WORLDS, catWorld, catIcon, catLabel, catColor, catStyle } from '../../lib/guideCats';
 import { thumb } from '../../lib/thumb';
+import { placePhoto, placeWhy } from '../../lib/placeLine';
 import { loadNews, newsPhotos, newsText, newsDate, newsDay } from '../../lib/appNews';
 
 export interface Props { lang: 'en' | 'ru' }
@@ -71,17 +72,8 @@ const { data: gp } = await supabase
   .eq('status', 'published');
 const gpAll = (gp || []) as any[];
 
-const photoOf = (p: any) => (p.photos && p.photos[0]) || p.image || '';
-// one line on why this place: the editorial take (EN) / first clause of the RU summary
-const whyOf = (p: any) => {
-  // (RU has no take yet — summary_ru often starts with hours, so use the body's first sentence)
-  let raw = isRu ? String(p.body_ru || '').split(/(?<=[.!?])\s|\n/)[0] : String(p.take_title || '');
-  // "garage wines — это винный бар…" → "винный бар…" (the name is already the headline)
-  const name = String(p.title || p.name || '').toLowerCase().split(/\s+/)[0];
-  if (isRu && name && raw.toLowerCase().startsWith(name) && raw.includes(' — ')) raw = raw.slice(raw.indexOf(' — ') + 3).replace(/^это\s+/i, '');
-  const clean = raw.replace(/\*+/g, '').replace(/\s+/g, ' ').replace(/[.]$/, '').trim();
-  return clean.length > 120 ? clean.slice(0, 120).replace(/\s+\S*$/, '') + '…' : clean;
-};
+const photoOf = placePhoto;
+const whyOf = (p: any) => placeWhy(p, lang);
 
 const CAT_ORDER = ['eat-drink', 'wellness', 'move-around', 'work'];
 const withPhoto = gpAll
@@ -238,6 +230,7 @@ const eatC = catColor('eat-drink');
 
   <TabBar lang={lang} />
 
+  <script is:inline src="/app-hours.js?v=1"></script>
   <script is:inline define:vars={{ PLACES: PICK_DATA, CATS: CAT_STYLE, LANG: lang, BASE }}>
     (function () {
       var RU = LANG === 'ru';
@@ -257,51 +250,12 @@ const eatC = catColor('eat-drink');
         { from: 0, to: 5, ru: ['ночь. что ещё', 'открыто?'], en: ['night. what’s', 'still open?'] },
       ];
       var $ = function (id) { return document.getElementById(id); };
-      var DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];
-      var now = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Tbilisi' }));
-      var hour = now.getHours(), dow = now.getDay(), mins = hour * 60 + now.getMinutes();
-
-      // Google hours: "10:00 AM - 10:00 PM", "12:00 - 10:45 PM" (suffix only on the close), "Open 24 hours", "Closed"
-      function pt(s, fallback) {
-        var m = String(s).match(/(\d{1,2}):(\d{2})\s*(AM|PM)?/i); if (!m) return null;
-        var suf = m[3] || fallback; var h = +m[1];
-        if (suf) { h = h % 12; if (/pm/i.test(suf)) h += 12; }
-        return h * 60 + (+m[2]);
-      }
-      function ranges(str) {
-        if (!str || /closed/i.test(str)) return [];
-        if (/24/.test(str) && /hour/i.test(str)) return [{ o: 0, c: 1440, all: true }];
-        return str.split(',').map(function (r) {
-          var p = r.split(/[–—-]/); if (p.length < 2) return null;
-          var suf = (p[1].match(/(AM|PM)/i) || [])[1];
-          var o = pt(p[0], suf), c = pt(p[1]); if (o == null || c == null) return null;
-          if (c <= o) c += 1440; return { o: o, c: c };
-        }).filter(Boolean);
-      }
-      function dayStr(hours, d) {
-        for (var i = 0; i < hours.length; i++) { var l = hours[i], k = l.indexOf(':'); if (k > 0 && l.slice(0, k).trim() === DAYS[d]) return l.slice(k + 1).trim(); }
-        return '';
-      }
-      // → null (no hours known), false (closed), or { all } / { close: minutes-of-day }
-      function openNow(hours) {
-        if (!hours || !hours.length) return null;
-        var today = ranges(dayStr(hours, dow)), yest = ranges(dayStr(hours, (dow + 6) % 7));
-        for (var i = 0; i < today.length; i++) if (mins >= today[i].o && mins < today[i].c) return today[i].all ? { all: true } : { close: today[i].c % 1440 };
-        for (var j = 0; j < yest.length; j++) if (mins + 1440 >= yest[j].o && mins + 1440 < yest[j].c) return { close: yest[j].c % 1440 };
-        return false;
-      }
-      function hhmm(m) { return ('0' + Math.floor(m / 60)).slice(-2) + ':' + ('0' + (m % 60)).slice(-2); }
-      function statusText(o) {
-        if (!o) return '';
-        if (o.all) return RU ? 'открыто круглосуточно' : 'open 24 hours';
-        return (RU ? 'открыто до ' : 'open till ') + hhmm(o.close);
-      }
-      // short form for the list rows: «до 23:00» / «until 23:00»
-      function shortStatus(o) {
-        if (!o) return '';
-        if (o.all) return RU ? 'круглосуточно' : '24 hours';
-        return (RU ? 'до ' : 'until ') + hhmm(o.close);
-      }
+      // «open now» from Google hours — shared with the map (public/app-hours.js)
+      var H = window.rrHours, T0 = H.now();
+      var now = T0.date, hour = T0.hour;
+      var openNow = function (h) { return H.openNow(h, T0); };
+      var statusText = function (o) { return H.status(o, RU); };
+      var shortStatus = function (o) { return H.short(o, RU); };
       var catOf = function (k) { return CATS[k] || null; };
       var join = function (a, b) { return a && b ? a + ' · ' + b : a || b; };
 
