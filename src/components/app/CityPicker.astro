@@ -9,6 +9,7 @@
 import '../../styles/app-cities.css';
 import { CITIES, PAGE_CITIES, cityName, cityCountry, skylineSvg } from '../../lib/cities';
 import { thumb } from '../../lib/thumb';
+import { WORDMARK_SVG } from '../../lib/wordmark.js';
 
 export interface Props {
   lang: 'en' | 'ru';
@@ -73,7 +74,7 @@ const bg = photo ? thumb(photo, 828) : '';
         <section class={`cp-pg${c.face!.dark ? '' : ' is-light'}`} style={`background:linear-gradient(180deg,${c.face!.sky[0]},${c.face!.sky[1]})`} data-i={i} data-id={c.id} data-tz={c.tz} data-lat={c.lat} data-lng={c.lng} data-dark={c.face!.dark ? '1' : '0'} aria-label={nm}>
           {c.open && bg && <div class="cp-bgphoto" aria-hidden="true"><img src={bg} alt="" decoding="async" onerror="this.parentNode.remove()" /></div>}
           <div class="cp-in">
-            <span class="cp-logo" aria-hidden="true"><Fragment set:html={MARK} /><span class="cp-wm">rega<span class="twin">rega</span></span></span>
+            <span class="cp-logo" aria-hidden="true"><Fragment set:html={MARK} /><span class="cp-wm"><Fragment set:html={WORDMARK_SVG} /></span></span>
             {c.open
               ? <span class="cp-st" data-trip-chip><Fragment set:html={svg(I.pin)} /><span data-st>{T.open} · {total} {T.inGuide}</span></span>
               : <span class="cp-st"><Fragment set:html={svg(I.clock)} />{T.soon}</span>}

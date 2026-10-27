@@ -1,6 +1,6 @@
 ---
 // Shared native-app header (r4/final/map.html .top): logo 1:1 with the site on the left (punch
-// sign + "rega" + faded "rega"), on the right the labelled map button and round search.
+// sign + drawn wordmark, src/lib/wordmark.js), on the right the labelled map button and round search.
 // Rendered by every app screen (guide/stays/map via layouts/App.astro; now/concierge/profile/
 // search directly) so the header is identical everywhere. Styles: styles/app-shell.css.
 // The city pill lives under the logo on the home screen only (NowScreen #cityPill).
@@ -21,12 +21,13 @@ const ICONS = {
   map: '<path d="M3 7l6 -3l6 3l6 -3v13l-6 3l-6 -3l-6 3v-13" /><path d="M9 4v13" /><path d="M15 7v13" />',
   search: '<path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0" /><path d="M21 21l-6 -6" />',
 };
+import { WORDMARK_SVG } from '../lib/wordmark.js';
 ---
 <header class="app-header">
   <div class="app-header__inner">
     <a class="app-logo" href={`${base}/app/now`} aria-label={L.home}>
       <svg class="app-logo__sign" viewBox="0 0 100 100" aria-hidden="true"><path fill-rule="evenodd" fill="#FF5E1A" d="M 50,50 m -50,0 a 50,50 0 1,1 100,0 a 50,50 0 1,1 -100,0 z M 64,64 m -12,0 a 12,12 0 1,1 24,0 a 12,12 0 1,1 -24,0 z"/></svg>
-      <span class="app-logo__wm" aria-hidden="true">rega<span class="twin">rega</span></span>
+      <span class="app-logo__wm" aria-hidden="true"><Fragment set:html={WORDMARK_SVG} /></span>
     </a>
     <div class="app-header__actions">
       <a class="app-header__mapbtn" href={`${base}/app/map`}>

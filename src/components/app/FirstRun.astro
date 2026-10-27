@@ -12,6 +12,7 @@
 // The animation + onboarding behaviour is src/lib/firstRun.ts.
 import '../../styles/app-firstrun.css';
 import { supabase } from '../../lib/supabase';
+import { WORDMARK_SVG } from '../../lib/wordmark.js';
 import { catColor } from '../../lib/guideCats';
 import { thumb } from '../../lib/thumb';
 
@@ -146,7 +147,7 @@ const legStyle = (s: string) => (s.startsWith('ring:') ? `box-shadow:inset 0 0 0
   <!-- onboarding (under the splash; the splash hands over to it) -->
   <div class="fr-ob" id="frOb">
     <div class="fr-bar">
-      <span class="fr-logo" id="frLogo"><svg viewBox="0 0 100 100" aria-hidden="true"><path fill-rule="evenodd" fill="var(--home)" d={MARK} /></svg><span class="fr-wm">rega<span class="twin">rega</span></span></span>
+      <span class="fr-logo" id="frLogo"><svg viewBox="0 0 100 100" aria-hidden="true"><path fill-rule="evenodd" fill="var(--home)" d={MARK} /></svg><span class="fr-wm"><Fragment set:html={WORDMARK_SVG} /></span></span>
       <button class="fr-skip" type="button" data-fr-finish>{T.skip}</button>
     </div>
     <div class="fr-prog" aria-hidden="true"><i class="on"><b></b></i><i><b></b></i><i><b></b></i></div>
@@ -246,7 +247,7 @@ const legStyle = (s: string) => (s.startsWith('ring:') ? `box-shadow:inset 0 0 0
       <div class="fr-legend">{T.leg.map((l, i) => <span class={i === 5 ? 'is-home' : ''}><i style={legStyle(LEG_STYLE[i])}></i>{l}</span>)}</div>
     </div>
     <div class="fr-cap" id="frC3"><Fragment set:html={T.c3} /></div>
-    <div class="fr-lock" id="frLock" aria-hidden="true"><svg viewBox="0 0 100 100"><path fill-rule="evenodd" fill="var(--home)" d={MARK} /></svg><span class="fr-wm" id="frWm">rega<span class="twin">rega</span></span></div>
+    <div class="fr-lock" id="frLock" aria-hidden="true"><svg viewBox="0 0 100 100"><path fill-rule="evenodd" fill="var(--home)" d={MARK} /></svg><span class="fr-wm" id="frWm"><Fragment set:html={WORDMARK_SVG} /></span></div>
     <div class="fr-slogan" id="frSlogan" aria-hidden="true"><p class="rr-display">
       <Fragment set:html={T.slo} /></p></div>
     <div class="fr-tapskip" id="frTapSkip">{T.tapSkip}</div>

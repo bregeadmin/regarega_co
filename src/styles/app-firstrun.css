@@ -17,9 +17,8 @@ html.rr-first .fr{
 .fr button{ font:inherit; color:inherit; background:none; border:0; padding:0; cursor:pointer; -webkit-tap-highlight-color:transparent; }
 .fr.is-gone{ opacity:0; pointer-events:none; }
 
-/* logo 1:1 (sign + rega + rega .36) */
-.fr-wm{ font-family:"Bricolage Grotesque",sans-serif; font-weight:800; letter-spacing:-.04em; line-height:1; white-space:nowrap; }
-.fr-wm .twin{ opacity:.36; margin-left:1px; }
+/* logo 1:1 (sign + drawn wordmark, src/lib/wordmark.js) */
+.fr-wm{ display:flex; line-height:1; }
 
 /* ================= splash ================= */
 .fr-film{ position:absolute; inset:0; z-index:2; background:var(--bg); overflow:hidden; cursor:pointer; outline:none; }
@@ -43,7 +42,7 @@ html[lang="en"] .fr-cap em{ font-style:italic; font-weight:800; }
 .fr-legend span.is-home{ color:var(--home-deep); }
 .fr-legend i{ width:9px; height:9px; border-radius:50%; }
 .fr-lock{ position:absolute; left:0; top:0; transform-origin:0 0; display:flex; align-items:center; gap:19.7px; opacity:0; will-change:transform; }
-.fr-lock svg{ width:64px; height:64px; flex:none; display:block; }
+.fr-lock > svg{ width:64px; height:64px; flex:none; display:block; }
 .fr-lock .fr-wm{ font-size:59.08px; }
 .fr-slogan{ position:absolute; left:0; right:0; text-align:center; opacity:0; }
 .fr-slogan .rr-display{ font-size:34px; line-height:.95; }
@@ -58,7 +57,7 @@ html[lang="en"] .fr-cap em{ font-style:italic; font-weight:800; }
   display:flex; align-items:center; justify-content:space-between; padding:0 20px;
 }
 .fr-logo{ display:inline-flex; align-items:center; gap:8px; }
-.fr-logo svg{ width:26px; height:26px; flex:none; display:block; }
+.fr-logo > svg{ width:26px; height:26px; flex:none; display:block; }
 .fr-logo .fr-wm{ font-size:24px; }
 .fr .fr-skip{ font-size:15px; font-weight:700; color:var(--ink-2); height:40px; padding:0 4px; display:flex; align-items:center; }
 .fr-prog{ position:absolute; left:20px; right:20px; top:calc(env(safe-area-inset-top) + 62px); display:flex; gap:6px; z-index:10; }

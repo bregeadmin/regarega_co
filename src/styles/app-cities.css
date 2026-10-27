@@ -16,9 +16,8 @@ html.cp-open, html.cp-open body{ overflow:hidden; }
 .cp-bgphoto::after{ content:""; position:absolute; inset:0; background:linear-gradient(180deg,rgba(18,26,48,.4),rgba(18,26,48,.85) 70%); }
 .cp-in{ position:relative; z-index:2; padding:calc(env(safe-area-inset-top) + 22px) 20px 0; height:100%; }
 .cp-logo{ display:inline-flex; align-items:center; gap:8px; }
-.cp-logo svg{ width:26px; height:26px; flex:none; }
-.cp-wm{ font-family:var(--font); font-weight:800; font-size:24px; letter-spacing:-.05em; line-height:1; }
-.cp-wm .twin{ opacity:.45; margin-left:1px; }
+.cp-logo > svg{ width:26px; height:26px; flex:none; }
+.cp-wm{ display:flex; font-size:24px; line-height:1; }
 .cp-st{ margin-top:clamp(18px, 5vh, 40px); display:flex; width:max-content; max-width:100%; align-items:center; gap:7px; min-height:28px; padding:0 11px; border-radius:var(--r-pill); background:rgba(255,255,255,.14); font-size:13px; font-weight:700; backdrop-filter:blur(10px); -webkit-backdrop-filter:blur(10px); }
 .is-light .cp-st{ background:rgba(10,9,8,.08); }
 .cp-st svg{ width:15px; height:15px; flex:none; }
