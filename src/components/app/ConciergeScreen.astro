@@ -201,7 +201,23 @@ const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fi
 
       // bot text → paragraphs + cards (markers may sit on their own line or inline);
       // cards in a row share one horizontal strip
-      function renderBot(text) {
+      // [[dish:slug|dish]] → guests' photos from Google Maps (author credit is required by Google);
+      // links are short-lived: a photo that no longer loads just disappears
+      function dishStrip(list) {
+        var strip = document.createElement('div'); strip.className = 'cc-dish';
+        list.forEach(function (x) {
+          var f = document.createElement('figure'); f.className = 'cc-dish__ph';
+          var img = document.createElement('img'); img.src = x.url; img.alt = ''; img.loading = 'lazy'; img.referrerPolicy = 'no-referrer';
+          img.onerror = function () { f.remove(); if (!strip.querySelector('figure')) strip.remove(); };
+          f.appendChild(img);
+          var c = document.createElement('figcaption');
+          c.textContent = (x.author ? x.author + ' · ' : '') + 'Google Maps';
+          f.appendChild(c); strip.appendChild(f);
+        });
+        return strip;
+      }
+      function renderBot(text, photos) {
+        photos = photos || {};
         var sh = botShell(), body = sh.body, strip = null;
         var buf = [];
         var flush = function () {
@@ -212,14 +228,19 @@ const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fi
           body.appendChild(p); strip = null;
         };
         String(text).split('\n').forEach(function (line) {
-          var re = /\[\[(place|news|stay):([a-z0-9-]+)\]\]/gi, m, last = 0, rest = '';
+          var re = /\[\[(?:(place|news|stay):([a-z0-9-]+)|dish:([a-z0-9-]+)\|([^\]\n]{1,40}))\]\]/gi, m, last = 0, rest = '';
           var cards = [];
-          while ((m = re.exec(line))) { rest += line.slice(last, m.index); last = re.lastIndex; cards.push([m[1].toLowerCase(), m[2]]); }
+          while ((m = re.exec(line))) { rest += line.slice(last, m.index); last = re.lastIndex; cards.push(m[1] ? [m[1].toLowerCase(), m[2]] : ['dish', m[3].toLowerCase() + '|' + m[4].trim()]); }
           rest += line.slice(last);
           if (rest.trim() || !cards.length) buf.push(rest.replace(/\s+$/, ''));
           if (cards.length) {
             flush();
             cards.forEach(function (c) {
+              if (c[0] === 'dish') {
+                var got = photos[c[1]];
+                if (got && got.length) { body.appendChild(dishStrip(got)); strip = null; }
+                return;
+              }
               var el = card(c[0], c[1]); if (!el) return;
               if (!strip) { strip = document.createElement('div'); strip.className = 'cc-places'; body.appendChild(strip); }
               strip.appendChild(el);
@@ -239,7 +260,7 @@ const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fi
       function renderAll() {
         var log = $('ccLog');
         [].slice.call(log.querySelectorAll('.cc-msg, .cc-status')).forEach(function (n) { n.remove(); });
-        state.msgs.forEach(function (m) { log.appendChild(m.role === 'user' ? renderUser(m.content) : renderBot(m.content)); });
+        state.msgs.forEach(function (m) { log.appendChild(m.role === 'user' ? renderUser(m.content) : renderBot(m.content, m.photos)); });
         $('ccChips').hidden = state.msgs.length > 0;
         $('ccClear').hidden = state.msgs.length === 0;
       }
@@ -258,20 +279,22 @@ const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fi
       var busy = false;
       function setBusy(b) { busy = b; $('ccSend').disabled = b || !$('ccField').value.trim(); $('ccField').readOnly = b; }
 
+      // only role + text go to the server (photos stay on the phone)
+      function wire() { return state.msgs.slice(-16).map(function (m) { return { role: m.role, content: m.content }; }); }
       function ask() {
         setBusy(true);
         var typing = status('typing');
         fetch(FN, {
           method: 'POST',
           headers: { apikey: KEY, 'Content-Type': 'application/json' },
-          body: JSON.stringify(booked ? { token: trip.token, lang: LANG, messages: state.msgs.slice(-16) } : { device: device, lang: LANG, messages: state.msgs.slice(-16) }),
+          body: JSON.stringify(booked ? { token: trip.token, lang: LANG, messages: wire() } : { device: device, lang: LANG, messages: wire() }),
         }).then(function (r) { return r.json().then(function (j) { return { ok: r.ok, j: j }; }); })
           .then(function (res) {
             typing.remove();
             if (res.ok && res.j.reply) {
-              state.msgs.push({ role: 'assistant', content: res.j.reply });
+              state.msgs.push({ role: 'assistant', content: res.j.reply, photos: res.j.photos || {} });
               persist();
-              $('ccLog').appendChild(fresh(renderBot(res.j.reply)));
+              $('ccLog').appendChild(fresh(renderBot(res.j.reply, res.j.photos)));
               if (typeof res.j.left === 'number' && res.j.left <= 5) { $('ccLeft').textContent = (RU ? 'осталось вопросов сегодня: ' : 'questions left today: ') + res.j.left; $('ccLeft').hidden = false; }
               bottom();
             } else if (res.j && res.j.error === 'limit') {
