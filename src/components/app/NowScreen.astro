@@ -107,6 +107,16 @@ const ROWS = [...WORLDS]
   .sort((a, b) => a.order - b.order)
   .map((w) => ({ w, cats: Object.keys(GUIDE_CATS).filter((k) => catWorld(k) === w.id && counts[k]) }))
   .filter((r) => r.cats.length);
+// worlds the guide will grow into — shown as quiet «скоро» tiles (not tappable) until they get places
+const SOON = [
+  { color: '#3D5AFE', label: { en: 'evening & experiences', ru: 'вечер и впечатления' }, tiles: [
+    { h: { en: 'experiences', ru: 'впечатления' }, sb: { en: 'tours · classes · day trips', ru: 'туры · мастер-классы · поездки' }, ico: '<path d="M15 5l0 2" /><path d="M15 11l0 2" /><path d="M15 17l0 2" /><path d="M5 5h14a2 2 0 0 1 2 2v3a2 2 0 0 0 0 4v3a2 2 0 0 1 -2 2h-14a2 2 0 0 1 -2 -2v-3a2 2 0 0 0 0 -4v-3a2 2 0 0 1 2 -2" />' },
+    { h: { en: 'nightlife', ru: 'ночная жизнь' }, sb: { en: 'wine bars · clubs', ru: 'винные бары · клубы' }, ico: '<path d="M12 3c.132 0 .263 0 .393 0a7.5 7.5 0 0 0 7.92 12.446a9 9 0 1 1 -8.313 -12.454z" />' },
+  ] },
+  { color: '#6B6862', label: { en: 'about the city', ru: 'про город' }, tiles: [
+    { h: { en: 'explore', ru: 'про город' }, sb: { en: 'beaches · old town · parks', ru: 'пляжи · старый город · парки' }, ico: '<path d="M4 12a8 8 0 0 1 16 0z" /><path d="M12 12v6a2 2 0 0 0 4 0" />' },
+  ] },
+];
 
 // Real Tabler-icons "outline" path data (viewBox 0 0 24 24).
 const ICO = {
@@ -226,6 +236,20 @@ const CP_PHOTO = 'https://qkzinjawtumhjbezlyog.supabase.co/storage/v1/object/pub
                 <span class="now-ct__h">{catLabel(k, lang)}</span>
                 <span class="now-ct__sb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={ICO.map} />{T.onMap}</span>
               </a>
+            ))}
+          </div>
+        </Fragment>
+      ))}
+      {SOON.map((w) => (
+        <Fragment>
+          <div class="now-wl" style={`--c:${w.color}`}>{w.label[lang]}</div>
+          <div class="now-g2">
+            {w.tiles.map((t, i) => (
+              <div class={`now-ct now-ct--${i === 0 ? 'fill' : 'line'} is-soon`} style={`--c:${w.color}`} aria-disabled="true">
+                <span class="now-ct__top"><span class="now-ct__bdg">{lang === 'ru' ? 'скоро' : 'soon'}</span><span class="now-ct__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={t.ico} /></span></span>
+                <span class="now-ct__h">{t.h[lang]}</span>
+                <span class="now-ct__sb">{t.sb[lang]}</span>
+              </div>
             ))}
           </div>
         </Fragment>

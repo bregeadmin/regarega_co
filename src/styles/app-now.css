@@ -366,3 +366,12 @@ html.has-trip .now-trip{
 
 /* stays tile: white on brand orange #FF5E1A is ~2.9:1 — the deep orange keeps the world colour and reads (≈4:1) */
 .now-ct.now-ct--stay{ background:var(--home-deep); }
+
+/* «скоро» tiles: the worlds the guide grows into — same tile, quieter, not tappable */
+.now-ct.is-soon{ cursor:default; }
+.now-ct.is-soon:active{ transform:none; }
+.now-ct.now-ct--fill.is-soon{ background:color-mix(in srgb, var(--c) 82%, #fff); }
+.now-ct__bdg{ display:inline-flex; align-items:center; height:22px; padding:0 9px; border-radius:var(--r-pill); font:600 10.5px/1 var(--mono); letter-spacing:.06em; text-transform:uppercase; }
+.now-ct--fill .now-ct__bdg{ background:rgba(255,255,255,.2); }
+.now-ct--line .now-ct__bdg{ background:var(--sunk); color:var(--ink-2); }
+.now-ct--line.is-soon .now-ct__ic{ color:var(--c); }
