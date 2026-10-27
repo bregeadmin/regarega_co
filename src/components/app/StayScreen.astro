@@ -14,6 +14,7 @@
 // rejected) get human copy + retry. Step 09 appears when the request is confirmed while the
 // guest is still on step 08 (guest_instruction(token) leaves 'pending').
 import AppFull from '../../layouts/AppFull.astro';
+import Gallery from './Gallery.astro';
 import '../../styles/app-shell.css';
 import '../../styles/app-apt.css';
 import type { Apartment } from '../../lib/supabase';
@@ -168,25 +169,9 @@ const sign = `<svg viewBox="0 0 100 100" aria-hidden="true"><path fill-rule="eve
 ---
 <AppFull lang={lang} title={title + ' — rega rega'} description={stripEmoji(summary).slice(0, 160) || (RU ? 'проверенная квартира в батуми.' : 'a checked flat in batumi.')}>
   <main class="st-page" id="stPage">
-    <div class="st-gal">
-      <div class="st-gal__scroll" id="stGal" aria-label={T.photo}>
-        {photos.map((p, i) => (
-          <div class="st-gal__slide"><img src={thumb(p, 828)} alt={`${title} — ${T.photo} ${i + 1}`} loading={i === 0 ? 'eager' : 'lazy'} decoding="async" /></div>
-        ))}
-      </div>
-      <div class="st-gal__nav">
-        <a class="st-round st-glass" href={`${BASE}/app/stays`} aria-label={T.back} set:html={icon('arrowLeft')} />
-        <button class="st-round st-glass" id="stShare" type="button" aria-label={T.share} hidden set:html={icon('share')} />
-      </div>
-      {photos.length > 1 && (
-        <div class="st-gal__thumbs">
-          {photos.slice(1, 4).map((p, i) => (
-            <button class="st-gal__thumb" type="button" data-i={i + 1} aria-label={`${T.photo} ${i + 2}`}><img src={thumb(p, 320)} alt="" loading="lazy" /></button>
-          ))}
-        </div>
-      )}
-      {photos.length > 1 && <span class="st-gal__count" id="stGalCount">1 / {photos.length}</span>}
-    </div>
+    <Gallery photos={photos} slug={apt.slug} lang={lang} home={`${BASE}/app/now`} alt={title}>
+      <button slot="start" class="st-round" id="stShare" type="button" aria-label={T.share} hidden set:html={icon('share')} />
+    </Gallery>
 
     <div class="st-sheet">
       <div class="st-crumb">
@@ -222,8 +207,8 @@ const sign = `<svg viewBox="0 0 100 100" aria-hidden="true"><path fill-rule="eve
     </div>
   </main>
 
-  <div class="st-fade" aria-hidden="true"></div>
-  <div class="st-bar st-glass" id="stBar">
+  <div class="st-fade" aria-hidden="true" data-gal-fade></div>
+  <div class="st-bar st-glass" id="stBar" data-gal-fade>
     <div class="st-bar__price">
       <b id="stFrom">{apt.price_from ? <><small>{T.from}</small> {sym}{apt.price_from}</> : T.onRequest}</b>
       <span class="st-meta" id="stPer">{apt.price_from ? T.perNight : ''}</span>
@@ -392,18 +377,8 @@ const sign = `<svg viewBox="0 0 100 100" aria-hidden="true"><path fill-rule="eve
     const $ = (id: string) => document.getElementById(id) as any;
     const W: any = window;
 
-    // ---------- gallery ----------
+    // ---------- about + share (the gallery itself: Gallery.astro + public/app-gallery.js) ----------
     (function () {
-      const sc = $('stGal'), cnt = $('stGalCount');
-      if (!sc) return;
-      const n = sc.children.length;
-      sc.addEventListener('scroll', () => {
-        if (cnt) cnt.textContent = Math.min(n, Math.round(sc.scrollLeft / sc.clientWidth) + 1) + ' / ' + n;
-      }, { passive: true });
-      document.querySelectorAll('.st-gal__thumb').forEach((b: any) => b.addEventListener('click', () => {
-        const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
-        sc.scrollTo({ left: sc.clientWidth * Number(b.dataset.i), behavior: reduce ? 'auto' : 'smooth' });
-      }));
       const ab = $('stAbout'), more = $('stMore');
       if (ab && more && ab.scrollHeight > 320) {
         ab.classList.add('is-clamped'); more.hidden = false;

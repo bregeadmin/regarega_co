@@ -53,40 +53,7 @@ html.bk-lock, html.bk-lock body{ overflow:hidden; }
 /* ---------- 02 · apartment ---------- */
 .st-page{ padding-bottom:calc(72px + var(--tabbar-bottom) + 40px); overflow-x:clip; }
 
-.st-gal{ position:relative; height:clamp(340px, 58vh, 470px); background:var(--ink); }
-.st-gal::before{
-  content:""; position:absolute; inset:0 0 auto; height:130px; z-index:1; pointer-events:none;
-  background:linear-gradient(rgba(10,9,8,.3), rgba(10,9,8,0));
-}
-.st-gal__scroll{
-  display:flex; height:100%;
-  overflow-x:auto; scroll-snap-type:x mandatory; -webkit-overflow-scrolling:touch; scrollbar-width:none;
-}
-.st-gal__scroll::-webkit-scrollbar{ display:none; }
-.st-gal__slide{ flex:0 0 100%; height:100%; scroll-snap-align:start; }
-.st-gal__slide img{ width:100%; height:100%; object-fit:cover; display:block; }
-.st-gal__nav{
-  position:absolute; z-index:3;
-  top:calc(env(safe-area-inset-top) + 12px); left:16px; right:16px;
-  display:flex; justify-content:space-between; pointer-events:none;
-}
-.st-gal__nav > *{ pointer-events:auto; }
-.st-gal__nav .st-round{ background:var(--glass-bg); }
-.st-gal__thumbs{ position:absolute; z-index:3; left:16px; bottom:44px; display:flex; gap:6px; }
-.st-gal__thumb{
-  width:40px; height:40px; padding:0; border:0; border-radius:11px; overflow:hidden; cursor:pointer;
-  background:var(--sunk); box-shadow:0 0 0 1.5px rgba(255,253,249,.7);
-  transition:transform .16s var(--ease-out);
-}
-.st-gal__thumb:active{ transform:scale(.94); }
-.st-gal__thumb img{ width:100%; height:100%; object-fit:cover; display:block; }
-.st-gal__count{
-  position:absolute; z-index:3; right:16px; bottom:44px;
-  display:inline-flex; align-items:center; height:26px; padding:0 10px; border-radius:var(--r-pill);
-  background:rgba(10,9,8,.42); color:var(--surface);
-  backdrop-filter:blur(14px); -webkit-backdrop-filter:blur(14px);
-  font-size:12.5px; font-weight:700; font-variant-numeric:tabular-nums;
-}
+/* photos: components/app/Gallery.astro + styles/app-gallery.css */
 
 .st-sheet{
   position:relative; z-index:5;
@@ -363,5 +330,5 @@ html.bk-lock, html.bk-lock body{ overflow:hidden; }
   .bk-scrim, .bk-sheet, .bk-view, .bk-in, .bk-y1, .bk-y2, .bk-y3, .bk-y4, .bk-mark, .bk-halo,
   .bk-sum b, .bk-sum .st-meta, .bk-err, .bk-stepper b.is-roll, .bk-rule .rr-tag.is-flash{ animation:none; }
   .bk-tick{ animation:none; stroke-dashoffset:0; }
-  .bk-d::before, .bk-d::after, .st-btn, .st-round, .bk-grid, .st-gal__thumb{ transition:none; }
+  .bk-d::before, .bk-d::after, .st-btn, .st-round, .bk-grid{ transition:none; }
 }

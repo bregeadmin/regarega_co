@@ -1,0 +1,240 @@
+/* Big-card gallery (components/app/Gallery.astro) + fullscreen photo viewer (built by
+   public/app-gallery.js). Visual source: rega-design-panel/r4/jakub/kit.css (.dt-gal, .pv).
+   Motion: only transform / opacity (+ clip-path on the viewer's flying photo); the iOS sheet
+   curve for anything big, ease-out for small UI. prefers-reduced-motion → no movement.
+   The «card photo grows into this frame» part is a cross-document view transition — its
+   timing lives in app-vt.css (it has to be on the list pages too). */
+
+.gal{
+  --gal-ios:cubic-bezier(.32,.72,0,1);
+  position:relative;
+  height:clamp(340px, 63vh, 560px);
+  height:clamp(340px, 63svh, 560px);
+  background:#1b1715;
+  overflow:hidden;
+  /* vertical: the page scrolls (and swipe-down closes, app-gallery.js); horizontal: our track */
+  touch-action:pan-y;
+  -webkit-user-select:none;
+  user-select:none;
+}
+.gal--poster{ height:clamp(300px, 56vh, 480px); height:clamp(300px, 56svh, 480px); }
+
+.gal__track{
+  display:flex;
+  height:100%;
+  will-change:transform;
+  transition:transform .42s var(--gal-ios);
+}
+.gal__track.is-drag{ transition:none; }
+.gal__slide{
+  position:relative;
+  flex:0 0 100%;
+  height:100%;
+  overflow:hidden;
+  cursor:zoom-in;
+  background:#1b1715 center / cover no-repeat;
+}
+.gal__img{
+  position:relative;
+  display:block;
+  width:100%;
+  height:100%;
+  object-fit:cover;
+  opacity:0;
+  transition:opacity .3s var(--ease-out);
+  -webkit-user-drag:none;
+}
+.gal__img.is-loaded{ opacity:1; }
+.gal__slide.is-out .gal__img{ visibility:hidden; }   /* this photo is up in the viewer */
+
+/* poster (news): whole photo over a soft blurred copy of itself */
+.gal--poster .gal__img{ object-fit:contain; }
+.gal__blur{
+  position:absolute;
+  inset:-24px;
+  width:calc(100% + 48px);
+  height:calc(100% + 48px);
+  object-fit:cover;
+  filter:blur(22px) brightness(.62) saturate(1.2);
+  -webkit-user-drag:none;
+}
+
+/* scrims so the round buttons and the counter read on any photo */
+.gal::before, .gal::after{ content:""; position:absolute; left:0; right:0; z-index:1; pointer-events:none; }
+.gal::before{ top:0; height:140px; background:linear-gradient(rgba(10,9,8,.34), rgba(10,9,8,0)); }
+.gal::after{ bottom:0; height:96px; background:linear-gradient(rgba(10,9,8,0), rgba(10,9,8,.24)); }
+
+.gal__top{
+  position:absolute;
+  left:16px; right:16px;
+  top:calc(env(safe-area-inset-top) + 12px);
+  z-index:3;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  pointer-events:none;
+}
+.gal__start{ display:flex; gap:8px; }
+.gal__top > *, .gal__start > *{ pointer-events:auto; }
+
+/* round buttons over the photo: dark glass (r4 .lg-dark); the screen's own share button too */
+.gal .gal__round,
+.gal .gal__start > a,
+.gal .gal__start > button{
+  width:42px; height:42px;
+  display:grid;
+  place-items:center;
+  padding:0;
+  border:0;
+  border-radius:50%;
+  background:rgba(22,20,19,.42);
+  -webkit-backdrop-filter:blur(22px) saturate(1.6);
+  backdrop-filter:blur(22px) saturate(1.6);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.22), inset 0 0 0 .5px rgba(255,255,255,.18), 0 8px 22px -10px rgba(0,0,0,.4);
+  color:#fff;
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+  transition:transform .16s var(--ease-out);
+}
+.gal .gal__start > [hidden]{ display:none; }
+.gal .gal__round:active, .gal .gal__start > *:active{ transform:scale(.94); }
+.gal .gal__round svg, .gal .gal__start > * svg{ width:20px; height:20px; }
+
+.gal__segs{
+  position:absolute;
+  left:16px; bottom:46px;
+  z-index:3;
+  display:flex;
+  gap:4px;
+}
+.gal__segs i{
+  width:6px; height:6px;
+  border-radius:3px;
+  background:rgba(255,255,255,.5);
+  transform-origin:left center;
+  transition:width .3s var(--gal-ios), background-color .2s var(--ease-out);
+}
+.gal__segs i.on{ width:18px; background:#fff; }
+.gal__cnt{
+  position:absolute;
+  right:16px; bottom:40px;
+  z-index:3;
+  height:28px;
+  display:inline-flex;
+  align-items:center;
+  padding:0 11px;
+  border-radius:var(--r-pill);
+  background:rgba(22,20,19,.42);
+  -webkit-backdrop-filter:blur(22px) saturate(1.6);
+  backdrop-filter:blur(22px) saturate(1.6);
+  box-shadow:inset 0 1px 0 rgba(255,255,255,.22), inset 0 0 0 .5px rgba(255,255,255,.18);
+  color:#fff;
+  font-size:12.5px;
+  font-weight:700;
+  letter-spacing:-.01em;
+  font-variant-numeric:tabular-nums;
+}
+
+/* no photo at all: the two buttons sit on a plain bar, the sheet starts right under it */
+.gal--none{ height:auto; background:none; overflow:visible; touch-action:auto; }
+.gal--none::before, .gal--none::after{ display:none; }
+.gal--none .gal__top{ position:static; padding:calc(env(safe-area-inset-top) + 12px) 16px 4px; }
+.gal--none .gal__round,
+.gal--none .gal__start > a,
+.gal--none .gal__start > button{ background:var(--surface); color:var(--ink); box-shadow:var(--sh-card); -webkit-backdrop-filter:none; backdrop-filter:none; }
+.gal--none + .pl-sheet, .gal--none + .st-sheet{ margin-top:0; padding-top:14px; border-radius:0; }
+
+/* swipe-down on the gallery: the whole card follows the finger (app-gallery.js sets transform) */
+.gal-card{ transform-origin:50% 0; }
+.gal-card.is-pull{ will-change:transform; }
+
+/* ---------------------------------------------------------------- fullscreen viewer */
+.pv{
+  position:fixed;
+  inset:0;
+  z-index:300;
+  touch-action:none;
+  -webkit-user-select:none;
+  user-select:none;
+  overscroll-behavior:contain;
+}
+.pv__bg{ position:absolute; inset:0; background:#000; }
+.pv__track{
+  position:absolute;
+  inset:0;
+  display:flex;
+  will-change:transform;
+  transition:transform .42s cubic-bezier(.32,.72,0,1);
+}
+.pv__track.is-drag{ transition:none; }
+.pv__slide{
+  flex:0 0 100%;
+  height:100%;
+  display:grid;
+  place-items:center;
+  overflow:hidden;
+}
+.pv__slide img{
+  display:block;
+  max-width:100%;
+  max-height:100%;
+  width:100%;
+  height:auto;
+  object-fit:contain;
+  -webkit-user-drag:none;
+}
+.pv__ui{
+  position:absolute;
+  left:16px; right:16px;
+  top:calc(env(safe-area-inset-top) + 12px);
+  z-index:3;
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  color:#fff;
+}
+.pv__c{ font-size:15px; font-weight:700; letter-spacing:-.01em; font-variant-numeric:tabular-nums; }
+.pv__x{
+  width:42px; height:42px;
+  display:grid;
+  place-items:center;
+  padding:0;
+  border:0;
+  border-radius:50%;
+  background:rgba(255,255,255,.14);
+  -webkit-backdrop-filter:blur(22px);
+  backdrop-filter:blur(22px);
+  box-shadow:inset 0 0 0 .5px rgba(255,255,255,.22);
+  color:#fff;
+  cursor:pointer;
+  -webkit-tap-highlight-color:transparent;
+}
+.pv__x svg{ width:20px; height:20px; }
+.pv__hint{
+  position:absolute;
+  left:0; right:0;
+  bottom:calc(env(safe-area-inset-bottom) + 28px);
+  z-index:3;
+  text-align:center;
+  color:rgba(255,255,255,.55);
+  font-family:var(--mono);
+  font-size:10px;
+  letter-spacing:.16em;
+  text-transform:uppercase;
+  pointer-events:none;
+}
+
+@media (prefers-reduced-motion:reduce){
+  .gal__track, .pv__track, .gal__img, .gal__segs i, .gal .gal__round, .gal .gal__start > *{ transition:none !important; }
+}
+
+/* own stacking context: the buttons / counter (z 3) stay under the paper sheet that overlaps */
+.gal{ isolation:isolate; view-transition-class:rr-ph; }
+/* page-load transition partners (timing in app-vt.css) — one of each per big-card screen */
+.pl-sheet, .st-sheet{ view-transition-name:rr-sheet; }
+.pl-actionbar, #stBar{ view-transition-name:rr-foot; }
+/* the buttons and the counter are not part of the growing photo: they appear once it has landed */
+.gal__top{ view-transition-name:rr-gal-top; }
+.gal__cnt{ view-transition-name:rr-gal-cnt; }
+.gal__segs{ view-transition-name:rr-gal-segs; }
+.gal--none .gal__top{ view-transition-name:none; }

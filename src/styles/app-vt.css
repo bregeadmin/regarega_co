@@ -13,3 +13,36 @@
 @media (prefers-reduced-motion:reduce){
   ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*){ animation:none !important; }
 }
+
+/* ---- big cards (Task 4): the tapped card's photo grows into the gallery of the place / news /
+   apartment screen and shrinks back on the way out. Names: `ph-<slug>` (public/app-gallery.js
+   sets it on the tapped card, components/app/Gallery.astro has it on the gallery), class rr-ph
+   (browsers without view-transition-class keep the UA default morph — still fine).
+   Open 560ms on the iOS sheet curve; closing (html.rr-vt-back) shorter and softer. Both
+   snapshots fill the morphing frame (cover), the new one fades in over the old (no plus-lighter
+   brightening), so it reads as one photo. */
+::view-transition-group(*.rr-ph){ animation-duration:.56s; animation-timing-function:cubic-bezier(.32,.72,0,1); }
+html.rr-vt-back::view-transition-group(*.rr-ph){ animation-duration:.42s; animation-timing-function:cubic-bezier(.3,.66,.12,1); }
+::view-transition-image-pair(*.rr-ph){ isolation:auto; }
+::view-transition-old(*.rr-ph), ::view-transition-new(*.rr-ph){
+  height:100%; object-fit:cover; overflow:clip; mix-blend-mode:normal;
+}
+::view-transition-old(*.rr-ph){ animation:none; }
+::view-transition-new(*.rr-ph){ animation:rr-vt-in .3s cubic-bezier(.23,1,.32,1) both; }
+/* only one side has the photo (a card without a picture): a plain, short crossfade */
+::view-transition-old(*.rr-ph):only-child{ animation:rr-vt-out .24s cubic-bezier(.23,1,.32,1) both; }
+::view-transition-new(*.rr-ph):only-child{ animation:rr-vt-in .24s cubic-bezier(.23,1,.32,1) both; }
+/* the paper sheet with the text rises in right behind the photo; leaving, it just fades */
+::view-transition-new(rr-sheet):only-child{ animation:rr-sheet-in .46s cubic-bezier(.23,1,.32,1) .04s both; }
+::view-transition-old(rr-sheet):only-child{ animation:rr-vt-out .16s cubic-bezier(.23,1,.32,1) both; }
+::view-transition-new(rr-foot):only-child{ animation:rr-foot-in .42s cubic-bezier(.23,1,.32,1) .26s both; }
+::view-transition-old(rr-foot):only-child{ animation:rr-vt-out .16s cubic-bezier(.23,1,.32,1) both; }
+@keyframes rr-sheet-in{ from{ opacity:0; transform:translateY(36px); } }
+@keyframes rr-foot-in{ from{ opacity:0; transform:translateY(24px); } }
+/* the gallery's buttons / counter: in after the photo has (mostly) grown, out first */
+::view-transition-new(rr-gal-top):only-child, ::view-transition-new(rr-gal-cnt):only-child, ::view-transition-new(rr-gal-segs):only-child{
+  animation:rr-vt-in .26s cubic-bezier(.23,1,.32,1) .3s both;
+}
+::view-transition-old(rr-gal-top):only-child, ::view-transition-old(rr-gal-cnt):only-child, ::view-transition-old(rr-gal-segs):only-child{
+  animation:rr-vt-out .12s cubic-bezier(.23,1,.32,1) both;
+}

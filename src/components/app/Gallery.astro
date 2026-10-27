@@ -1,0 +1,81 @@
+---
+// Big-card gallery — the top of the place, news and apartment screens (r4/jakub card-*.html).
+// Full-bleed photos you swipe through (JS track, public/app-gallery.js), «1 / N» + segments
+// only with 2+ photos, close (X, top right) and an optional slot top-left (share).
+// The frame carries `view-transition-name: ph-<slug>`: the card photo on the list page gets the
+// same name when tapped (app-gallery.js), so the photo «grows» into this frame across the page
+// load. Tap a photo → fullscreen viewer (built by app-gallery.js, role=dialog aria-modal).
+// Close = history.back() when we came from inside the app, else the home screen (`home`).
+// variant 'poster' (news): the photo is shown whole (posters carry text) over a blurred copy.
+import '../../styles/app-gallery.css';
+import { thumb } from '../../lib/thumb';
+import { phName } from '../../lib/phName';
+
+export interface Props {
+  photos: string[];
+  slug: string;
+  lang: 'en' | 'ru';
+  home: string;           // where X goes on a direct visit (no in-app history)
+  alt?: string;
+  variant?: 'cover' | 'poster';
+}
+const { photos, slug, lang, home, alt = '', variant = 'cover' } = Astro.props;
+const RU = lang === 'ru';
+const n = photos.length;
+const T = RU
+  ? { close: 'закрыть', photo: 'фото', of: 'из', open: 'открыть фото', hint: 'смахни вниз — закрыть' }
+  : { close: 'close', photo: 'photo', of: 'of', open: 'open photo', hint: 'swipe down to close' };
+const X = '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M18 6l-12 12" /><path d="M6 6l12 12" /></svg>';
+---
+<div
+  class={`gal gal--${variant}${n ? '' : ' gal--none'}`}
+  data-gal
+  data-slug={slug}
+  data-home={home}
+  data-n={n}
+  data-l-close={T.close}
+  data-l-photo={T.photo}
+  data-l-hint={T.hint}
+  style={n ? `view-transition-name:${phName(slug)}` : undefined}
+>
+  {n > 0 && (
+    <div class="gal__track" role="group" aria-roledescription="carousel" aria-label={T.photo}>
+      {photos.map((src, i) => (
+        <div class="gal__slide" data-i={i} data-full={thumb(src, 828)}>
+          {variant === 'poster' && <img class="gal__blur" src={thumb(src, 320)} alt="" aria-hidden="true" loading={i === 0 ? 'eager' : 'lazy'} decoding="async" />}
+          <img
+            class="gal__img"
+            src={thumb(src, 828)}
+            alt={i === 0 ? alt : `${alt} — ${T.photo} ${i + 1}`}
+            loading={i === 0 ? 'eager' : 'lazy'}
+            fetchpriority={i === 0 ? 'high' : undefined}
+            decoding={i === 0 ? 'sync' : 'async'}
+            onload="this.classList.add('is-loaded')"
+          />
+        </div>
+      ))}
+    </div>
+  )}
+  <div class="gal__top">
+    <span class="gal__start"><slot name="start" /></span>
+    <a class="gal__round gal__x" href={home} data-gal-close aria-label={T.close} set:html={X} />
+  </div>
+  {n > 1 && n <= 7 && (
+    <div class="gal__segs" aria-hidden="true">{photos.map((_, i) => <i class={i === 0 ? 'on' : ''}></i>)}</div>
+  )}
+  {n > 1 && <span class="gal__cnt" aria-live="polite"><span data-gal-i>1</span> / {n}</span>}
+</div>
+{n > 0 && (
+  <script is:inline>
+    /* the card photo the guest tapped is already in the browser cache — paint it under the first
+       slide right away, so the shared-element transition never grows into an empty frame */
+    (function () {
+      try {
+        var g = document.currentScript.previousElementSibling, s = JSON.parse(sessionStorage.getItem('rr_ph') || 'null');
+        if (g && s && s.slug === g.getAttribute('data-slug') && s.src) {
+          g.querySelector('.gal__slide').style.backgroundImage = 'url("' + String(s.src).replace(/"/g, '%22') + '")';
+        }
+      } catch (e) {}
+    })();
+  </script>
+)}

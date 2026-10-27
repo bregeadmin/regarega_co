@@ -1,7 +1,7 @@
 ---
 // Native app place screen — one component for both languages (pages app/place/[slug].astro
 // and ru/app/place/[slug].astro render it; data comes from lib/appPlace.ts).
-// Order: swipeable photos (back + share over them) → category · area, name, open-now →
+// Order: big-card gallery (Gallery.astro: swipe, viewer, share + close over it) → category · area, name, open-now →
 // the editorial take (EN only; RU has no take column yet) → body → hours (today marked) →
 // how to find it → stays nearby → more in this category. ONE primary action, pinned to the
 // bottom: directions (ink — orange is the home world only). Calling is the only secondary action there. The tab bar steps aside
@@ -10,6 +10,7 @@ import AppFull from '../../layouts/AppFull.astro';
 import '../../styles/app-shell.css';
 import '../../styles/app-place.css';
 import TabBar from '../TabBar.astro';
+import Gallery from './Gallery.astro';
 import { catLabel, catColor, catDark, catStyle } from '../../lib/guideCats';
 import { priceSym } from '../../lib/price';
 import { thumb } from '../../lib/thumb';
@@ -111,7 +112,6 @@ const km = (d: number) => (d < 1 ? `${Math.round(d * 1000 / 10) * 10} ${isRu ? '
 const aptTitle = (a: any) => a.title; // flat names stay English
 
 const ICONS = {
-  back: '<path d="M15 6l-6 6l6 6" />',
   share: '<path d="M12 4v11" /><path d="M8 8l4 -4l4 4" /><path d="M6 12v6a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2v-6" />',
   pin: '<path d="M9 11a3 3 0 1 0 6 0a3 3 0 0 0 -6 0" /><path d="M17.657 16.657l-4.243 4.243a2 2 0 0 1 -2.827 0l-4.244 -4.243a8 8 0 1 1 11.314 0z" />',
   coin: '<path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" /><path d="M14.8 9a2 2 0 0 0 -1.8 -1h-2a2 2 0 1 0 0 4h2a2 2 0 1 1 0 4h-2a2 2 0 0 1 -1.8 -1" /><path d="M12 7v10" />',
@@ -124,20 +124,9 @@ const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fi
 ---
 <AppFull lang={lang} title={`${name} — rega rega`} description={(isRu ? p.summary_ru : p.take_title || p.summary) ? String(isRu ? p.summary_ru : p.take_title || p.summary).replace(/\*+/g, '').slice(0, 160) : name}>
   <main class="pl-screen" style={`--cat-c:${catColor(p.category)};--cat-d:${catDark(p.category)};--accent-c:${catColor(p.category)}`}>
-    <div class="pl-gallery">
-      <div class="pl-gallery__track" id="plTrack">
-        {photos.length ? photos.map((src, i) => (
-          <div class="pl-gallery__slide">
-            <img src={thumb(src, 828)} alt={i === 0 ? name : ''} loading={i === 0 ? 'eager' : 'lazy'} onload="this.classList.add('is-loaded')" />
-          </div>
-        )) : <div class="pl-gallery__slide pl-gallery__slide--empty"></div>}
-      </div>
-      {photos.length > 1 && <span class="pl-gallery__count" id="plCount" aria-live="polite">1 / {photos.length}</span>}
-      <div class="pl-topbar">
-        <a class="pl-round" id="plBack" href={`${BASE}/app/guide`} aria-label={T.back} set:html={svg(ICONS.back)} />
-        <button class="pl-round" id="plShare" type="button" aria-label={T.share} set:html={svg(ICONS.share)} />
-      </div>
-    </div>
+    <Gallery photos={photos} slug={p.slug} lang={lang} home={`${BASE}/app/now`} alt={name}>
+      <button slot="start" class="pl-round" id="plShare" type="button" aria-label={T.share} set:html={svg(ICONS.share)} />
+    </Gallery>
 
     <div class="pl-sheet">
       <p class="pl-kicker">
@@ -231,7 +220,7 @@ const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fi
   </main>
 
   {(mapsUrl || tel) && (
-    <div class="pl-actionbar">
+    <div class="pl-actionbar" data-gal-fade>
       {mapsUrl && (
         <a class="pl-primary" href={mapsUrl} target="_blank" rel="noopener">
           <Fragment set:html={svg(ICONS.route, 'pl-primary__icon')} />{T.directions}
@@ -248,11 +237,6 @@ const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fi
     (function () {
       var $ = function (id) { return document.getElementById(id); };
 
-      // back: return to wherever the user came from inside the app; deep links fall back to the guide
-      $('plBack').addEventListener('click', function (e) {
-        if (history.length > 1 && document.referrer && new URL(document.referrer).origin === location.origin) { e.preventDefault(); history.back(); }
-      });
-
       // share the public site page, not the app preview address
       $('plShare').addEventListener('click', function () {
         if (navigator.share) { navigator.share({ title: NAME, url: SHARE }).catch(function () {}); return; }
@@ -261,15 +245,6 @@ const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fi
           t.hidden = false; setTimeout(function () { t.hidden = true; }, 2200);
         }).catch(function () {});
       });
-
-      // gallery counter
-      var track = $('plTrack'), count = $('plCount');
-      if (track && count) {
-        var n = track.children.length;
-        track.addEventListener('scroll', function () {
-          count.textContent = (Math.round(track.scrollLeft / track.clientWidth) + 1) + ' / ' + n;
-        }, { passive: true });
-      }
 
       // open now / opens at — Batumi time, Google weekday hours
       var DAYS = ['Sunday', 'Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday'];

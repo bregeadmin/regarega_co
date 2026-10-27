@@ -1,15 +1,16 @@
 ---
 // Native app news screen — one component for both languages (pages app/news/[slug].astro
 // and ru/app/news/[slug].astro; data from lib/appNews.ts). News here are mostly city events.
-// Order: photo shown whole (posters must not be cropped) with back + share over it — or,
-// with no photo, the same two buttons on a plain bar → date, title, the editorial headline,
-// body → the guide places it is about (open the app place screen) → more photos.
+// Order: big-card gallery, photos shown whole (posters must not be cropped; Gallery.astro
+// variant poster) with share + close over it — or, with no photo, the same two buttons on a
+// plain bar → date, title, the editorial headline, body → the guide places it is about.
 // ONE primary action, pinned to the bottom: the source / tickets link, when there is one.
 import AppFull from '../../layouts/AppFull.astro';
 import '../../styles/app-shell.css';
 import '../../styles/app-place.css';
 import '../../styles/app-news.css';
 import TabBar from '../TabBar.astro';
+import Gallery from './Gallery.astro';
 import { catLabel, catColor, catDark, catStyle, newsStyle } from '../../lib/guideCats';
 import { thumb } from '../../lib/thumb';
 import { newsPhotos, newsText, newsDate } from '../../lib/appNews';
@@ -34,7 +35,6 @@ const ctaLabel = /tkt\.ge|ticket|biletebi/i.test(url) ? T.tickets : T.more;
 const shareUrl = `https://regarega.co${BASE}/guide/news/${n.slug}`;
 
 const ICONS = {
-  back: '<path d="M15 6l-6 6l6 6" />',
   share: '<path d="M12 4v11" /><path d="M8 8l4 -4l4 4" /><path d="M6 12v6a2 2 0 0 0 2 2h8a2 2 0 0 0 2 -2v-6" />',
   out: '<path d="M12 6h-6a2 2 0 0 0 -2 2v10a2 2 0 0 0 2 2h10a2 2 0 0 0 2 -2v-6" /><path d="M11 13l9 -9" /><path d="M15 4h5v5" />',
   chevron: '<path d="M9 6l6 6l-6 6" />',
@@ -42,16 +42,10 @@ const ICONS = {
 const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
 ---
 <AppFull lang={lang} title={`${t.title} — rega rega`} description={String(t.descr).replace(/\*+/g, '').slice(0, 160)}>
-  <main class={`pl-screen nw-screen${photos.length ? '' : ' nw-screen--plain'}`} style={`--cat-c:${catColor('eat-drink')};--cat-d:${catDark('eat-drink')};--accent-c:${catColor('eat-drink')}`}>
-    {photos.length > 0 ? (
-      <div class="nw-hero">
-        <img src={thumb(photos[0], 828)} alt="" onload="this.classList.add('is-loaded')" />
-      </div>
-    ) : null}
-    <div class="pl-topbar">
-      <a class="pl-round" id="plBack" href={`${BASE}/app/guide`} aria-label={T.back} set:html={svg(ICONS.back)} />
-      <button class="pl-round" id="plShare" type="button" aria-label={T.share} set:html={svg(ICONS.share)} />
-    </div>
+  <main class="pl-screen nw-screen" style={`--cat-c:${catColor('eat-drink')};--cat-d:${catDark('eat-drink')};--accent-c:${catColor('eat-drink')}`}>
+    <Gallery photos={photos} slug={n.slug} lang={lang} home={`${BASE}/app/now`} alt={t.title} variant="poster">
+      <button slot="start" class="pl-round" id="plShare" type="button" aria-label={T.share} set:html={svg(ICONS.share)} />
+    </Gallery>
 
     <div class="pl-sheet">
       <p class="pl-kicker"><span class="rr-tag" style={newsStyle}><i></i><span>{T.news}{when ? ` · ${when}` : ''}</span></span></p>
@@ -76,19 +70,11 @@ const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fi
           </div>
         </section>
       )}
-
-      {photos.length > 1 && (
-        <section class="pl-section nw-more">
-          {photos.slice(1, 7).map((src) => (
-            <img src={thumb(src, 828)} alt="" loading="lazy" onload="this.classList.add('is-loaded')" />
-          ))}
-        </section>
-      )}
     </div>
   </main>
 
   {url && (
-    <div class="pl-actionbar">
+    <div class="pl-actionbar" data-gal-fade>
       <a class="pl-primary" href={url} target="_blank" rel="noopener">
         <Fragment set:html={svg(ICONS.out, 'pl-primary__icon')} />{ctaLabel}
       </a>
@@ -101,9 +87,6 @@ const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fi
   <script is:inline define:vars={{ SHARE: shareUrl, NAME: t.title }}>
     (function () {
       var $ = function (id) { return document.getElementById(id); };
-      $('plBack').addEventListener('click', function (e) {
-        if (history.length > 1 && document.referrer && new URL(document.referrer).origin === location.origin) { e.preventDefault(); history.back(); }
-      });
       $('plShare').addEventListener('click', function () {
         if (navigator.share) { navigator.share({ title: NAME, url: SHARE }).catch(function () {}); return; }
         var t = $('plToast');

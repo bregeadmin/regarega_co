@@ -4,26 +4,10 @@
 
 .nw-screen{ position:relative; }
 
-/* the photo is shown whole — event posters carry their text, so no cropping */
-.nw-hero{ background:var(--ink); display:flex; justify-content:center; padding-bottom:26px; }
-.nw-hero img{
-  display:block;
-  width:100%;
-  height:auto;
-  max-height:72vh;
-  object-fit:contain;
-  opacity:0;
-  transition:opacity .3s var(--ease-out);
-}
-.nw-hero img.is-loaded{ opacity:1; }
+/* the photos (shown whole — posters carry text): components/app/Gallery.astro variant poster */
 
 /* event titles are sentences — smaller than a place name */
 .nw-title{ font-size:clamp(32px, 9.4vw, 40px); line-height:.96; }
-
-/* no photo: the round buttons sit on a plain bar, the sheet starts right under it */
-.nw-screen--plain .pl-topbar{ position:static; padding-bottom:4px; }
-.nw-screen--plain .pl-round{ background:var(--surface); box-shadow:var(--sh-card); -webkit-backdrop-filter:none; backdrop-filter:none; }
-.nw-screen--plain .pl-sheet{ margin-top:0; padding-top:14px; border-radius:0; }
 
 .nw-places{
   display:flex;
@@ -49,10 +33,6 @@
 .nw-place__name{ max-width:100%; font-size:17px; font-weight:700; letter-spacing:-.025em; text-transform:lowercase; overflow:hidden; text-overflow:ellipsis; white-space:nowrap; }
 .nw-place__meta{ display:flex; max-width:100%; }
 
-.nw-more{ display:flex; flex-direction:column; gap:10px; }
-.nw-more img{ width:100%; height:auto; border-radius:20px; display:block; background:var(--sunk); opacity:0; transition:opacity .3s var(--ease-out); }
-.nw-more img.is-loaded{ opacity:1; }
-
 @media (prefers-reduced-motion:reduce){
-  .nw-hero img, .nw-place__photo img, .nw-more img{ transition:none; }
+  .nw-place__photo img{ transition:none; }
 }
