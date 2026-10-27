@@ -193,20 +193,27 @@ body.app-full a{ color:inherit; text-decoration:none; }
   white-space:nowrap;
   max-width:100%;
 }
-.now-tag i, .rr-tag i{ width:8px; height:8px; flex:none; border-radius:50%; background:var(--tag-c, var(--eat)); }
-.now-tag.is-ring i, .rr-tag.is-ring i{ background:transparent; box-shadow:inset 0 0 0 2px var(--tag-c, var(--eat)); }
+.now-tag i, .rr-tag i{ width:var(--tag-w, 8px); height:var(--tag-w, 8px); flex:none; border-radius:50%; background:var(--tag-c, var(--eat)); }
+/* category icon (Tabler outline) in the world colour: painted through a mask from --tag-i (guideCats.ts) */
+@supports (mask-image:url(x)) or (-webkit-mask-image:url(x)){
+  .now-tag i, .rr-tag i, .rr-chip i{
+    -webkit-mask:var(--tag-i, none) center / contain no-repeat;
+            mask:var(--tag-i, none) center / contain no-repeat;
+  }
+}
+.now-tag[style*="--tag-i"] i, .rr-tag[style*="--tag-i"] i, .rr-chip[style*="--tag-i"] i{ border-radius:0; }
 .rr-tag > span{ min-width:0; overflow:hidden; text-overflow:ellipsis; }
 /* жильё — единственный оранжевый штамп */
 .rr-tag--home{ --tag-c:var(--home); --tag-t:var(--home-tint); --tag-d:var(--home-deep); }
 
-/* «открыто сейчас» — точка цвета категории в тонком кольце (не оранжевая, без пульса) */
+/* «открыто сейчас» — нейтральная чернильная точка в тонком кольце (не цвет категории, без пульса) */
 .rr-open{ display:inline-flex; align-items:center; gap:8px; }
 .rr-open i{
   width:7px; height:7px;
   flex:none;
   border-radius:50%;
-  background:var(--c, var(--ink-3));
-  box-shadow:0 0 0 3px color-mix(in srgb, var(--c, var(--ink-3)) 28%, transparent);
+  background:var(--c, var(--ink));
+  box-shadow:0 0 0 3px color-mix(in srgb, var(--c, var(--ink)) 18%, transparent);
 }
 .rr-open.is-closed i{ background:var(--ink-3); box-shadow:none; }
 
@@ -233,12 +240,10 @@ body.app-full a{ color:inherit; text-decoration:none; }
   transition:transform .16s var(--ease-out), background .2s var(--ease-out), color .2s var(--ease-out);
 }
 .rr-chip:active{ transform:scale(.96); }
-.rr-chip i{ width:8px; height:8px; flex:none; border-radius:50%; background:var(--tag-c, var(--ink)); }
-.rr-chip.is-ring i{ background:transparent; box-shadow:inset 0 0 0 2px var(--tag-c, var(--ink)); }
+.rr-chip i{ width:var(--tag-w, 8px); height:var(--tag-w, 8px); flex:none; border-radius:50%; background:var(--tag-c, var(--ink)); }
 .rr-chip.is-active{ background:var(--ink); color:var(--surface); }
 /* on the black capsule the category colour is lifted so the dot still reads */
 .rr-chip.is-active i{ background:color-mix(in srgb, var(--tag-c, var(--ink)) 45%, white); }
-.rr-chip.is-active.is-ring i{ background:transparent; box-shadow:inset 0 0 0 2px color-mix(in srgb, var(--tag-c, var(--ink)) 45%, white); }
 
 /* small mono kicker (r3 .kick) */
 .rr-kick{

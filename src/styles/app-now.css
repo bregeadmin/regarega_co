@@ -73,9 +73,9 @@
   white-space:nowrap;
   color:white;
 }
-/* «открыто» — not green/orange: the category colour lifted for a dark glass, in a soft ring */
+/* «открыто» — neutral ink/white dot (never a category colour), soft ring */
 .now-hero__open i{
-  --dot:color-mix(in srgb, var(--hero-c, var(--ink-3)) 45%, white);
+  --dot:rgba(255,255,255,.88);
   width:7px; height:7px;
   flex:none;
   border-radius:50%;

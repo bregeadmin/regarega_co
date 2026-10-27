@@ -68,7 +68,7 @@ const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fi
                 <span class="nw-place__photo">{((p.photos && p.photos[0]) || p.image) && <img src={thumb((p.photos && p.photos[0]) || p.image, 320)} alt="" loading="lazy" onload="this.classList.add('is-loaded')" />}</span>
                 <span class="nw-place__body">
                   <span class="nw-place__name">{p.title || p.name}</span>
-                  <span class="nw-place__meta"><span class={`rr-tag${catOutline(p.category) ? ' is-ring' : ''}`} style={catStyle(p.category)}><i></i><span>{catLabel(p.category, lang)}</span></span></span>
+                  <span class="nw-place__meta"><span class={`rr-tag`} style={catStyle(p.category)}><i></i><span>{catLabel(p.category, lang)}</span></span></span>
                 </span>
                 <Fragment set:html={svg(ICONS.chevron, 'pl-row__chev')} />
               </a>

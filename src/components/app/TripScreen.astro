@@ -22,7 +22,7 @@ import '../../styles/app-trip.css';
 import AppHeader from '../AppHeader.astro';
 import TabBar from '../TabBar.astro';
 import { supabase } from '../../lib/supabase';
-import { GUIDE_CATS, catLabel, catColor, catTint, catDark, catOutline } from '../../lib/guideCats';
+import { GUIDE_CATS, catLabel, catColor, catTint, catDark, catOutline, catStyle } from '../../lib/guideCats';
 import { thumb } from '../../lib/thumb';
 import { icon } from '../../lib/stayUi';
 
@@ -98,7 +98,7 @@ const NEAR = ((gp || []) as any[])
     lo: p.lng,
   }));
 // category colours for the stamps — from guideCats.ts, never duplicated
-const CATS = Object.fromEntries(Object.keys(GUIDE_CATS).map((k) => [k, { c: catColor(k), t: catTint(k), d: catDark(k), o: catOutline(k) }]));
+const CATS = Object.fromEntries(Object.keys(GUIDE_CATS).map((k) => [k, { c: catColor(k), t: catTint(k), d: catDark(k), o: false, s: catStyle(k) }]));
 const ICONS = { copy: icon('copy', 17), check: icon('check', 17), arrow: icon('arrowRight', 22) };
 ---
 <AppFull lang={lang} title={T.title} description={T.desc}>
@@ -454,7 +454,7 @@ const ICONS = { copy: icon('copy', 17), check: icon('check', 17), arrow: icon('a
               var tx = el('span', 'tr-row__t');
               tx.appendChild(el('b', '', p.n));
               var tag = el('span', 'rr-tag' + (cat && cat.o ? ' is-ring' : ''));
-              if (cat) { tag.style.setProperty('--tag-c', cat.c); tag.style.setProperty('--tag-t', cat.t); tag.style.setProperty('--tag-d', cat.d); }
+              if (cat) { tag.setAttribute('style', cat.s); }
               tag.appendChild(el('i')); tag.appendChild(el('span', '', p.c));
               tx.appendChild(tag);
               a.appendChild(tx);

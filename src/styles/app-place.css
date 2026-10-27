@@ -106,7 +106,7 @@
   letter-spacing:-.01em;
   color:var(--ink);
 }
-.pl-status{ --c:var(--cat-c); }
+.pl-status{ --c:var(--ink); }
 .pl-status.is-closed{ color:var(--ink-2); font-weight:500; }
 .pl-status[hidden]{ display:none; }
 
@@ -170,8 +170,8 @@
   content:"";
   width:7px; height:7px;
   border-radius:50%;
-  background:var(--cat-c, var(--ink));
-  box-shadow:0 0 0 3px color-mix(in srgb, var(--cat-c, var(--ink)) 28%, transparent);
+  background:var(--ink);
+  box-shadow:0 0 0 3px color-mix(in srgb, var(--ink) 18%, transparent);
 }
 
 .pl-rows{

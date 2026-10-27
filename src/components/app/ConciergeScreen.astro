@@ -13,7 +13,7 @@ import '../../styles/app-concierge.css';
 import AppHeader from '../AppHeader.astro';
 import TabBar from '../TabBar.astro';
 import { supabase } from '../../lib/supabase';
-import { catLabel, catColor, catTint, catDark, catOutline, GUIDE_CATS } from '../../lib/guideCats';
+import { catLabel, catColor, catTint, catDark, catOutline, catStyle, GUIDE_CATS } from '../../lib/guideCats';
 import { thumb } from '../../lib/thumb';
 import { loadNews, newsPhotos, newsText, newsDate } from '../../lib/appNews';
 
@@ -80,8 +80,8 @@ for (const n of await loadNews()) {
 }
 
 // category colours for the stamps on place cards — from guideCats.ts, never duplicated
-const CATS = Object.fromEntries(Object.keys(GUIDE_CATS).map((k) => [k, { c: catColor(k), t: catTint(k), d: catDark(k), o: catOutline(k) }]));
-const NEWS_CAT = { c: catColor('eat-drink'), t: catTint('eat-drink'), d: catDark('eat-drink'), o: false };
+const CATS = Object.fromEntries(Object.keys(GUIDE_CATS).map((k) => [k, { c: catColor(k), t: catTint(k), d: catDark(k), o: false, s: catStyle(k) }]));
+const NEWS_CAT = { c: catColor('eat-drink'), t: catTint('eat-drink'), d: catDark('eat-drink'), o: false, s: catStyle('eat-drink') };
 
 const ICONS = {
   sparkle: '<path d="M16 3l1.106 3.79a2 2 0 0 0 1.104 1.105l3.79 1.105l-3.79 1.106a2 2 0 0 0 -1.105 1.104l-1.105 3.79l-1.106 -3.79a2 2 0 0 0 -1.104 -1.105l-3.79 -1.105l3.79 -1.106a2 2 0 0 0 1.105 -1.104z" /><path d="M6 15l.673 2.303a1.5 1.5 0 0 0 1.024 1.024l2.303 .673l-2.303 .673a1.5 1.5 0 0 0 -1.024 1.024l-.673 2.303l-.673 -2.303a1.5 1.5 0 0 0 -1.024 -1.024l-2.303 -.673l2.303 -.673a1.5 1.5 0 0 0 1.024 -1.024z" />',
@@ -176,7 +176,7 @@ const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fi
         if (kind === 'stay') tag.className += ' rr-tag--home';
         else {
           var cat = kind === 'place' ? CATS[d.k] : NEWS_CAT;
-          if (cat) { tag.style.setProperty('--tag-c', cat.c); tag.style.setProperty('--tag-t', cat.t); tag.style.setProperty('--tag-d', cat.d); if (cat.o) tag.className += ' is-ring'; }
+          if (cat) { tag.setAttribute('style', cat.s); if (cat.o) tag.className += ' is-ring'; }
         }
         tag.appendChild(document.createElement('i'));
         var tl = document.createElement('span'); tl.textContent = kind === 'place' ? d.c : kind === 'stay' ? T.stay : T.news; tag.appendChild(tl);

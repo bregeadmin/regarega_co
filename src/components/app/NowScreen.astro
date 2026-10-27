@@ -19,7 +19,7 @@ import AppHeader from '../AppHeader.astro';
 import TabBar from '../TabBar.astro';
 import FirstRun from './FirstRun.astro';
 import { supabase } from '../../lib/supabase';
-import { GUIDE_CATS, catLabel, catColor, catTint, catDark, catOutline } from '../../lib/guideCats';
+import { GUIDE_CATS, catLabel, catColor, catTint, catDark, catOutline, catStyle } from '../../lib/guideCats';
 import { thumb } from '../../lib/thumb';
 import { loadNews, newsPhotos, newsText, newsDate, newsDay } from '../../lib/appNews';
 
@@ -108,9 +108,9 @@ const PICK_DATA = withPhoto.map((p) => ({
   lo: p.lng,
 }));
 // category colours for the client (hero accent, list tags) — from guideCats.ts, never duplicated
-const CAT_STYLE = Object.fromEntries(Object.keys(GUIDE_CATS).map((k) => [k, { c: catColor(k), t: catTint(k), d: catDark(k), o: catOutline(k) }]));
+const CAT_STYLE = Object.fromEntries(Object.keys(GUIDE_CATS).map((k) => [k, { c: catColor(k), t: catTint(k), d: catDark(k), o: false, s: catStyle(k) }]));
 // category stamp: tint background + dark text + colour dot (ring for outline categories)
-const tagStyle = (k: string) => `--tag-c:${catColor(k)};--tag-t:${catTint(k)};--tag-d:${catDark(k)}`;
+const tagStyle = (k: string) => catStyle(k);
 
 // --- apartments: only the count, for the «жить и оставаться» tile ---
 const { data: apts } = await supabase.from('apartments_public').select('id');
@@ -120,10 +120,6 @@ gpAll.forEach((p) => { counts[p.category] = (counts[p.category] || 0) + 1; });
 
 // Real Tabler-icons "outline" path data (viewBox 0 0 24 24).
 const ICO = {
-  eat: '<path d="M19 3v12h-5c-.023 -3.681 .184 -7.406 5 -12zm0 12v6h-1v-3m-10 -14v17m-3 -17v3a3 3 0 1 0 6 0v-3" />',
-  leaf: '<path d="M5 21c.5 -4.5 2.5 -8 7 -10" /><path d="M9 18c6.218 0 10.5 -3.288 11 -12v-2h-4.014c-9 0 -11.986 4 -12 9c0 1 0 3 2 5h3z" />',
-  bike: '<path d="M5 18m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" /><path d="M19 18m-3 0a3 3 0 1 0 6 0a3 3 0 1 0 -6 0" /><path d="M12 19l0 -4l-3 -3l5 -4l2 3l3 0" /><path d="M17 5m-1 0a1 1 0 1 0 2 0a1 1 0 1 0 -2 0" />',
-  laptop: '<path d="M3 19l18 0" /><path d="M5 6m0 1a1 1 0 0 1 1 -1h12a1 1 0 0 1 1 1v8a1 1 0 0 1 -1 1h-12a1 1 0 0 1 -1 -1z" />',
   arrow: '<path d="M17 7l-10 10" /><path d="M8 7l9 0l0 9" />',
   chev: '<path d="M9 6l6 6l-6 6" />',
 };
@@ -133,11 +129,11 @@ const ICO = {
 type Tile = { k: string; fill: boolean; c: string; n: number | string; ico?: string; h: { en: string; ru: string }; sb: { en: string; ru: string }; href?: string; soon?: boolean; stay?: boolean };
 const TILES: Tile[] = [
   { k: 'stay', fill: true, stay: true, c: 'var(--home)', n: aptCount || '—', href: `${BASE}/app/stays`, h: { en: 'stay & live', ru: 'жить и оставаться' }, sb: { en: 'flats · hotels', ru: 'квартиры · отели' } },
-  { k: 'eat-drink', fill: true, c: catColor('eat-drink'), n: counts['eat-drink'] || 0, ico: ICO.eat, href: `${BASE}/app/guide?cat=eat-drink`, h: { en: 'eat & drink', ru: 'есть и пить' }, sb: { en: 'cafés · restaurants · bars', ru: 'кафе · рестораны · бары' } },
-  { k: 'wellness', fill: true, c: catColor('wellness'), n: counts['wellness'] || 0, ico: ICO.leaf, href: `${BASE}/app/guide?cat=wellness`, h: { en: 'wellness', ru: 'велнес' }, sb: { en: 'spa · baths · massage', ru: 'спа · бани · массаж' } },
+  { k: 'eat-drink', fill: true, c: catColor('eat-drink'), n: counts['eat-drink'] || 0, ico: GUIDE_CATS['eat-drink'].icon, href: `${BASE}/app/guide?cat=eat-drink`, h: { en: 'eat & drink', ru: 'есть и пить' }, sb: { en: 'cafés · restaurants · bars', ru: 'кафе · рестораны · бары' } },
+  { k: 'wellness', fill: true, c: catColor('wellness'), n: counts['wellness'] || 0, ico: GUIDE_CATS['wellness'].icon, href: `${BASE}/app/guide?cat=wellness`, h: { en: 'wellness', ru: 'велнес' }, sb: { en: 'spa · baths · massage', ru: 'спа · бани · массаж' } },
   { k: 'experiences', fill: true, soon: true, c: 'var(--blue)', n: '—', h: { en: 'experiences', ru: 'впечатления' }, sb: { en: 'tours · classes', ru: 'туры · мастер-классы' } },
-  { k: 'move-around', fill: false, c: catColor('move-around'), n: counts['move-around'] || 0, ico: ICO.bike, href: `${BASE}/app/guide?cat=move-around`, h: { en: 'move around', ru: 'передвижение' }, sb: { en: 'taxi · scooter · car', ru: 'такси · самокат · машина' } },
-  { k: 'work', fill: false, c: catColor('work'), n: counts['work'] || 0, ico: ICO.laptop, href: `${BASE}/app/guide?cat=work`, h: { en: 'work & remote', ru: 'работа и удалёнка' }, sb: { en: 'co-workings · wifi cafés', ru: 'коворкинги · кафе с wifi' } },
+  { k: 'move-around', fill: false, c: catColor('move-around'), n: counts['move-around'] || 0, ico: GUIDE_CATS['move-around'].icon, href: `${BASE}/app/guide?cat=move-around`, h: { en: 'move around', ru: 'передвижение' }, sb: { en: 'taxi · scooter · car', ru: 'такси · самокат · машина' } },
+  { k: 'work', fill: false, c: catColor('work'), n: counts['work'] || 0, ico: GUIDE_CATS['work'].icon, href: `${BASE}/app/guide?cat=work`, h: { en: 'work & remote', ru: 'работа и удалёнка' }, sb: { en: 'co-workings · wifi cafés', ru: 'коворкинги · кафе с wifi' } },
   { k: 'nightlife', fill: false, soon: true, c: 'var(--blue)', n: '—', h: { en: 'nightlife', ru: 'ночная жизнь' }, sb: { en: 'wine bars · clubs', ru: 'винные бары · клубы' } },
   { k: 'explore', fill: false, soon: true, c: 'var(--ink-2)', n: '—', h: { en: 'explore', ru: 'про город' }, sb: { en: 'beaches · old town', ru: 'пляжи · старый город' } },
 ];
@@ -238,7 +234,7 @@ const mdEm = (raw: string) => esc(raw).replace(/\*([^*]+)\*/g, '<em>$1</em>').re
         return (
           <a class="now-pc" data-category={p.category} data-lat={p.lat} data-lng={p.lng} href={`${BASE}/app/place/${p.slug}`}>
             <span class="now-pc__ph"><img src={thumb(photoOf(p), 480)} alt="" loading="lazy" onload="this.classList.add('is-loaded')" /></span>
-            <span class={`now-tag${catOutline(p.category) ? ' is-ring' : ''}`} style={tagStyle(p.category)}><i></i>{catLabel(p.category, lang)}</span>
+            <span class={`now-tag`} style={tagStyle(p.category)}><i></i>{catLabel(p.category, lang)}</span>
             <span class="now-pc__name">{p.title || p.name}</span>
             <span class="now-pc__meta" data-area={area}>{area}</span>
           </a>
@@ -408,7 +404,7 @@ const mdEm = (raw: string) => esc(raw).replace(/\*([^*]+)\*/g, '<em>$1</em>').re
         var meta = document.createElement('span'); meta.className = 'now-row__meta';
         var cs = catOf(x.p.k);
         var tag = document.createElement('span'); tag.className = 'now-tag' + (cs && cs.o ? ' is-ring' : '');
-        if (cs) tag.setAttribute('style', '--tag-c:' + cs.c + ';--tag-t:' + cs.t + ';--tag-d:' + cs.d);
+        if (cs) tag.setAttribute('style', cs.s);
         tag.appendChild(document.createElement('i'));
         tag.appendChild(document.createTextNode(x.p.c));
         var info = document.createElement('span'); info.className = 'now-row__info';

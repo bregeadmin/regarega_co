@@ -86,7 +86,7 @@ const mdEm = (raw: string) => esc(raw).replace(/\*([^*]+)\*/g, '<em>$1</em>').re
     <nav class="gd-chips" aria-label={T.cats}>
       <button class="rr-chip is-active" data-cat="all" type="button">{T.all}</button>
       {cats.map((c) => (
-        <button class={`rr-chip${catOutline(c) ? ' is-ring' : ''}`} data-cat={c} type="button" style={catStyle(c)}><i></i>{catLabel(c, lang)}</button>
+        <button class={`rr-chip`} data-cat={c} type="button" style={catStyle(c)}><i></i>{catLabel(c, lang)}</button>
       ))}
       {news.length > 0 && <button class="rr-chip" data-cat="news" type="button" style={catStyle('eat-drink')}><i></i>{T.news}</button>}
     </nav>
@@ -117,7 +117,7 @@ const mdEm = (raw: string) => esc(raw).replace(/\*([^*]+)\*/g, '<em>$1</em>').re
             <span class="place-tile__photo">
               {photo && <img src={thumb(photo, 480)} alt="" loading="lazy" onload="this.classList.add('is-loaded')" />}
             </span>
-            <span class={`rr-tag place-tile__tag${catOutline(p.category) ? ' is-ring' : ''}`} style={catStyle(p.category)}><i></i><span>{catLabel(p.category, lang)}</span></span>
+            <span class={`rr-tag place-tile__tag`} style={catStyle(p.category)}><i></i><span>{catLabel(p.category, lang)}</span></span>
             <span class="place-tile__name">{p.title || p.name}</span>
             <span class="place-tile__meta">{area}</span>
           </a>
