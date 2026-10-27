@@ -251,7 +251,10 @@ const eatC = catColor('eat-drink');
       ];
       var $ = function (id) { return document.getElementById(id); };
       // «open now» from Google hours — shared with the map (public/app-hours.js)
-      var H = window.rrHours, T0 = H.now();
+      // (app-hours.js missing — offline before the SW cached it: no open/closed info, the rest works)
+      var H = window.rrHours || { now: function () { var d = new Date(new Date().toLocaleString('en-US', { timeZone: 'Asia/Tbilisi' })); return { date: d, hour: d.getHours(), dow: d.getDay(), mins: d.getHours() * 60 + d.getMinutes() }; },
+        openNow: function () { return null; }, status: function () { return ''; }, short: function () { return ''; } };
+      var T0 = H.now();
       var now = T0.date, hour = T0.hour;
       var openNow = function (h) { return H.openNow(h, T0); };
       var statusText = function (o) { return H.status(o, RU); };

@@ -78,6 +78,27 @@ html:has(.mp), html:has(.mp) body{ height:100%; overflow:hidden; overscroll-beha
 }
 .mp-pin.is-sel .pn__nm{ opacity:1; }
 .mp-pin.is-left .pn__nm{ left:auto; right:calc(100% + 8px); transform-origin:right center; }
+/* overlapping pins → one count bubble (tap = zoom in); ink when mixed, world colour under a
+   one-world filter, orange for flats */
+.mp-pin.is-grouped{ display:none; }
+.mp-grp-pin{ z-index:4; }
+.mp-grp-pin[hidden]{ display:none; }
+.mp-grp{
+  --c:var(--ink);
+  position:absolute; left:0; top:0; transform:translate(-50%, -50%);
+  min-width:38px; height:38px; padding:0 11px; border:0; border-radius:var(--r-pill);
+  display:flex; align-items:center; justify-content:center; gap:5px;
+  background:var(--c); color:#fff;
+  font-family:var(--font); font-weight:800; font-size:15px; letter-spacing:-.02em;
+  box-shadow:0 0 0 3px var(--surface), 0 0 0 7px color-mix(in srgb, var(--c) 18%, transparent), 0 6px 14px rgba(10,9,8,.22);
+  cursor:pointer; -webkit-tap-highlight-color:transparent;
+  transition:transform .16s var(--ease-out);
+}
+.mp-grp:active{ transform:translate(-50%, -50%) scale(.94); }
+.mp-grp .pn__mark{ width:18px; height:18px; display:block; }
+.mp-grp .pn__mark svg{ width:100%; height:100%; display:block; }
+.mp.is-enter .mp-grp{ animation:mp-pin-in .5s var(--ease-out) both; }
+
 /* «я» — blue dot (only with location already allowed / after the locate button) */
 .mp-meDot{
   position:absolute; left:-9px; top:-9px; width:18px; height:18px; border-radius:50%;
@@ -225,6 +246,9 @@ html:has(.mp), html:has(.mp) body{ height:100%; overflow:hidden; overscroll-beha
 }
 @media (prefers-reduced-motion:reduce){
   .mp.is-enter .pn{ animation:none; }
-  .mp-sh, .pn, .mp-row, .mp-round, .mp-toast, .mp-det__ph img{ transition:none !important; }
+  .mp-sh, .pn, .mp-grp, .mp-row, .mp-round, .mp-toast, .mp-det__ph img{ transition:none !important; }
+  .mp.is-enter .mp-grp{ animation:none; }
 }
 .mp-round[hidden]{ display:none; }
+/* short phones (SE): a lower photo keeps «подробнее» above the fold in the half sheet */
+@media (max-height:700px){ .mp-det__ph{ height:140px; } }

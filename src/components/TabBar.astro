@@ -39,7 +39,7 @@ const L = isRu
 
 // `i` = visible slot (stays and trip share slot 1 — only one of them is ever shown).
 const TABS = [
-  { key: 'guide', i: 0, href: `${base}/app/now`, active: isActive('/app/now', '/app/guide', '/app/map', '/app/search', '/guide'), icon: ICONS.compass, label: L.guide },
+  { key: 'guide', i: 0, href: `${base}/app/now`, active: isActive('/app/now', '/app/guide', '/app/search', '/guide'), icon: ICONS.compass, label: L.guide },
   { key: 'stays', i: 1, href: `${base}/app/stays`, active: isActive('/app/stays', '/stays'), icon: ICONS.bed, label: L.stays },
   { key: 'trip', i: 1, href: `${base}/app/trip`, active: isActive('/app/trip'), icon: ICONS.key, label: L.trip, dot: true },
   { key: 'concierge', i: 2, href: `${base}/app/concierge`, active: isActive('/app/concierge'), icon: ICONS.sparkles, label: L.concierge },
