@@ -67,7 +67,7 @@
   box-shadow:inset 0 0 0 1px rgba(255,255,255,.08);
   pointer-events:none;
 }
-.now-hero__img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; opacity:0; }
+.now-hero__img{ position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; opacity:0; border-radius:inherit; } /* rounded in its own snapshot when it grows into the place gallery */
 .now-hero__img.is-loaded{ opacity:1; }
 .now-hero__tags{ position:absolute; left:14px; right:14px; top:14px; z-index:2; display:flex; gap:6px; flex-wrap:wrap; }
 .now-hero__tags[hidden]{ display:none; }

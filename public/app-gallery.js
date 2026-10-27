@@ -38,8 +38,9 @@
     if (p) return p;
     var img = a.querySelector('img');
     if (!img) return null;
+    // the img's own frame (rounded wrapper) — but never one that also carries text (price stamp…)
     var par = img.parentElement;
-    return par && par !== a && par.querySelectorAll('img').length === 1 ? par : img;
+    return par && par !== a && par.querySelectorAll('img').length === 1 && !par.textContent.trim() ? par : img;
   }
   function nameCard(a, slug) {
     // the big card of this very slug is on screen (news → its place with the same slug): skip
@@ -77,11 +78,12 @@
     var back = get('rr_vt_back');
     put('rr_vt_back', null);
     var vt = e.viewTransition;
-    if (!vt) return;
-    // a navigation that starts before the transition has run aborts it — that is fine, stay quiet
+    // a navigation that starts before the transition has run (or our skip) aborts it — stay quiet
     var hush = function () {};
-    if (vt.ready) vt.ready.catch(hush);
-    if (vt.updateCallbackDone) vt.updateCallbackDone.catch(hush);
+    if (vt && vt.ready) vt.ready.catch(hush);
+    if (vt && vt.updateCallbackDone) vt.updateCallbackDone.catch(hush);
+    if (leaving()) { html.style.opacity = '0'; if (vt) vt.skipTransition(); return; }
+    if (!vt) { clearNames(); return; }
     if (back) {
       html.classList.add('rr-vt-back');
       vt.finished.then(off, off);
@@ -92,33 +94,72 @@
       var links = document.querySelectorAll('a[href]');
       for (var i = 0; i < links.length; i++) if (slugOf(links[i]) === s.slug) { nameCard(links[i], s.slug); break; }
     }
+    // the tapped card keeps its name only for this reveal — a later tab switch must not morph it
+    vt.finished.then(clearNames, clearNames);
   });
 
   /* ------------------------------------------------------------ 2. gallery */
   var closing = 0;               // history.back() steps taken while closing the screen
   var pvPop = false;             // the viewer called history.back() and its popstate hasn't come yet
   var home = '';
+  // Leaving a big card goes back past every entry of the SAME screen: same-document ones (booking
+  // steps, popstate below) and cross-document ones — e.g. the signed-out booking went
+  // flat → login → location.replace(flat), so one step back is the same flat again. rr_leave
+  // remembers the path we leave; a page that opens on that path keeps stepping back (hidden,
+  // no transition). History runs out → the screen's natural parent (`home`: stays list for a
+  // flat, home for place / news).
+  var LEAVE = 'rr_leave';
+  var canBack = function () { return !(window.navigation && navigation.canGoBack === false); };
+  var giveUp = 0;
+  function stepBack() {
+    clearTimeout(giveUp);
+    if (!canBack()) { stop(); location.replace(home); return; }
+    // no Navigation API: if back() did nothing at all, nothing hides this page — then go to the parent
+    giveUp = setTimeout(function () { if (closing && document.visibilityState === 'visible') { stop(); location.replace(home); } }, 4000);
+    history.back();
+  }
+  function stop() { closing = 0; clearTimeout(giveUp); put(LEAVE, null); html.style.opacity = ''; }
+  addEventListener('pagehide', function () { clearTimeout(giveUp); });
+  function leaving() { var L = get(LEAVE); return !!(L && L.p === location.pathname && Date.now() - L.t < 15000); }
   function leave() {
     var same = false;
     try { same = !!document.referrer && new URL(document.referrer).origin === location.origin; } catch (e) {}
-    if (history.length > 1 && same) {
+    if (history.length > 1 && same && canBack()) {
       closing = 1;
       put('rr_vt_back', 1);
+      put(LEAVE, { p: location.pathname, n: 0, t: Date.now(), home: home });
       // the viewer's own history entry is still being popped: its popstate steps on (below)
-      if (!(pvPop && history.state && history.state.rrpv)) history.back();
+      if (!(pvPop && history.state && history.state.rrpv)) stepBack();
     } else {
+      put(LEAVE, null);
       location.replace(home);
     }
+  }
+  // a page that opens while we are leaving this path: keep going (or forget it — another screen)
+  function keepLeaving() {
+    var L = get(LEAVE);
+    if (!L) { html.style.opacity = ''; return; }
+    if (L.p !== location.pathname || Date.now() - L.t > 15000) { put(LEAVE, null); html.style.opacity = ''; return; }
+    home = L.home || home;
+    L.n++; L.t = Date.now();
+    if (L.n > 8) { stop(); location.replace(home); return; }
+    put(LEAVE, L);
+    html.style.opacity = '0';
+    closing = 1;
+    stepBack();
   }
   // same-document entries (e.g. the booking steps on an apartment) are stepped over while closing
   addEventListener('popstate', function (e) {
     pvPop = false;
     if (!closing) return;
     e.stopImmediatePropagation();
-    if (++closing > 8) { closing = 0; location.replace(home); return; }
-    history.back();
+    if (++closing > 8) { stop(); location.replace(home); return; }
+    stepBack();
   });
-  addEventListener('pageshow', function (e) { if (e.persisted) { closing = 0; resetPull(); } });
+  addEventListener('pageshow', function (e) {
+    if (!e.persisted) return;
+    closing = 0; resetPull(); keepLeaving();
+  });
 
   var pullCard = null, pullFades = [], under = null;
   function resetPull(animate) {
@@ -126,6 +167,7 @@
     var from = pullCard.style.transform;
     pullCard.style.transform = ''; pullCard.style.clipPath = '';
     pullCard.classList.remove('is-pull');
+    html.removeAttribute('data-no-ptr');
     if (animate && from) anim(pullCard, [{ transform: from }, { transform: 'none' }], { duration: D(380), easing: IOS });
     pullFades.forEach(function (f) { f.style.opacity = ''; });
     if (under) under.style.opacity = '0';
@@ -170,7 +212,7 @@
 
     // ---- one gesture model for touch (touch events: we must be able to cancel the page
     //      scroll for swipe-down) and mouse (pointer events, desktop / simulator)
-    var s = null, moved = false;
+    var s = null, moved = false, offMouse = function () {};
     function start(px, py) {
       moved = false;
       if (px < EDGE) { s = null; return; }      // native back owns the left edge
@@ -180,12 +222,15 @@
       if (!s) return;
       var dx = px - s.x, dy = py - s.y;
       if (!s.ax) {
+        // iOS / Android only let the FIRST touchmoves be cancelled (later ones belong to the native
+        // bounce / pull-to-refresh) — a downward drag at the top is ours from the first pixel
+        if (ev && ev.cancelable && dy > 0 && dy >= Math.abs(dx) && (window.scrollY || html.scrollTop) <= 0) ev.preventDefault();
         if (Math.abs(dx) + Math.abs(dy) < 5) return;
         if (Math.abs(dx) > Math.abs(dy)) s.ax = n > 1 ? 'x' : 'n';
         else s.ax = dy > 0 && (window.scrollY || html.scrollTop) <= 0 ? 'y' : 'n';
         if (s.ax === 'n') { s = null; return; }
         moved = true;
-        if (s.ax === 'y') card.classList.add('is-pull');
+        if (s.ax === 'y') { card.classList.add('is-pull'); html.setAttribute('data-no-ptr', ''); }
       }
       if (ev && ev.cancelable) ev.preventDefault();
       var now = performance.now(), dt = now - s.ht;
@@ -233,11 +278,18 @@
 
     g.addEventListener('pointerdown', function (e) {
       if (e.pointerType !== 'mouse' || e.button !== 0 || e.target.closest('a,button')) return;
+      offMouse();
       start(e.clientX, e.clientY);
       var mv = function (ev) { move(ev.clientX, ev.clientY, null); };
-      var up = function () { removeEventListener('pointermove', mv); removeEventListener('pointerup', up); end(); };
+      var up = function () { offMouse(); end(); };
+      var cancel = function () { offMouse(); if (s && s.ax === 'y') resetPull(true); else if (s && s.ax === 'x') go(i, true); s = null; };
+      offMouse = function () {
+        removeEventListener('pointermove', mv); removeEventListener('pointerup', up); removeEventListener('pointercancel', cancel);
+        offMouse = function () {};
+      };
       addEventListener('pointermove', mv);
       addEventListener('pointerup', up);
+      addEventListener('pointercancel', cancel);
     });
     g.addEventListener('dragstart', function (e) { e.preventDefault(); });
 
@@ -405,6 +457,6 @@
   }
   addEventListener('popstate', function () { if (pv) closeViewer(false); });
 
-  function boot() { [].forEach.call(document.querySelectorAll('[data-gal]'), initGallery); }
+  function boot() { [].forEach.call(document.querySelectorAll('[data-gal]'), initGallery); keepLeaving(); }
   if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot); else boot();
 })();

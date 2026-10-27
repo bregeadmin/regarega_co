@@ -5,7 +5,7 @@
 // The frame carries `view-transition-name: ph-<slug>`: the card photo on the list page gets the
 // same name when tapped (app-gallery.js), so the photo «grows» into this frame across the page
 // load. Tap a photo → fullscreen viewer (built by app-gallery.js, role=dialog aria-modal).
-// Close = history.back() when we came from inside the app, else the home screen (`home`).
+// Close = history.back() when we came from inside the app, else the parent screen (`home`).
 // variant 'poster' (news): the photo is shown whole (posters carry text) over a blurred copy.
 import '../../styles/app-gallery.css';
 import { thumb } from '../../lib/thumb';
@@ -15,7 +15,7 @@ export interface Props {
   photos: string[];
   slug: string;
   lang: 'en' | 'ru';
-  home: string;           // where X goes on a direct visit (no in-app history)
+  home: string;           // the screen's parent: where X goes when there is no in-app history (flat → stays list, place / news → home)
   alt?: string;
   variant?: 'cover' | 'poster';
 }

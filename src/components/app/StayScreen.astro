@@ -169,7 +169,7 @@ const sign = `<svg viewBox="0 0 100 100" aria-hidden="true"><path fill-rule="eve
 ---
 <AppFull lang={lang} title={title + ' — rega rega'} description={stripEmoji(summary).slice(0, 160) || (RU ? 'проверенная квартира в батуми.' : 'a checked flat in batumi.')}>
   <main class="st-page" id="stPage">
-    <Gallery photos={photos} slug={apt.slug} lang={lang} home={`${BASE}/app/now`} alt={title}>
+    <Gallery photos={photos} slug={apt.slug} lang={lang} home={`${BASE}/app/stays`} alt={title}>
       <button slot="start" class="st-round" id="stShare" type="button" aria-label={T.share} hidden set:html={icon('share')} />
     </Gallery>
 
