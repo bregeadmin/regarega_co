@@ -30,6 +30,8 @@ const photo = (slug: string, w: 320 | 480 | 640 | 828) => {
 const { data: flat } = await supabase.from('apartments_public').select('photos').eq('slug', 'coral-apartment').maybeSingle();
 const flatPhoto = thumb((flat as any)?.photos?.[0] || '', 480);
 
+// Stage 1 copy is softened where the feature isn't built yet («мой батуми», the concierge
+// remembering, the guide adapting to picks) — stage 2 (sync) restores the approved prototype copy.
 const T = isRu
   ? {
       // splash
@@ -41,22 +43,23 @@ const T = isRu
       tapSkip: 'тапни, чтобы пропустить',
       r1: '5 мин', r2: '15 мин',
       filmLabel: 'заставка — тапни, чтобы пропустить',
+      dialog: 'знакомство с rega rega',
       // onboarding
       skip: 'пропустить',
       s1h: 'найди квартиру,<br><em>влюбись</em> в город',
       s1sub: 'город глазами местных: мы сами ходим во все места гида, а квартиры берём только те, где жили бы сами.',
       say: '«завтракаем тут по пятницам — бери шакшуку»',
       tags1: ['пробито нами', 'кофе', 'квартира'],
-      q: 'что тебе ближе? выбери — гид подстроится',
+      q: 'что тебе ближе?',
       picks: ['есть и пить', 'велнес', 'работа', 'жильё'],
       next: 'дальше',
       s2h: 'пробей первое <em>место</em>',
-      s2sub: 'кружок в углу — это «пробить». место ляжет в «мой батуми», а консьерж его запомнит.',
+      s2sub: 'кружок в углу — это «пробить». сохраним место — найдёшь его потом.',
       hint: 'тапни кружок',
       tags2: ['до 05:00', 'кофе', 'велнес', 'работа'],
       caps2: ['коктейли без меню · 6 мин', 'флэт уайт и тишина до 10 утра', 'хаммам после моря', 'коворкинг с видом'],
       punchAria: 'пробить',
-      pocket: 'мой батуми', pkEmpty: 'пока пусто', need: 'сначала пробей одно',
+      pocket: 'сохранено', pkEmpty: 'пока пусто', need: 'сначала пробей одно',
       s3h: 'напишем, только когда <em>важно</em>',
       s3sub: 'никаких рассылок — только про твою поездку.',
       notes: [['бронь подтверждена', 'coral apartment · 14–18 ноя — bre ждёт тебя', 'сейчас'], ['bre ответил', '«да, квартира будет готова к 11:00»', '10:31'], ['код двери на сегодня', '4821 · работает с 14:00, wifi в поездке', '14 ноя']],
@@ -73,21 +76,22 @@ const T = isRu
       tapSkip: 'tap to skip',
       r1: '5 min', r2: '15 min',
       filmLabel: 'intro — tap to skip',
+      dialog: 'welcome to rega rega',
       skip: 'skip',
       s1h: 'find a flat.<br><em>fall</em> for the city.',
       s1sub: 'the city through locals’ eyes: we go to every place in the guide ourselves — and only list flats we’d live in.',
       say: '“we have breakfast here on fridays — get the shakshuka”',
       tags1: ['tried by us', 'coffee', 'flat'],
-      q: 'what are you into? pick — the guide adapts',
+      q: 'what are you into?',
       picks: ['food & drink', 'wellness', 'work', 'stays'],
       next: 'next',
       s2h: 'punch your first <em>place</em>',
-      s2sub: 'the circle in the corner means “punch it”. the place goes to “my batumi”, and the concierge remembers it.',
+      s2sub: 'the circle in the corner means “punch it”. we’ll save the place — find it later.',
       hint: 'tap the circle',
       tags2: ['till 5am', 'coffee', 'wellness', 'work'],
       caps2: ['cocktails, no menu · 6 min', 'flat white and quiet till 10am', 'hammam after the sea', 'coworking with a view'],
       punchAria: 'punch',
-      pocket: 'my batumi', pkEmpty: 'empty for now', need: 'punch one first',
+      pocket: 'saved', pkEmpty: 'empty for now', need: 'punch one first',
       s3h: 'we’ll only write when it <em>matters</em>',
       s3sub: 'no newsletters — just your trip.',
       notes: [['booking confirmed', 'coral apartment · nov 14–18 — bre is expecting you', 'now'], ['bre replied', '“yes, the flat will be ready by 11:00”', '10:31'], ['today’s door code', '4821 · works from 2pm, wifi in your trip', 'nov 14']],
@@ -98,8 +102,8 @@ const T = isRu
 
 // strings the script needs at run time (pocket count, toasts)
 const RT = isRu
-  ? { pkN: ['место', 'места', 'мест'], pkTail: 'консьерж помнит', punched: '— пробито, в «моём батуми»', removed: '— убрано из «моего батуми»' }
-  : { pkN: ['place', 'places', 'places'], pkTail: 'concierge remembers', punched: '— punched, saved to “my batumi”', removed: '— removed from “my batumi”' };
+  ? { pkN: ['место', 'места', 'мест'], punched: '— пробито, сохранили', removed: '— убрано из сохранённых' }
+  : { pkN: ['place', 'places', 'places'], punched: '— punched, saved for later', removed: '— removed from saved' };
 
 // step 1 picks: world colour per choice (stored locally as rr_picks for later)
 const PICKS = [
@@ -134,7 +138,7 @@ const legStyle = (s: string) => (s.startsWith('ring:') ? `box-shadow:inset 0 0 0
     } catch (e) {}
   })();
 </script>
-<div class="fr" id="fr" data-rt={JSON.stringify(RT)} data-r1={T.r1} data-r2={T.r2}>
+<div class="fr" id="fr" role="dialog" aria-modal="true" aria-label={T.dialog} data-rt={JSON.stringify(RT)} data-r1={T.r1} data-r2={T.r2}>
   <!-- onboarding (under the splash; the splash hands over to it) -->
   <div class="fr-ob" id="frOb">
     <div class="fr-bar">
@@ -152,7 +156,7 @@ const legStyle = (s: string) => (s.startsWith('ring:') ? `box-shadow:inset 0 0 0
             <div class="fr-ph fr-m2"><img data-src={photo('nord-specialty-coffee-food', 480)} alt="" /><span class="fr-gtag">{T.tags1[1]}</span></div>
             <div class="fr-ph fr-m3"><img data-src={flatPhoto} alt="" /><span class="fr-gtag">{T.tags1[2]}</span></div>
           </div>
-          <h1 class="rr-display fr-h"><Fragment set:html={T.s1h} /></h1>
+          <h1 tabindex="-1" class="rr-display fr-h"><Fragment set:html={T.s1h} /></h1>
           <p class="fr-sub">{T.s1sub}</p>
           <div class="fr-picks" id="frPicks">
             <span class="fr-q">{T.q}</span>
@@ -169,7 +173,7 @@ const legStyle = (s: string) => (s.startsWith('ring:') ? `box-shadow:inset 0 0 0
       <!-- 2 · пробей первое место -->
       <section class="fr-step fr-s2" aria-label={T.step(2)}>
         <div class="fr-body">
-          <h1 class="rr-display fr-h fr-h--eat"><Fragment set:html={T.s2h} /></h1>
+          <h1 tabindex="-1" class="rr-display fr-h fr-h--eat"><Fragment set:html={T.s2h} /></h1>
           <p class="fr-sub">{T.s2sub}</p>
           <span class="fr-hint" id="frHint">{T.hint} <svg viewBox="0 0 30 22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 18 C10 18 20 14 26 4" /><path d="M19 4 L26 4 L26 11" /></svg></span>
           <div class="fr-rail">
@@ -193,7 +197,7 @@ const legStyle = (s: string) => (s.startsWith('ring:') ? `box-shadow:inset 0 0 0
       <!-- 3 · уведомления и город -->
       <section class="fr-step fr-s3 is-off" aria-label={T.step(3)} id="frS3">
         <div class="fr-body">
-          <h1 class="rr-display fr-h"><Fragment set:html={T.s3h} /></h1>
+          <h1 tabindex="-1" class="rr-display fr-h"><Fragment set:html={T.s3h} /></h1>
           <p class="fr-sub">{T.s3sub}</p>
           <div class="fr-notes">
             {T.notes.map((n) => (

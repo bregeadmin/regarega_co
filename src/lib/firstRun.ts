@@ -6,7 +6,7 @@
 // Local state: rr_onboarded (set on finish / skip), rr_punched (JSON array of place slugs —
 // synced in stage 2), rr_picks (JSON array of chosen worlds, for later).
 
-type RT = { pkN: string[]; pkTail: string; punched: string; removed: string };
+type RT = { pkN: string[]; punched: string; removed: string };
 
 const NS = 'http://www.w3.org/2000/svg';
 const MARK_SVG = '<svg viewBox="0 0 100 100" aria-hidden="true"><path fill-rule="evenodd" fill="var(--home)" d="M 50,50 m -50,0 a 50,50 0 1,1 100,0 a 50,50 0 1,1 -100,0 z M 64,64 m -12,0 a 12,12 0 1,1 24,0 a 12,12 0 1,1 -24,0 z"/></svg>';
@@ -26,6 +26,14 @@ export function initFirstRun() {
   // photos load while the splash plays (data-src so returning guests never fetch them)
   root.querySelectorAll<HTMLImageElement>('img[data-src]').forEach((im) => { if (im.dataset.src) im.src = im.dataset.src; });
 
+  // modal: everything else on the page is inert + hidden from assistive tech until finish
+  const others = [...document.body.children].filter((n) => n !== root && n.tagName !== 'SCRIPT') as HTMLElement[];
+  others.forEach((n) => { n.inert = true; n.setAttribute('aria-hidden', 'true'); });
+  const focusStep = (i: number) => {
+    const h = steps[i]?.querySelector<HTMLElement>('.fr-h');
+    h?.focus({ preventScroll: true });
+  };
+
   /* ======================= onboarding ======================= */
   const ob = $('frOb');
   const toastEl = $('frToast');
@@ -38,10 +46,11 @@ export function initFirstRun() {
     toastEl.classList.remove('on');
     track.style.transform = `translateX(${(-100 / 3) * i}%)`;
     bars.forEach((b, k) => b.classList.toggle('on', k <= i));
-    steps.forEach((s, k) => s.setAttribute('aria-hidden', String(k !== i)));
+    steps.forEach((s, k) => { s.setAttribute('aria-hidden', String(k !== i)); s.inert = k !== i; });
   };
   go(0);
-  root.querySelectorAll('[data-fr-next]').forEach((b) => b.addEventListener('click', () => go(Math.min(2, step + 1))));
+  // focus moves to the new step's heading, so it never falls to <body> when the button hides
+  root.querySelectorAll('[data-fr-next]').forEach((b) => b.addEventListener('click', () => { go(Math.min(2, step + 1)); focusStep(step); }));
 
   // 1 · what are you into (kept locally for later)
   $('frPicks').addEventListener('click', (e) => {
@@ -66,6 +75,7 @@ export function initFirstRun() {
     const a = n % 10, b = n % 100;
     return a === 1 && b !== 11 ? rt.pkN[0] : a >= 2 && a <= 4 && (b < 10 || b >= 20) ? rt.pkN[1] : rt.pkN[2];
   };
+  const hasCards = !!root.querySelector('.fr-punch');
   const sync = (delay: number) => {
     const done = [...root.querySelectorAll<HTMLElement>('.fr-punch.done')];
     const n = done.length;
@@ -76,9 +86,9 @@ export function initFirstRun() {
     writeJSON('rr_punched', [...all]);
     setTimeout(() => {
       pocketN.textContent = n ? String(n) : '';
-      pocketSub.textContent = n ? `${n} ${plural(n)} · ${rt.pkTail}` : pocketSub.dataset.empty || '';
-      next2.disabled = !n;
-      next2.textContent = (n ? next2.dataset.next : next2.dataset.need) || '';
+      pocketSub.textContent = n ? `${n} ${plural(n)}` : pocketSub.dataset.empty || '';
+      next2.disabled = !n && hasCards;
+      next2.textContent = (n || !hasCards ? next2.dataset.next : next2.dataset.need) || '';
     }, delay);
   };
   const easeIO = (t: number) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
@@ -123,7 +133,7 @@ export function initFirstRun() {
   // already punched on this device (a second onboarding via ?welcome)
   const had = new Set(readJSON('rr_punched'));
   root.querySelectorAll<HTMLElement>('.fr-punch').forEach((b) => { if (had.has(b.dataset.slug)) { b.classList.add('done'); b.setAttribute('aria-pressed', 'true'); } });
-  if (had.size) sync(0);
+  if (had.size || !hasCards) sync(0); // no cards fetched at build → «дальше» is never locked
 
   // 3 · notifications: inside the iOS wrapper, the native permission prompt if the web layer
   // can reach one; otherwise this button simply moves on (no fake permission)
@@ -135,23 +145,31 @@ export function initFirstRun() {
     $('frS3').classList.remove('is-off');
     $('frOpen').classList.remove('fr-btn--light');
   };
-  const nativeAsk = (): Promise<boolean> | null => {
+  // the permission call the web layer can reach, or null (today: always null — the iOS wrapper
+  // asks natively at launch, so there is nothing to ask here)
+  const nativeAsk = ((): (() => Promise<boolean>) | null => {
     const W = window as any;
     if (!W.Capacitor) return null;
     const os = W.plugins?.OneSignal || W.OneSignal;
     if (os?.Notifications && typeof os.Notifications.requestPermission === 'function') {
-      return Promise.resolve(os.Notifications.requestPermission(true)).then((ok: any) => !!ok);
+      return () => Promise.resolve(os.Notifications.requestPermission(true)).then((ok: any) => !!ok);
     }
     const pn = W.Capacitor.Plugins?.PushNotifications;
     if (pn && typeof pn.requestPermissions === 'function') {
-      return Promise.resolve(pn.requestPermissions()).then((r: any) => r?.receive === 'granted');
+      return () => Promise.resolve(pn.requestPermissions()).then((r: any) => r?.receive === 'granted');
     }
     return null;
-  };
+  })();
+  if (!nativeAsk) {
+    // nothing to ask: one primary «открыть гид», the push examples stay as the explanation
+    notif.remove();
+    $('frOpen').classList.remove('fr-btn--light');
+    $('frS3').classList.remove('is-off');
+  }
   notif.addEventListener('click', () => {
     if (notif.classList.contains('is-ok')) return finish();
     let ask: Promise<boolean> | null = null;
-    try { ask = nativeAsk(); } catch { ask = null; }
+    try { ask = nativeAsk ? nativeAsk() : null; } catch { ask = null; }
     if (!ask) return finish();
     notif.disabled = true;
     ask.then((ok) => { notif.disabled = false; if (ok) setOn(); else finish(); }, () => finish());
@@ -164,7 +182,12 @@ export function initFirstRun() {
     finished = true;
     try { localStorage.setItem('rr_onboarded', new Date().toISOString()); } catch {}
     window.scrollTo(0, 0);
-    const end = () => { document.documentElement.classList.remove('rr-first'); root!.remove(); };
+    const end = () => {
+      document.documentElement.classList.remove('rr-first');
+      others.forEach((n) => { n.inert = false; n.removeAttribute('aria-hidden'); });
+      root!.remove();
+      document.querySelector<HTMLElement>('.app-logo')?.focus({ preventScroll: true });
+    };
     if (reduce) return end();
     root!.classList.add('is-gone');
     setTimeout(end, 420);
@@ -175,7 +198,9 @@ export function initFirstRun() {
   runSplash(root, reduce, () => {
     ob.style.opacity = '1';
     $('frFilm').classList.add('is-done');
+    focusStep(step);
   });
+  $('frFilm').focus({ preventScroll: true });
 }
 
 function runSplash(root: HTMLElement, reduce: boolean, onDone: () => void) {
@@ -366,9 +391,10 @@ function runSplash(root: HTMLElement, reduce: boolean, onDone: () => void) {
     if (sign) { const r = sign.getBoundingClientRect(); dockX = r.left; dockY = r.top; }
   };
   const play = () => {
+    if (done) return; // tapped before the deferred start (fonts) — never re-render the splash over the onboarding
     measure();
     film.dataset.t0 = String(performance.now()); // splash start (screenshots / debugging)
-    if (reduce) { render(T.dock[0] - 40); setTimeout(finish, 1800); return; } // static final frame, then the onboarding
+    if (reduce) { render(T.dock[0] - 40); setTimeout(() => { if (!done) finish(); }, 1800); return; } // static final frame, then the onboarding
     const t0 = performance.now();
     const loop = (now: number) => { if (done) return; const t = now - t0; render(t); if (t < T.end) raf = requestAnimationFrame(loop); else finish(); };
     raf = requestAnimationFrame(loop);

@@ -73,7 +73,7 @@ html[lang="en"] .fr-cap em{ font-style:italic; font-weight:800; }
 .fr-body::-webkit-scrollbar{ display:none; }
 .fr-foot{ flex:none; display:flex; flex-direction:column; gap:10px; padding:10px 16px max(24px, calc(env(safe-area-inset-bottom) + 8px)); }
 
-.fr-h{ font-size:42px; line-height:.93; padding:0 20px; }
+.fr-h{ font-size:42px; line-height:.93; padding:0 20px; outline:none; }
 .fr-h em{ color:var(--home-deep); }
 .fr-h--eat em{ color:var(--eat); }
 .fr-sub{ margin:12px 0 0; padding:0 20px; font-size:16px; line-height:1.4; color:var(--ink-2); letter-spacing:-.015em; }
@@ -193,6 +193,8 @@ html[lang="en"] .fr-cap em{ font-style:italic; font-weight:800; }
   .fr-pc__cap b{ font-size:28px; }
   .fr-notes{ margin-top:16px; }
   .fr-nt:nth-child(3){ display:none; }
+  /* the toast would cover the «сохранено» pill above the button — show it at the top instead */
+  .fr-toast{ top:calc(env(safe-area-inset-top) + 74px); bottom:auto; }
 }
 @media (max-width:380px){ .fr-h{ font-size:min(42px, 10.4vw); } }
 
