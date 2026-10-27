@@ -1,0 +1,126 @@
+---
+// City picker — full-screen dialog opened from the home pill «батуми ▾» (#cityPill).
+// Visual source: rega-design-panel r4/final/map.html (city picker) + r4/final/cities.js (faces).
+// Pages you swipe sideways (sky, city line, local time, live weather, «сейчас там»), dots,
+// a stack button → the stack of city faces + the list of all cities with search.
+// Only Batumi is open («открыть гид» = close the picker). Other cities are «скоро», not
+// selectable. A guest with a trip (window.rrTrip, same source as html.has-trip) sees an orange
+// «твоя поездка <даты>» on Batumi. Behaviour: public/app-cities.js. Styles: app-cities.css.
+import '../../styles/app-cities.css';
+import { CITIES, PAGE_CITIES, cityName, cityCountry, skylineSvg } from '../../lib/cities';
+import { thumb } from '../../lib/thumb';
+
+export interface Props {
+  lang: 'en' | 'ru';
+  places: { n: string; h: string[] }[]; // Batumi guide places (for «сейчас там» / open now)
+  photo?: string;                       // Batumi page background
+}
+const { lang, places, photo } = Astro.props;
+const RU = lang === 'ru';
+const total = places.length;
+const pl = (n: number, one: string, few: string, many: string) => { const a = n % 10, b = n % 100; return a === 1 && b !== 11 ? one : a >= 2 && a <= 4 && (b < 10 || b >= 20) ? few : many; };
+const mestRu = pl(total, 'место', 'места', 'мест');
+const T = RU
+  ? {
+      aria: 'выбор города', close: 'закрыть', stack: 'все города', open: 'открыт', soon: 'скоро',
+      inGuide: `${mestRu} в гиде`, nowThere: 'сейчас там', openOf: 'открыто', of: 'из',
+      go: `открыть гид · ${total} ${mestRu}`, soonK: 'гид собираем', soonV: 'ходим, пробуем, проверяем. батуми уже открыт',
+      soonGo: 'скоро', timeThere: 'там сейчас', cities: 'города', meta: `${CITIES.length} · 1 открыт`,
+      search: 'город или страна', all: `все ${CITIES.length} городов`, allMeta: 'серые — скоро',
+      empty: 'такого города пока нет — напиши консьержу, добавим в список', back: 'к страницам городов',
+      trip: 'твоя поездка', hint: 'смахни вниз — закрыть',
+    }
+  : {
+      aria: 'choose a city', close: 'close', stack: 'all cities', open: 'open', soon: 'soon',
+      inGuide: 'places in the guide', nowThere: 'right now', openOf: 'open', of: 'of',
+      go: `open the guide · ${total} places`, soonK: 'guide in the making', soonV: 'we walk, taste, check. batumi is open already',
+      soonGo: 'soon', timeThere: 'there now', cities: 'cities', meta: `${CITIES.length} · 1 open`,
+      search: 'city or country', all: `all ${CITIES.length} cities`, allMeta: 'grey — soon',
+      empty: 'no such city yet — tell the concierge, we’ll add it to the list', back: 'back to city pages',
+      trip: 'your trip', hint: 'swipe down to close',
+    };
+const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+const I = {
+  x: '<path d="M18 6l-12 12" /><path d="M6 6l12 12" />',
+  stack: '<path d="M12 4l-8 4l8 4l8 -4l-8 -4" /><path d="M4 12l8 4l8 -4" /><path d="M4 16l8 4l8 -4" />',
+  arrow: '<path d="M5 12l14 0" /><path d="M13 18l6 -6" /><path d="M13 6l6 6" />',
+  search: '<path d="M10 10m-7 0a7 7 0 1 0 14 0a7 7 0 1 0 -14 0" /><path d="M21 21l-6 -6" />',
+  pin: '<path d="M9 11a3 3 0 1 0 6 0a3 3 0 0 0 -6 0" /><path d="M17.657 16.657l-4.243 4.243a2 2 0 0 1 -2.827 0l-4.244 -4.243a8 8 0 1 1 11.314 0z" />',
+  plane: '<path d="M16 10h4a2 2 0 0 1 0 4h-4l-4 7h-3l2 -7h-4l-2 2h-3l2 -4l-2 -4h3l2 2h4l-2 -7h3z" />',
+  clock: '<path d="M3 12a9 9 0 1 0 18 0a9 9 0 0 0 -18 0" /><path d="M12 7v5l3 3" />',
+};
+const MARK = '<svg viewBox="0 0 100 100" aria-hidden="true"><path fill-rule="evenodd" fill="#FF5E1A" d="M 50,50 m -50,0 a 50,50 0 1,1 100,0 a 50,50 0 1,1 -100,0 z M 64,64 m -12,0 a 12,12 0 1,1 24,0 a 12,12 0 1,1 -24,0 z"/></svg>';
+const bg = photo ? thumb(photo, 828) : '';
+---
+<section
+  class="cp"
+  id="cp"
+  role="dialog"
+  aria-modal="true"
+  aria-label={T.aria}
+  hidden
+  data-lang={lang}
+  data-l-trip={T.trip}
+  data-l-open={T.openOf}
+  data-l-of={T.of}
+  data-l-time={T.timeThere}
+>
+  <script type="application/json" id="cpPlaces" set:html={JSON.stringify(places)} />
+  <div class="cp-pager" id="cpPager">
+    {PAGE_CITIES.map((c, i) => {
+      const nm = cityName(c, lang);
+      return (
+        <section class={`cp-pg${c.face!.dark ? '' : ' is-light'}`} style={`background:linear-gradient(180deg,${c.face!.sky[0]},${c.face!.sky[1]})`} data-i={i} data-id={c.id} data-tz={c.tz} data-lat={c.lat} data-lng={c.lng} data-dark={c.face!.dark ? '1' : '0'} aria-label={nm}>
+          {c.open && bg && <div class="cp-bgphoto" aria-hidden="true"><img src={bg} alt="" decoding="async" onerror="this.parentNode.remove()" /></div>}
+          <div class="cp-in">
+            <span class="cp-logo" aria-hidden="true"><Fragment set:html={MARK} /><span class="cp-wm">rega<span class="twin">rega</span></span></span>
+            {c.open
+              ? <span class="cp-st" data-trip-chip><Fragment set:html={svg(I.pin)} /><span data-st>{T.open} · {total} {T.inGuide}</span></span>
+              : <span class="cp-st"><Fragment set:html={svg(I.clock)} />{T.soon}</span>}
+            <h2 class="cp-nm" style={nm.length > 7 ? 'font-size:clamp(52px,17vw,68px)' : undefined}>{nm}</h2>
+            <div class="cp-cn">{cityCountry(c, lang)}</div>
+            <div class="cp-big"><b data-temp></b><span><span data-time></span> {T.timeThere}<br /><span data-sky></span></span></div>
+            <Fragment set:html={skylineSvg(c, c.face!.dark ? 'rgba(255,255,255,.85)' : '#0A0908')} />
+            {c.open
+              ? <div class="cp-now"><div class="k"><span>{T.nowThere}</span><span data-openof></span></div><div class="v" data-now></div></div>
+              : <div class="cp-now"><div class="k"><span>{T.soonK}</span></div><div class="v">{T.soonV}</div></div>}
+          </div>
+          {c.open
+            ? <button type="button" class="cp-go" data-go>{T.go}<Fragment set:html={svg(I.arrow)} /></button>
+            : <div class="cp-go is-soon" aria-disabled="true">{T.soonGo}</div>}
+        </section>
+      );
+    })}
+  </div>
+  <div class="cp-edge" aria-hidden="true"></div>
+  <div class="cp-dock" id="cpDock">
+    <button type="button" class="cp-round" id="cpX" aria-label={T.close}><Fragment set:html={svg(I.x)} /></button>
+    <div class="cp-dots" id="cpDots" aria-hidden="true">{PAGE_CITIES.map(() => <i></i>)}</div>
+    <button type="button" class="cp-round" id="cpStackBtn" aria-label={T.stack}><Fragment set:html={svg(I.stack)} /></button>
+  </div>
+
+  <div class="cp-stack" id="cpStack" aria-label={T.stack}>
+    <div class="cp-hd"><h2 class="cp-h1">{T.cities}</h2><span class="cp-meta">{T.meta}</span></div>
+    <label class="cp-search"><Fragment set:html={svg(I.search)} /><input id="cpQ" type="search" placeholder={T.search} autocomplete="off" enterkeyhint="search" /></label>
+    <div class="cp-pile" id="cpPile">
+      {PAGE_CITIES.map((c, i) => (
+        <button type="button" class={`cp-cd${c.face!.dark ? '' : ' is-light'}`} data-i={i} data-n={`${c.ru} ${c.en} ${c.countryRu} ${c.countryEn}`} style={`background:linear-gradient(160deg,${c.face!.sky[0]},${c.face!.sky[1]});z-index:${i + 1}`}>
+          <span class="r1">
+            <span><b>{cityName(c, lang)}</b><span class="sb" data-sb={c.open ? 'open' : undefined}>{c.open ? `${T.open} · ${total} ${T.inGuide}` : T.soon}</span></span>
+            <span class="tm" data-tz={c.tz} data-id={c.id}><span data-temp></span><span class="t" data-time></span></span>
+          </span>
+          <Fragment set:html={skylineSvg(c, c.face!.dark ? 'rgba(255,255,255,.8)' : '#0A0908')} />
+        </button>
+      ))}
+    </div>
+    <div class="cp-all"><span class="cp-kick">{T.all}</span><span class="cp-meta">{T.allMeta}</span></div>
+    <div class="cp-chips" id="cpChips">
+      {CITIES.map((c) => c.open
+        ? <button type="button" data-n={`${c.ru} ${c.en} ${c.countryRu} ${c.countryEn}`} data-i="0"><i class="cp-tripdot" hidden></i>{cityName(c, lang)} <small>{total}</small></button>
+        : <span class="is-soon" data-n={`${c.ru} ${c.en} ${c.countryRu} ${c.countryEn}`}>{cityName(c, lang)}</span>)}
+    </div>
+    <p class="cp-empty" id="cpEmpty" hidden>{T.empty}</p>
+    <div class="cp-close"><button type="button" class="cp-btn" id="cpBack">{T.back}</button></div>
+  </div>
+</section>
+<script is:inline src="/app-cities.js?v=1"></script>

@@ -3,7 +3,7 @@
 // ru/app/now.astro just render it with `lang`). Visual source: rega-design-panel
 // r4/final/map.html (the guide home) + r4/jhey/colors.html (tiles in rows by world).
 // Top to bottom: city pill «батуми ▾» + live weather (Task 6 wires the city picker to
-// #cityPill), a greeting by time of day whose italic word takes the hero's world colour,
+// #cityPill → CityPicker.astro), a greeting by time of day whose italic word takes the hero's world colour,
 // the hero — ONE confident pick for this moment, «ещё рядом сейчас» as up to 6 detailed
 // cards, a compact strip of upcoming city news, and the category tiles in rows by world at
 // the bottom (tap = the map filtered to that category; the orange tile = stays).
@@ -20,6 +20,7 @@ import '../../styles/app-now.css';
 import AppHeader from '../AppHeader.astro';
 import TabBar from '../TabBar.astro';
 import FirstRun from './FirstRun.astro';
+import CityPicker from './CityPicker.astro';
 import { supabase } from '../../lib/supabase';
 import { GUIDE_CATS, WORLDS, catWorld, catIcon, catLabel, catColor, catStyle } from '../../lib/guideCats';
 import { thumb } from '../../lib/thumb';
@@ -121,6 +122,9 @@ const news = await loadNews();
 const esc = (x: string) => x.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const mdEm = (raw: string) => esc(raw).replace(/\*([^*]+)\*/g, '<em>$1</em>').replace(/\*/g, '');
 const eatC = catColor('eat-drink');
+// city picker (#cityPill): Batumi places for «right now» (best rated first) + the page photo
+const CP_PLACES = [...gpAll].sort((a, b) => (b.rating || 0) - (a.rating || 0)).map((p) => ({ n: p.title || p.name, h: p.hours || [] }));
+const CP_PHOTO = 'https://qkzinjawtumhjbezlyog.supabase.co/storage/v1/object/public/apartments/batumi-view-and-vibes/01.jpg';
 ---
 <AppFull lang={lang} title={T.title} description={T.desc}>
   <script is:inline define:vars={{ LANG: lang }}>
@@ -134,9 +138,9 @@ const eatC = catColor('eat-drink');
   <FirstRun lang={lang} />
   <AppHeader lang={lang} />
   <main class="now-screen">
-    <!-- city row under the logo: static pill (Task 6 opens the city picker from #cityPill) + weather -->
+    <!-- city row under the logo: pill opens the city picker (CityPicker.astro) + weather -->
     <div class="now-crow">
-      <button type="button" class="now-citypill" id="cityPill" aria-label={T.cityAria}>
+      <button type="button" class="now-citypill" id="cityPill" aria-label={T.cityAria} aria-haspopup="dialog" aria-controls="cp">
         <span class="now-citypill__pin" aria-hidden="true"></span>{T.city}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={ICO.down} />
       </button>
       <span class="now-wx" id="nowWx" hidden><b id="nowTemp"></b> <span id="nowSky"></span></span>
@@ -231,6 +235,7 @@ const eatC = catColor('eat-drink');
   <TabBar lang={lang} />
 
   <script is:inline src="/app-hours.js?v=1"></script>
+  <CityPicker lang={lang} places={CP_PLACES} photo={CP_PHOTO} />
   <script is:inline define:vars={{ PLACES: PICK_DATA, CATS: CAT_STYLE, LANG: lang, BASE }}>
     (function () {
       var RU = LANG === 'ru';
