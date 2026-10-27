@@ -1,0 +1,251 @@
+---
+// First run of the app: splash → 3-step onboarding → the guide underneath. Rendered by
+// NowScreen (the app's start screen) right at the top of <body>.
+// Visual source (approved, ported 1:1): rega-design-panel r3/splash3/jakub-2b.html (≈5.25 s
+// «квартира на карте, в объёме») and r3/onboarding/onboarding.html (3 steps).
+// Gate: shown ONLY when localStorage rr_onboarded is not set — decided by the inline script
+// below before the guide paints (it puts `rr-first` on <html>; app-firstrun.css shows the
+// overlay only then), so the guide never flashes first. It lives on the start screen only,
+// so direct entries (trip / join / login / place / stay pages, push taps → /app/trip) are
+// never intercepted; a `?t=` on the start screen also skips it. `?welcome` forces it (preview).
+// Language = the route's (the start screen itself follows rr_lang / the phone).
+// The animation + onboarding behaviour is src/lib/firstRun.ts.
+import '../../styles/app-firstrun.css';
+import { supabase } from '../../lib/supabase';
+import { catColor } from '../../lib/guideCats';
+import { thumb } from '../../lib/thumb';
+
+export interface Props { lang: 'en' | 'ru' }
+const { lang } = Astro.props;
+const isRu = lang === 'ru';
+
+// real places + a real flat for the cards (same photos / image pipeline as the guide)
+const SLUGS = ['pure-bistro', 'nord-specialty-coffee-food', 'qube-bar', 'colosseum-marina-spa', 'terminal-coworking'];
+const { data: gp } = await supabase.from('guide_places').select('slug,category,photos,image').in('slug', SLUGS);
+const bySlug: Record<string, any> = Object.fromEntries((gp || []).map((p: any) => [p.slug, p]));
+const photo = (slug: string, w: 320 | 480 | 640 | 828) => {
+  const p = bySlug[slug];
+  return p ? thumb((p.photos && p.photos[0]) || p.image || '', w) : '';
+};
+const { data: flat } = await supabase.from('apartments_public').select('photos').eq('slug', 'coral-apartment').maybeSingle();
+const flatPhoto = thumb((flat as any)?.photos?.[0] || '', 480);
+
+const T = isRu
+  ? {
+      // splash
+      c1: 'это твоя квартира.<small>проверенная — мы жили бы в ней сами</small>',
+      c2: 'а вокруг — места,<br>куда мы <em class="nt">ходим сами</em>',
+      leg: ['еда', 'велнес', 'работа', 'дорога', 'впечатления', 'наши квартиры'],
+      c3: 'из одной квартиры —<br><em class="pl">весь город</em> пешком.',
+      slo: 'найди квартиру,<br><em>влюбись</em> в город',
+      tapSkip: 'тапни, чтобы пропустить',
+      r1: '5 мин', r2: '15 мин',
+      filmLabel: 'заставка — тапни, чтобы пропустить',
+      // onboarding
+      skip: 'пропустить',
+      s1h: 'найди квартиру,<br><em>влюбись</em> в город',
+      s1sub: 'город глазами местных: мы сами ходим во все места гида, а квартиры берём только те, где жили бы сами.',
+      say: '«завтракаем тут по пятницам — бери шакшуку»',
+      tags1: ['пробито нами', 'кофе', 'квартира'],
+      q: 'что тебе ближе? выбери — гид подстроится',
+      picks: ['есть и пить', 'велнес', 'работа', 'жильё'],
+      next: 'дальше',
+      s2h: 'пробей первое <em>место</em>',
+      s2sub: 'кружок в углу — это «пробить». место ляжет в «мой батуми», а консьерж его запомнит.',
+      hint: 'тапни кружок',
+      tags2: ['до 05:00', 'кофе', 'велнес', 'работа'],
+      caps2: ['коктейли без меню · 6 мин', 'флэт уайт и тишина до 10 утра', 'хаммам после моря', 'коворкинг с видом'],
+      punchAria: 'пробить',
+      pocket: 'мой батуми', pkEmpty: 'пока пусто', need: 'сначала пробей одно',
+      s3h: 'напишем, только когда <em>важно</em>',
+      s3sub: 'никаких рассылок — только про твою поездку.',
+      notes: [['бронь подтверждена', 'coral apartment · 14–18 ноя — bre ждёт тебя', 'сейчас'], ['bre ответил', '«да, квартира будет готова к 11:00»', '10:31'], ['код двери на сегодня', '4821 · работает с 14:00, wifi в поездке', '14 ноя']],
+      cityB: 'ты в батуми', citySm: 'гид уже про него · другие города скоро',
+      notifOff: 'включить уведомления', notifOn: 'уведомления включены', open: 'открыть гид',
+      step: (i: number) => `шаг ${i} из 3`,
+    }
+  : {
+      c1: 'this is your flat.<small>checked — we’d live here ourselves</small>',
+      c2: 'and around it — the places<br><em class="nt">we</em> actually go',
+      leg: ['food', 'wellness', 'work', 'getting around', 'experiences', 'our flats'],
+      c3: 'one flat —<br>the <em class="pl">whole city</em> on foot.',
+      slo: 'find a flat.<br><em>fall</em> for the city.',
+      tapSkip: 'tap to skip',
+      r1: '5 min', r2: '15 min',
+      filmLabel: 'intro — tap to skip',
+      skip: 'skip',
+      s1h: 'find a flat.<br><em>fall</em> for the city.',
+      s1sub: 'the city through locals’ eyes: we go to every place in the guide ourselves — and only list flats we’d live in.',
+      say: '“we have breakfast here on fridays — get the shakshuka”',
+      tags1: ['tried by us', 'coffee', 'flat'],
+      q: 'what are you into? pick — the guide adapts',
+      picks: ['food & drink', 'wellness', 'work', 'stays'],
+      next: 'next',
+      s2h: 'punch your first <em>place</em>',
+      s2sub: 'the circle in the corner means “punch it”. the place goes to “my batumi”, and the concierge remembers it.',
+      hint: 'tap the circle',
+      tags2: ['till 5am', 'coffee', 'wellness', 'work'],
+      caps2: ['cocktails, no menu · 6 min', 'flat white and quiet till 10am', 'hammam after the sea', 'coworking with a view'],
+      punchAria: 'punch',
+      pocket: 'my batumi', pkEmpty: 'empty for now', need: 'punch one first',
+      s3h: 'we’ll only write when it <em>matters</em>',
+      s3sub: 'no newsletters — just your trip.',
+      notes: [['booking confirmed', 'coral apartment · nov 14–18 — bre is expecting you', 'now'], ['bre replied', '“yes, the flat will be ready by 11:00”', '10:31'], ['today’s door code', '4821 · works from 2pm, wifi in your trip', 'nov 14']],
+      cityB: 'you’re in batumi', citySm: 'the guide is all about it · more cities soon',
+      notifOff: 'turn on notifications', notifOn: 'notifications on', open: 'open the guide',
+      step: (i: number) => `step ${i} of 3`,
+    };
+
+// strings the script needs at run time (pocket count, toasts)
+const RT = isRu
+  ? { pkN: ['место', 'места', 'мест'], pkTail: 'консьерж помнит', punched: '— пробито, в «моём батуми»', removed: '— убрано из «моего батуми»' }
+  : { pkN: ['place', 'places', 'places'], pkTail: 'concierge remembers', punched: '— punched, saved to “my batumi”', removed: '— removed from “my batumi”' };
+
+// step 1 picks: world colour per choice (stored locally as rr_picks for later)
+const PICKS = [
+  { k: 'eat-drink', c: 'var(--eat)' },
+  { k: 'wellness', c: 'var(--well)' },
+  { k: 'work', c: 'var(--well)' },
+  { k: 'stays', c: 'var(--home)' },
+];
+// step 2 cards — short names as approved in the prototype; colour of the flying piece = category
+const CARDS = [
+  { slug: 'qube-bar', name: 'qube bar', open: true },
+  { slug: 'nord-specialty-coffee-food', name: 'nord coffee' },
+  { slug: 'colosseum-marina-spa', name: 'colosseum spa' },
+  { slug: 'terminal-coworking', name: 'terminal' },
+]
+  .map((c, i) => ({ ...c, i, img: photo(c.slug, 640), color: catColor(bySlug[c.slug]?.category || '') }))
+  .filter((c) => c.img);
+
+const MARK = 'M 50,50 m -50,0 a 50,50 0 1,1 100,0 a 50,50 0 1,1 -100,0 z M 64,64 m -12,0 a 12,12 0 1,1 24,0 a 12,12 0 1,1 -24,0 z';
+const LEG_STYLE = ['fill:var(--eat)', 'fill:var(--well)', 'ring:var(--well)', 'ring:var(--eat)', 'fill:var(--blue)', 'fill:var(--home)'];
+const legStyle = (s: string) => (s.startsWith('ring:') ? `box-shadow:inset 0 0 0 2px ${s.slice(5)}` : `background:${s.slice(5)}`);
+---
+<script is:inline>
+  // before the guide paints: first run? (not onboarded, no ?t=, and the start screen is not
+  // about to switch language — NowScreen's redirect above would reload it anyway)
+  (function () {
+    try {
+      var q = new URLSearchParams(location.search), h = document.documentElement;
+      var want = localStorage.getItem('rr_lang') || (/^ru/i.test(navigator.language || '') ? 'ru' : 'en');
+      if (want !== h.lang) return;
+      if (q.has('welcome') || (!localStorage.getItem('rr_onboarded') && !q.has('t'))) h.classList.add('rr-first');
+    } catch (e) {}
+  })();
+</script>
+<div class="fr" id="fr" data-rt={JSON.stringify(RT)} data-r1={T.r1} data-r2={T.r2}>
+  <!-- onboarding (under the splash; the splash hands over to it) -->
+  <div class="fr-ob" id="frOb">
+    <div class="fr-bar">
+      <span class="fr-logo" id="frLogo"><svg viewBox="0 0 100 100" aria-hidden="true"><path fill-rule="evenodd" fill="var(--home)" d={MARK} /></svg><span class="fr-wm">rega<span class="twin">rega</span></span></span>
+      <button class="fr-skip" type="button" data-fr-finish>{T.skip}</button>
+    </div>
+    <div class="fr-prog" aria-hidden="true"><i class="on"><b></b></i><i><b></b></i><i><b></b></i></div>
+
+    <div class="fr-track" id="frTrack">
+      <!-- 1 · что такое rega -->
+      <section class="fr-step fr-s1" aria-label={T.step(1)}>
+        <div class="fr-body">
+          <div class="fr-mosaic">
+            <div class="fr-ph fr-m1"><img data-src={photo('pure-bistro', 640)} alt="" /><span class="fr-say">{T.say}</span><span class="fr-gtag">{T.tags1[0]}</span></div>
+            <div class="fr-ph fr-m2"><img data-src={photo('nord-specialty-coffee-food', 480)} alt="" /><span class="fr-gtag">{T.tags1[1]}</span></div>
+            <div class="fr-ph fr-m3"><img data-src={flatPhoto} alt="" /><span class="fr-gtag">{T.tags1[2]}</span></div>
+          </div>
+          <h1 class="rr-display fr-h"><Fragment set:html={T.s1h} /></h1>
+          <p class="fr-sub">{T.s1sub}</p>
+          <div class="fr-picks" id="frPicks">
+            <span class="fr-q">{T.q}</span>
+            {PICKS.map((p, i) => (
+              <button class="fr-pk" type="button" aria-pressed="false" data-k={p.k} style={`--c:${p.c}`}>
+                <span class="fr-bx"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="3" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M5 12l5 5l10 -10" /></svg></span>{T.picks[i]}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div class="fr-foot"><button class="fr-btn" type="button" data-fr-next>{T.next}</button></div>
+      </section>
+
+      <!-- 2 · пробей первое место -->
+      <section class="fr-step fr-s2" aria-label={T.step(2)}>
+        <div class="fr-body">
+          <h1 class="rr-display fr-h fr-h--eat"><Fragment set:html={T.s2h} /></h1>
+          <p class="fr-sub">{T.s2sub}</p>
+          <span class="fr-hint" id="frHint">{T.hint} <svg viewBox="0 0 30 22" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M2 18 C10 18 20 14 26 4" /><path d="M19 4 L26 4 L26 11" /></svg></span>
+          <div class="fr-rail">
+            {CARDS.map((c) => (
+              <div class="fr-pc">
+                <img data-src={c.img} alt="" />
+                <span class="fr-gtag fr-pc__tag">{c.open && <i class="fr-open" aria-hidden="true"></i>}{T.tags2[c.i]}</span>
+                <button class="fr-punch" type="button" aria-pressed="false" aria-label={`${T.punchAria} ${c.name}`} data-slug={c.slug} data-name={c.name} style={`--c:${c.color}`}></button>
+                <div class="fr-pc__cap"><b>{c.name}</b><span>{T.caps2[c.i]}</span></div>
+              </div>
+            ))}
+          </div>
+          <div class="fr-pocket" id="frPocket">
+            <span class="fr-pocket__ic" id="frPocketIc"><svg viewBox="0 0 100 100" aria-hidden="true"><path fill-rule="evenodd" fill="var(--bg)" d={MARK} /></svg><i class="fr-pocket__n" id="frPocketN"></i></span>
+            <span class="fr-pocket__t">{T.pocket}<small id="frPocketSub" data-empty={T.pkEmpty}>{T.pkEmpty}</small></span>
+          </div>
+        </div>
+        <div class="fr-foot"><button class="fr-btn" type="button" data-fr-next id="frNext2" disabled data-need={T.need} data-next={T.next}>{T.need}</button></div>
+      </section>
+
+      <!-- 3 · уведомления и город -->
+      <section class="fr-step fr-s3 is-off" aria-label={T.step(3)} id="frS3">
+        <div class="fr-body">
+          <h1 class="rr-display fr-h"><Fragment set:html={T.s3h} /></h1>
+          <p class="fr-sub">{T.s3sub}</p>
+          <div class="fr-notes">
+            {T.notes.map((n) => (
+              <div class="fr-nt">
+                <span class="fr-nt__ap"><svg viewBox="0 0 100 100" aria-hidden="true"><path fill-rule="evenodd" fill="var(--home)" d={MARK} /></svg></span>
+                <span><b>{n[0]}</b><p>{n[1]}</p></span>
+                <time>{n[2]}</time>
+              </div>
+            ))}
+          </div>
+          <div class="fr-city">
+            <span class="fr-city__pin"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M9 11a3 3 0 1 0 6 0a3 3 0 0 0 -6 0" /><path d="M17.657 16.657l-4.243 4.243a2 2 0 0 1 -2.827 0l-4.244 -4.243a8 8 0 1 1 11.314 0z" /></svg></span>
+            <span><b>{T.cityB}</b><small>{T.citySm}</small></span>
+          </div>
+        </div>
+        <div class="fr-foot">
+          <button class="fr-btn" type="button" id="frNotif" data-on={T.notifOn}><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M10 5a2 2 0 1 1 4 0a7 7 0 0 1 4 6v3a4 4 0 0 0 2 3h-16a4 4 0 0 0 2 -3v-3a7 7 0 0 1 4 -6" /><path d="M9 17v1a3 3 0 0 0 6 0v-1" /></svg><span>{T.notifOff}</span></button>
+          <button class="fr-btn fr-btn--light" type="button" id="frOpen" data-fr-finish>{T.open}</button>
+        </div>
+      </section>
+    </div>
+  </div>
+
+  <!-- splash -->
+  <div class="fr-film" id="frFilm" role="button" tabindex="0" aria-label={T.filmLabel}>
+    <svg class="fr-sv" id="frSv" aria-hidden="true">
+      <defs>
+        <radialGradient id="frSheen" cx=".34" cy=".3" r=".7"><stop offset="0" stop-color="#fff" stop-opacity=".75" /><stop offset=".55" stop-color="#fff" stop-opacity="0" /></radialGradient>
+        <filter id="frBlur4"><feGaussianBlur stdDeviation="3" /></filter>
+        <filter id="frHomeSh" x="-40%" y="-40%" width="180%" height="180%"><feDropShadow dx="0" dy="4" stdDeviation="5" flood-color="#0A0908" flood-opacity=".16" /></filter>
+        <path id="frMarkP" fill-rule="evenodd" d={MARK} />
+      </defs>
+      <g id="frGround"></g>
+      <g id="frRings"></g>
+      <g id="frHome"></g>
+      <g id="frPins"></g>
+      <g id="frPiece"></g>
+    </svg>
+    <div class="fr-fade" aria-hidden="true"></div>
+    <div class="fr-cap" id="frC1"><Fragment set:html={T.c1} /></div>
+    <div class="fr-cap" id="frC2"><Fragment set:html={T.c2} />
+      <div class="fr-legend">{T.leg.map((l, i) => <span class={i === 5 ? 'is-home' : ''}><i style={legStyle(LEG_STYLE[i])}></i>{l}</span>)}</div>
+    </div>
+    <div class="fr-cap" id="frC3"><Fragment set:html={T.c3} /></div>
+    <div class="fr-lock" id="frLock" aria-hidden="true"><svg viewBox="0 0 100 100"><path fill-rule="evenodd" fill="var(--home)" d={MARK} /></svg><span class="fr-wm" id="frWm">rega<span class="twin">rega</span></span></div>
+    <div class="fr-slogan" id="frSlogan" aria-hidden="true"><p class="rr-display">
+      <Fragment set:html={T.slo} /></p></div>
+    <div class="fr-tapskip" id="frTapSkip">{T.tapSkip}</div>
+  </div>
+  <div class="fr-toast" id="frToast" role="status" aria-live="polite"></div>
+</div>
+<script>
+  import { initFirstRun } from '../../lib/firstRun';
+  initFirstRun();
+</script>

@@ -17,6 +17,7 @@ import '../../styles/app-shell.css';
 import '../../styles/app-now.css';
 import AppHeader from '../AppHeader.astro';
 import TabBar from '../TabBar.astro';
+import FirstRun from './FirstRun.astro';
 import { supabase } from '../../lib/supabase';
 import { GUIDE_CATS, catLabel, catColor, catTint, catDark, catOutline } from '../../lib/guideCats';
 import { thumb } from '../../lib/thumb';
@@ -154,6 +155,8 @@ const mdEm = (raw: string) => esc(raw).replace(/\*([^*]+)\*/g, '<em>$1</em>').re
       if (want !== LANG) location.replace(want === 'ru' ? '/ru/georgia/batumi/app/now' : '/georgia/batumi/app/now');
     } catch (e) {}
   </script>
+  <!-- first launch only (rr_onboarded): splash → onboarding → this guide -->
+  <FirstRun lang={lang} />
   <AppHeader lang={lang} />
   <main class="now-screen">
     <!-- drawn Batumi line (alphabet tower, ferris wheel, palms, sea) + weather -->
