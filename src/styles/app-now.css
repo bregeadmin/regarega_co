@@ -296,7 +296,8 @@
 }
 .now-ct__sb svg{ width:12px; height:12px; flex:none; }
 /* filled (first category of the world) */
-.now-ct--fill{ background:var(--c); color:var(--bg); }
+/* .now-ct.now-ct--fill: tiles are <a>, and the shell rule "body.app-shell a{color:inherit}" (0,1,2) would win over a single class */
+.now-ct.now-ct--fill{ background:var(--c); color:var(--bg); }
 .now-ct--fill::before{ content:""; position:absolute; inset:0; z-index:0; background:radial-gradient(circle at top right, rgba(255,255,255,.18), transparent 60%); }
 .now-ct--fill .now-ct__ic{ background:rgba(255,255,255,.16); border:1px solid rgba(255,255,255,.22); }
 .now-ct--fill .now-ct__sb{ opacity:.8; }
