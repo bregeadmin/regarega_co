@@ -76,8 +76,8 @@ body.app-full{
 body.app-full *{ box-sizing:border-box; }
 body.app-full a{ color:inherit; text-decoration:none; }
 
-/* ---------- shared header: logo (1:1 site) · city pill · search ----------
-   r3/01-guide.html .top: logo left, city pill + round search right. */
+/* ---------- shared header: logo (1:1 site) · map (labelled) · search ----------
+   r4/final/map.html .top: logo left, «карта» pill + round search right. */
 .app-header{
   position:sticky;
   top:0;
@@ -106,25 +106,26 @@ body.app-full a{ color:inherit; text-decoration:none; }
 .app-logo__wm .twin{ opacity:.36; margin-left:1px; }
 
 .app-header__actions{ display:flex; align-items:center; gap:8px; min-width:0; }
-/* город — пилюля-карточка «• батуми». Не кликабельна (города — этап 3), поэтому без стрелки. */
-.app-header__citypill{
+/* карта — пилюля с подписью (r4/final .mapbtn): иконка + «карта» */
+.app-header__mapbtn{
   display:inline-flex;
   align-items:center;
-  gap:6px;
+  gap:7px;
   height:42px;
-  padding:0 14px;
+  padding:0 15px 0 12px;
   border-radius:var(--r-pill);
   background:var(--surface);
   box-shadow:var(--sh-card);
   font-family:var(--font);
   font-weight:800;
-  font-size:15.5px;
-  letter-spacing:-.025em;
+  font-size:15px;
+  letter-spacing:-.02em;
   white-space:nowrap;
   color:var(--ink);
+  transition:transform .14s var(--ease-out);
 }
-.app-header__citydot{ width:7px; height:7px; border-radius:50%; background:var(--ink); flex:none; }
-/* круглые кнопки (карта / поиск) */
+.app-header__mapbtn:active{ transform:scale(.95); }
+/* круглая кнопка (поиск) */
 .app-header__action{
   display:grid;
   place-items:center;
@@ -148,11 +149,11 @@ body.app-full a{ color:inherit; text-decoration:none; }
   .app-logo__sign{ width:22px; height:22px; }
   .app-logo__wm{ font-size:21px; }
   .app-header__actions{ gap:6px; }
-  .app-header__citypill{ height:38px; padding:0 11px; font-size:14.5px; }
+  .app-header__mapbtn{ height:38px; padding:0 13px 0 10px; font-size:14.5px; }
   .app-header__action{ width:38px; height:38px; }
 }
 @media (prefers-reduced-motion:reduce){
-  .app-header__action{ transition:none; }
+  .app-header__action, .app-header__mapbtn{ transition:none; }
 }
 
 /* ================= shared guide pieces (now / guide / place / search / map / news) =================

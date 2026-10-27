@@ -1,9 +1,9 @@
 ---
-// Shared native-app header (r3/01-guide.html): logo 1:1 with the site on the left (punch
-// sign + "rega" + faded "rega"), on the right the city pill, the map toggle and search. Rendered by every app screen (guide/stays/map via
-// layouts/App.astro; now/concierge/profile/search directly) so the header is identical
-// everywhere. Styles live in styles/app-shell.css (.app-header*).
-// The city is a plain pill, not a picker (no chevron), until city switching ships (stage 3).
+// Shared native-app header (r4/final/map.html .top): logo 1:1 with the site on the left (punch
+// sign + "rega" + faded "rega"), on the right the labelled map button and round search.
+// Rendered by every app screen (guide/stays/map via layouts/App.astro; now/concierge/profile/
+// search directly) so the header is identical everywhere. Styles: styles/app-shell.css.
+// The city pill lives under the logo on the home screen only (NowScreen #cityPill).
 // `view` = which header action the current screen IS: on the map the map toggle flips to a
 // list icon that goes back to the guide; on search the search icon shows as active.
 export interface Props { lang?: 'en' | 'ru'; view?: 'map' | 'search' }
@@ -11,8 +11,8 @@ const { lang = 'en', view } = Astro.props;
 const isRu = lang === 'ru';
 const base = isRu ? '/ru/georgia/batumi' : '/georgia/batumi';
 const L = isRu
-  ? { city: 'батуми', map: 'карта', list: 'списком', search: 'поиск', home: 'rega rega — гид' }
-  : { city: 'batumi', map: 'map', list: 'list view', search: 'search', home: 'rega rega — guide' };
+  ? { map: 'карта', list: 'список', search: 'поиск', home: 'rega rega — гид' }
+  : { map: 'map', list: 'list', search: 'search', home: 'rega rega — guide' };
 
 // Real Tabler-icons "outline" path data (viewBox 0 0 24 24).
 const ICONS = {
@@ -29,9 +29,9 @@ const onMap = view === 'map';
       <span class="app-logo__wm" aria-hidden="true">rega<span class="twin">rega</span></span>
     </a>
     <div class="app-header__actions">
-      <span class="app-header__citypill"><span class="app-header__citydot" aria-hidden="true"></span>{L.city}</span>
-      <a class="app-header__action" href={onMap ? `${base}/app/guide` : `${base}/app/map`} aria-label={onMap ? L.list : L.map}>
+      <a class="app-header__mapbtn" href={onMap ? `${base}/app/guide` : `${base}/app/map`}>
         <svg class="app-header__actionicon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={onMap ? ICONS.list : ICONS.map} />
+        <span>{onMap ? L.list : L.map}</span>
       </a>
       <a class={`app-header__action${view === 'search' ? ' is-active' : ''}`} href={`${base}/app/search`} aria-label={L.search} aria-current={view === 'search' ? 'page' : undefined}>
         <svg class="app-header__actionicon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={ICONS.search} />

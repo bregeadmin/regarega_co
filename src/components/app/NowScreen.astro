@@ -1,17 +1,19 @@
 ---
 // Native app home screen «гид» — one component for both languages (pages app/now.astro and
-// ru/app/now.astro just render it with `lang`). Visual source: rega-design-panel r3/01-guide.html
-// + r3/onboarding/daily.html (the daily «coming alive» entry, ≤0.6 s, no splash).
-// Top to bottom: drawn Batumi skyline + live weather (no number when there is no data), a
-// greeting by time of day whose italic word takes the hero's category colour, the hero —
-// ONE confident pick for this moment, two more places as a list, the 8 category tiles 1:1
-// with the site guide, the guide rail «мы сами ходим сюда», and upcoming city news.
+// ru/app/now.astro just render it with `lang`). Visual source: rega-design-panel
+// r4/final/map.html (the guide home) + r4/jhey/colors.html (tiles in rows by world).
+// Top to bottom: city pill «батуми ▾» + live weather (Task 6 wires the city picker to
+// #cityPill), a greeting by time of day whose italic word takes the hero's world colour,
+// the hero — ONE confident pick for this moment, «ещё рядом сейчас» as up to 6 detailed
+// cards, a compact strip of upcoming city news, and the category tiles in rows by world at
+// the bottom (tap = the map filtered to that category; the orange tile = stays).
 // The pick: Batumi time → a moment (morning / lunch / golden hour / evening / night) → guide
 // places whose tags fit that moment AND are open now (Google hours from guide_places.hours)
 // → one place, rotated daily. Data is build-time (static HTML); only the pick runs
-// client-side, because it depends on the clock. Booking mode (html.has-trip): a trip card
-// under the greeting, the pick and the rail lean to what's near the apartment and show the
-// walk from its door.
+// client-side, because it depends on the clock. Walking minutes only when there is an
+// origin: the trip's apartment (html.has-trip) or geolocation the guest ALREADY granted
+// (never prompts). Booking mode: a trip card under the greeting, the pick leans to what's
+// near the apartment.
 import AppFull from '../../layouts/AppFull.astro';
 import '../../styles/app-shell.css';
 import '../../styles/app-now.css';
@@ -19,7 +21,7 @@ import AppHeader from '../AppHeader.astro';
 import TabBar from '../TabBar.astro';
 import FirstRun from './FirstRun.astro';
 import { supabase } from '../../lib/supabase';
-import { GUIDE_CATS, catLabel, catColor, catTint, catDark, catStyle } from '../../lib/guideCats';
+import { GUIDE_CATS, WORLDS, catWorld, catIcon, catLabel, catColor, catStyle } from '../../lib/guideCats';
 import { thumb } from '../../lib/thumb';
 import { loadNews, newsPhotos, newsText, newsDate, newsDay } from '../../lib/appNews';
 
@@ -31,31 +33,35 @@ const BASE = isRu ? '/ru/georgia/batumi' : '/georgia/batumi';
 const T = isRu
   ? {
       title: 'гид — rega rega',
-      desc: 'батуми прямо сейчас — одно место под этот момент, категории гида и новости города.',
+      desc: 'батуми прямо сейчас — одно место под этот момент, что ещё открыто, категории гида и новости города.',
+      city: 'батуми',
+      cityAria: 'город: батуми',
       trip: 'твоя поездка',
-      cats: 'наши категории,<br>один батуми',
-      rail: 'мы сами<br>ходим <em>сюда</em>',
-      all: 'все',
+      more: 'ещё рядом <em>сейчас</em>',
       news: 'новости',
-      read: 'читать',
-      soon: 'скоро',
-      start: 'начни тут',
-      book: 'забронировать',
-      skyline: 'батуми: алфавитная башня, колесо обозрения, пальмы, море',
+      newsKick: 'скоро в городе',
+      catsKick: 'категории · откроются на карте',
+      cats: 'весь <em>батуми</em>',
+      stayRow: 'жильё · бронь',
+      stay: 'жить и оставаться',
+      staySb: 'проверенные квартиры',
+      onMap: 'на карте',
     }
   : {
       title: 'guide — rega rega',
-      desc: 'batumi right now — one place for this moment, the guide categories and city news.',
+      desc: 'batumi right now — one place for this moment, what else is open, the guide categories and city news.',
+      city: 'batumi',
+      cityAria: 'city: batumi',
       trip: 'your trip',
-      cats: 'our categories,<br>one batumi',
-      rail: 'we go<br>here <em>ourselves</em>',
-      all: 'all',
+      more: 'more nearby <em>now</em>',
       news: 'news',
-      read: 'read',
-      soon: 'soon',
-      start: 'start here',
-      book: 'book a stay',
-      skyline: 'batumi: alphabet tower, ferris wheel, palms, the sea',
+      newsKick: 'coming up in town',
+      catsKick: 'categories · open on the map',
+      cats: 'all of <em>batumi</em>',
+      stayRow: 'stays · booking',
+      stay: 'stay & live',
+      staySb: 'flats we checked',
+      onMap: 'on the map',
     };
 
 // --- guide places ---
@@ -66,16 +72,6 @@ const { data: gp } = await supabase
 const gpAll = (gp || []) as any[];
 
 const photoOf = (p: any) => (p.photos && p.photos[0]) || p.image || '';
-// no dedicated "area" column on guide_places — derive a short area label from the street address
-const areaOf = (p: any) => {
-  const a = String(p.address || '').trim();
-  if (!a) return '';
-  const cleaned = a.replace(/,?\s*Batumi[^,]*,?\s*Georgia\s*$/i, '').replace(/,\s*Georgia\s*$/i, '').trim();
-  const first = (cleaned.split(',')[0] || '').trim();
-  // Google plus codes ("MPR4+FCW") are not an area
-  if (!first || /^[A-Z0-9]{4,}\+[A-Z0-9]{2,}/.test(first)) return '';
-  return first.length > 26 ? first.slice(0, 26).replace(/\s+\S*$/, '') + '…' : first;
-};
 // one line on why this place: the editorial take (EN) / first clause of the RU summary
 const whyOf = (p: any) => {
   // (RU has no take yet — summary_ru often starts with hours, so use the body's first sentence)
@@ -88,12 +84,11 @@ const whyOf = (p: any) => {
 };
 
 const CAT_ORDER = ['eat-drink', 'wellness', 'move-around', 'work'];
-// guide rail order: category order first (food before transport), then rating
 const withPhoto = gpAll
   .filter((p) => photoOf(p))
   .sort((a, b) => (CAT_ORDER.indexOf(a.category) - CAT_ORDER.indexOf(b.category)) || ((b.rating || 0) - (a.rating || 0)));
 
-// what the client-side picker needs, nothing more
+// what the client-side picker needs, nothing more (thumb widths: 828 hero, 480 list card)
 const PICK_DATA = withPhoto.map((p) => ({
   s: p.slug,
   n: p.title || p.name,
@@ -102,46 +97,38 @@ const PICK_DATA = withPhoto.map((p) => ({
   t: p.tags || [],
   h: p.hours || [],
   p: thumb(photoOf(p), 828),
-  q: thumb(photoOf(p), 320),
+  q: thumb(photoOf(p), 480),
   w: whyOf(p),
   la: p.lat,
   lo: p.lng,
 }));
-// category colours for the client (hero accent, list tags) — from guideCats.ts, never duplicated
-const CAT_STYLE = Object.fromEntries(Object.keys(GUIDE_CATS).map((k) => [k, { c: catColor(k), t: catTint(k), d: catDark(k), s: catStyle(k) }]));
-// category stamp: tint background + dark text + colour dot (ring for outline categories)
-const tagStyle = (k: string) => catStyle(k);
+// category stamp vars + world colour for the client — from guideCats.ts, never duplicated
+const CAT_STYLE = Object.fromEntries(Object.keys(GUIDE_CATS).map((k) => [k, { c: catColor(k), s: catStyle(k) }]));
 
-// --- apartments: only the count, for the «жить и оставаться» tile ---
+// --- tiles: rows by world (WORLDS order), only categories that have places; stays first ---
 const { data: apts } = await supabase.from('apartments_public').select('id');
 const aptCount = (apts || []).length;
 const counts: Record<string, number> = {};
 gpAll.forEach((p) => { counts[p.category] = (counts[p.category] || 0) + 1; });
+const ROWS = [...WORLDS]
+  .sort((a, b) => a.order - b.order)
+  .map((w) => ({ w, cats: Object.keys(GUIDE_CATS).filter((k) => catWorld(k) === w.id && counts[k]) }))
+  .filter((r) => r.cats.length);
 
 // Real Tabler-icons "outline" path data (viewBox 0 0 24 24).
 const ICO = {
-  arrow: '<path d="M17 7l-10 10" /><path d="M8 7l9 0l0 9" />',
   chev: '<path d="M9 6l6 6l-6 6" />',
+  down: '<path d="M6 9l6 6l6 -6" />',
+  map: '<path d="M12 18.5l-3 -1.5l-6 3v-13l6 -3l6 3l6 -3v7.5" /><path d="M9 4v13" /><path d="M15 7v5.5" /><path d="M21.121 20.121a3 3 0 1 0 -4.242 0c.418 .419 1.125 1.045 2.121 1.879c1.051 -.89 1.759 -1.516 2.121 -1.879z" /><path d="M19 18v.01" />',
 };
-// 8 tiles 1:1 with the site guide hub: 4 worlds × filled / white-with-edge, «скоро» muted.
-// Colour: categories from guideCats.ts; stays / experiences / nightlife / explore from the
-// design tokens (orange = home world only; blue = experiences; ink-2 = about the city).
-type Tile = { k: string; fill: boolean; c: string; n: number | string; ico?: string; h: { en: string; ru: string }; sb: { en: string; ru: string }; href?: string; soon?: boolean; stay?: boolean };
-const TILES: Tile[] = [
-  { k: 'stay', fill: true, stay: true, c: 'var(--home)', n: aptCount || '—', href: `${BASE}/app/stays`, h: { en: 'stay & live', ru: 'жить и оставаться' }, sb: { en: 'flats · hotels', ru: 'квартиры · отели' } },
-  { k: 'eat-drink', fill: true, c: catColor('eat-drink'), n: counts['eat-drink'] || 0, ico: GUIDE_CATS['eat-drink'].icon, href: `${BASE}/app/guide?cat=eat-drink`, h: { en: 'eat & drink', ru: 'есть и пить' }, sb: { en: 'cafés · restaurants · bars', ru: 'кафе · рестораны · бары' } },
-  { k: 'wellness', fill: true, c: catColor('wellness'), n: counts['wellness'] || 0, ico: GUIDE_CATS['wellness'].icon, href: `${BASE}/app/guide?cat=wellness`, h: { en: 'wellness', ru: 'велнес' }, sb: { en: 'spa · baths · massage', ru: 'спа · бани · массаж' } },
-  { k: 'experiences', fill: true, soon: true, c: 'var(--blue)', n: '—', h: { en: 'experiences', ru: 'впечатления' }, sb: { en: 'tours · classes', ru: 'туры · мастер-классы' } },
-  { k: 'move-around', fill: false, c: catColor('move-around'), n: counts['move-around'] || 0, ico: GUIDE_CATS['move-around'].icon, href: `${BASE}/app/guide?cat=move-around`, h: { en: 'move around', ru: 'передвижение' }, sb: { en: 'taxi · scooter · car', ru: 'такси · самокат · машина' } },
-  { k: 'work', fill: false, c: catColor('work'), n: counts['work'] || 0, ico: GUIDE_CATS['work'].icon, href: `${BASE}/app/guide?cat=work`, h: { en: 'work & remote', ru: 'работа и удалёнка' }, sb: { en: 'co-workings · wifi cafés', ru: 'коворкинги · кафе с wifi' } },
-  { k: 'nightlife', fill: false, soon: true, c: 'var(--blue)', n: '—', h: { en: 'nightlife', ru: 'ночная жизнь' }, sb: { en: 'wine bars · clubs', ru: 'винные бары · клубы' } },
-  { k: 'explore', fill: false, soon: true, c: 'var(--ink-2)', n: '—', h: { en: 'explore', ru: 'про город' }, sb: { en: 'beaches · old town', ru: 'пляжи · старый город' } },
-];
+// the punch-hole sign (logo) — the stays tile carries the brand mark, not a category icon
+const MARK = '<svg viewBox="0 0 100 100" aria-hidden="true"><path fill-rule="evenodd" fill="currentColor" d="M 50,50 m -50,0 a 50,50 0 1,1 100,0 a 50,50 0 1,1 -100,0 z M 64,64 m -12,0 a 12,12 0 1,1 24,0 a 12,12 0 1,1 -24,0 z"/></svg>';
 
 // city events: rendered all, the client keeps only upcoming ones (today in Batumi or later)
 const news = await loadNews();
 const esc = (x: string) => x.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const mdEm = (raw: string) => esc(raw).replace(/\*([^*]+)\*/g, '<em>$1</em>').replace(/\*/g, '');
+const eatC = catColor('eat-drink');
 ---
 <AppFull lang={lang} title={T.title} description={T.desc}>
   <script is:inline define:vars={{ LANG: lang }}>
@@ -155,22 +142,12 @@ const mdEm = (raw: string) => esc(raw).replace(/\*([^*]+)\*/g, '<em>$1</em>').re
   <FirstRun lang={lang} />
   <AppHeader lang={lang} />
   <main class="now-screen">
-    <!-- drawn Batumi line (alphabet tower, ferris wheel, palms, sea) + weather -->
-    <div class="now-city">
-      <div class="now-city__wx" id="nowWx" hidden>
-        <b class="now-city__temp" id="nowTemp"></b>
-        <span class="now-city__sky" id="nowSky"></span>
-      </div>
-      <svg class="now-city__line" viewBox="0 0 353 64" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round" stroke-linejoin="round" role="img" aria-label={T.skyline}>
-        <path style="--len:360" d="M96 56 C130 52 150 58 180 55 S240 52 270 56 S330 55 353 54"/>
-        <path style="--len:140" d="M150 55 L150 14 M146 55 L154 55 M150 14 C153 18 147 22 150 26 C153 30 147 34 150 38 C153 42 147 46 150 50 M150 10 L150 14"/>
-        <circle style="--len:110" cx="150" cy="10" r="2.6"/>
-        <circle style="--len:110" cx="214" cy="32" r="17"/>
-        <path style="--len:120" d="M214 15 L214 49 M197 32 L231 32 M202 20 L226 44 M226 20 L202 44 M206 55 L214 49 L222 55"/>
-        <path style="--len:120" d="M268 55 C268 44 266 36 262 30 M262 30 C256 28 251 30 248 34 M262 30 C266 25 272 25 276 27 M262 30 C262 24 259 21 255 20"/>
-        <path style="--len:120" d="M300 55 C300 46 302 40 306 35 M306 35 C312 33 317 35 319 39 M306 35 C303 30 297 30 293 32 M306 35 C307 29 311 27 314 27"/>
-        <path class="now-city__wave" style="--len:60" d="M112 46 C116 44 120 48 124 46 M120 40 C124 38 128 42 132 40"/>
-      </svg>
+    <!-- city row under the logo: static pill (Task 6 opens the city picker from #cityPill) + weather -->
+    <div class="now-crow">
+      <button type="button" class="now-citypill" id="cityPill" aria-label={T.cityAria}>
+        <span class="now-citypill__pin" aria-hidden="true"></span>{T.city}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={ICO.down} />
+      </button>
+      <span class="now-wx" id="nowWx" hidden><b id="nowTemp"></b> <span id="nowSky"></span></span>
     </div>
 
     <section class="now-hello">
@@ -189,78 +166,73 @@ const mdEm = (raw: string) => esc(raw).replace(/\*([^*]+)\*/g, '<em>$1</em>').re
 
     <a class="now-hero" id="nowHero" href={`${BASE}/app/guide`}>
       <img class="now-hero__img" id="nowHeroImg" alt="" onload="this.classList.add('is-loaded')" />
-      <span class="now-hero__tags" id="nowHeroTags" hidden><span class="now-hero__open"><i></i><span id="nowStatus"></span></span></span>
+      <span class="now-hero__tags" id="nowHeroTags" hidden>
+        <span class="now-tag now-tag--photo" id="nowHeroTag"><i></i><span id="nowHeroCat"></span></span>
+        <span class="now-hero__pick" id="nowPick"></span>
+      </span>
       <div class="now-hero__cap">
         <p class="now-display now-hero__name" id="nowName"></p>
+        <p class="now-hero__ln"><span class="rr-open" id="nowOpen" hidden><i></i><span id="nowStatus"></span></span><span class="now-walk" id="nowWalk" hidden></span></p>
         <p class="now-hero__say" id="nowWhy"></p>
-        <p class="now-hero__meta"><span id="nowMeta"></span><span>{isRu ? 'проверено нами' : 'checked by us'}</span></p>
       </div>
     </a>
 
-    <div class="now-list" id="nowAlts" hidden></div>
-
-    <div class="now-sec"><h2 class="now-display now-sec__h" set:html={T.cats} /></div>
-    <section class="now-cats">
-      {TILES.map((t) => {
-        const cls = `now-ct now-ct--${t.fill ? 'fill' : 'line'}${t.soon ? ' is-soon' : ''}${t.stay ? ' now-ct--stay' : ''}`;
-        const inner = (
-          <Fragment>
-            <span class="now-ct__top">
-              <span class="now-ct__n">{t.n}</span>
-              {t.stay
-                ? <span class="now-ct__bdg"><i></i>{T.start}</span>
-                : t.soon
-                  ? <span class="now-ct__bdg">{T.soon}</span>
-                  : <span class="now-ct__ic"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={t.ico} /></span>}
-            </span>
-            <span class="now-ct__h">{t.h[lang]}</span>
-            <span class="now-ct__sb">{t.sb[lang]}</span>
-            {t.stay && <span class="now-ct__cta">{T.book}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={ICO.arrow} /></span>}
-          </Fragment>
-        );
-        return t.soon
-          ? <div class={cls} style={`--c:${t.c}`} aria-disabled="true">{inner}</div>
-          : <a class={cls} style={`--c:${t.c}`} href={t.href}>{inner}</a>;
-      })}
+    <section class="now-more" id="nowMore" hidden>
+      <div class="now-sec">
+        <span class="now-kick" id="nowOpenN"></span>
+        <h2 class="now-display now-sec__h" set:html={T.more} />
+      </div>
+      <div class="now-plist" id="nowList"></div>
     </section>
 
-    <div class="now-sec now-sec--link">
-      <h2 class="now-display now-sec__h" style={`--accent-c:${catColor('eat-drink')}`} set:html={T.rail} />
-      <a class="now-sec__all" href={`${BASE}/app/guide`}>{T.all}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={ICO.chev} /></a>
-    </div>
-    <div class="now-rail" id="nowPlaces">
-      {withPhoto.map((p) => {
-        const area = areaOf(p);
-        return (
-          <a class="now-pc" data-category={p.category} data-lat={p.lat} data-lng={p.lng} href={`${BASE}/app/place/${p.slug}`}>
-            <span class="now-pc__ph"><img src={thumb(photoOf(p), 480)} alt="" loading="lazy" onload="this.classList.add('is-loaded')" /></span>
-            <span class="now-tag" style={tagStyle(p.category)}><i></i>{catLabel(p.category, lang)}</span>
-            <span class="now-pc__name">{p.title || p.name}</span>
-            <span class="now-pc__meta" data-area={area}>{area}</span>
-          </a>
-        );
-      })}
-    </div>
-
     <section class="now-town" id="nowTown" hidden>
-      <div class="now-rail now-rail--news" id="nowTownRow">
+      <div class="now-sec now-sec--small">
+        <span class="now-kick">{T.news} · {T.newsKick}</span>
+      </div>
+      <div class="now-rail" id="nowTownRow">
         {news.map((n) => {
           const t = newsText(n, lang);
           const photo = newsPhotos(n)[0];
           return (
             <a class={`now-news${photo ? '' : ' now-news--plain'}`} data-day={newsDay(n.date)} href={`${BASE}/app/news/${n.slug}`} hidden>
-              <span class="now-news__body">
-                <span>
-                  <span class="now-tag now-tag--news"><i></i>{T.news} · {newsDate(n.date, lang)}</span>
-                  <span class="now-news__title" set:html={mdEm(String(t.title))} />
-                </span>
-                <span class="now-news__read">{T.read}<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={ICO.chev} /></span>
-              </span>
               {photo && <span class="now-news__ph"><img src={thumb(photo, 320)} alt="" loading="lazy" onload="this.classList.add('is-loaded')" /></span>}
+              <span class="now-news__body">
+                <span class="now-tag now-tag--news"><i></i>{newsDate(n.date, lang)}</span>
+                <span class="now-news__title" set:html={mdEm(String(t.title))} />
+              </span>
             </a>
           );
         })}
       </div>
+    </section>
+
+    <section class="now-tiles" aria-labelledby="nowCatsH">
+      <div class="now-sec">
+        <span class="now-kick">{T.catsKick}</span>
+        <h2 class="now-display now-sec__h" id="nowCatsH" style={`--accent-c:${eatC}`} set:html={T.cats} />
+      </div>
+      <div class="now-wl" style="--c:var(--home)">{T.stayRow}</div>
+      <div class="now-g2">
+        <a class="now-ct now-ct--fill now-ct--stay" style="--c:var(--home)" href={`${BASE}/app/stays`}>
+          <span class="now-ct__top"><span class="now-ct__n">{aptCount || '—'}</span><span class="now-ct__ic now-ct__ic--mark" set:html={MARK} /></span>
+          <span class="now-ct__h">{T.stay}</span>
+          <span class="now-ct__sb">{T.staySb}</span>
+        </a>
+      </div>
+      {ROWS.map(({ w, cats }) => (
+        <Fragment>
+          <div class="now-wl" style={`--c:${w.color}`}>{w.label[lang]}</div>
+          <div class="now-g2">
+            {cats.map((k, i) => (
+              <a class={`now-ct now-ct--${i === 0 ? 'fill' : 'line'}`} style={`--c:${w.color}`} href={`${BASE}/app/map?cat=${k}`}>
+                <span class="now-ct__top"><span class="now-ct__n">{counts[k]}</span><span class="now-ct__ic" set:html={catIcon(k)} /></span>
+                <span class="now-ct__h">{catLabel(k, lang)}</span>
+                <span class="now-ct__sb"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={ICO.map} />{T.onMap}</span>
+              </a>
+            ))}
+          </div>
+        </Fragment>
+      ))}
     </section>
   </main>
 
@@ -269,13 +241,13 @@ const mdEm = (raw: string) => esc(raw).replace(/\*([^*]+)\*/g, '<em>$1</em>').re
   <script is:inline define:vars={{ PLACES: PICK_DATA, CATS: CAT_STYLE, LANG: lang, BASE }}>
     (function () {
       var RU = LANG === 'ru';
-      // moment of the day (Batumi time) → which guide tags fit it
+      // moment of the day (Batumi time) → which guide tags fit it + the hero's «why this» pill
       var MOMENTS = [
-        { from: 0, to: 5, tags: ['Bars'] },
-        { from: 5, to: 11, tags: ['Coffee', 'Cafes'] },
-        { from: 11, to: 16, tags: ['Restaurants', 'Cafes', 'Asian dining', 'Dining Around Batumi', 'Gastro shops'] },
-        { from: 16, to: 20, tags: ['Cafes', 'Bars', 'Coffee', 'Restaurants'] },
-        { from: 20, to: 24, tags: ['Bars', 'Restaurants'] },
+        { from: 0, to: 5, tags: ['Bars'], ru: 'ещё открыто', en: 'still open' },
+        { from: 5, to: 11, tags: ['Coffee', 'Cafes'], ru: 'утром — сюда', en: 'for the morning' },
+        { from: 11, to: 16, tags: ['Restaurants', 'Cafes', 'Asian dining', 'Dining Around Batumi', 'Gastro shops'], ru: 'на обед', en: 'for lunch' },
+        { from: 16, to: 20, tags: ['Cafes', 'Bars', 'Coffee', 'Restaurants'], ru: 'на закат', en: 'for golden hour' },
+        { from: 20, to: 24, tags: ['Bars', 'Restaurants'], ru: 'выбор на вечер', en: 'tonight’s pick' },
       ];
       // greeting by time of day (r3 onboarding/daily.html): the italic word takes the hero's colour
       var HELLO = [
@@ -331,11 +303,27 @@ const mdEm = (raw: string) => esc(raw).replace(/\*([^*]+)\*/g, '<em>$1</em>').re
         return (RU ? 'до ' : 'until ') + hhmm(o.close);
       }
       var catOf = function (k) { return CATS[k] || null; };
-
-      // booking mode: walk from the apartment door ('' outside booking mode)
-      var trip = window.rrTrip && window.rrTrip.active();
-      var walk = function (lat, lng) { return trip ? window.rrTrip.from(lat, lng, RU) : ''; };
       var join = function (a, b) { return a && b ? a + ' · ' + b : a || b; };
+
+      // walking minutes: from the trip's apartment door, or from where the guest is (only if
+      // geolocation was ALREADY granted — never prompt). No origin → no minutes at all.
+      var trip = window.rrTrip && window.rrTrip.active();
+      var origin = trip && trip.apt && trip.apt.lat != null && trip.apt.lng != null ? trip.apt : null;
+      var minsTo = function (la, lo) { return origin && window.rrTrip ? window.rrTrip.walkFrom(origin, la, lo) : null; };
+      var walkTxt = function (la, lo) {
+        var mn = minsTo(la, lo);
+        if (mn == null) return '';
+        if (mn <= 25) return RU ? mn + ' мин пешком' : mn + ' min walk';
+        var km = (mn / 60) * 4.8 / 1.25, k = km < 10 ? km.toFixed(1) : String(Math.round(km));
+        return RU ? k.replace('.', ',') + ' км' : k + ' km';
+      };
+      // every «· N min walk» slot carries data-la/data-lo; filled once an origin is known
+      var fillWalks = function () {
+        [].slice.call(document.querySelectorAll('.now-walk[data-la]')).forEach(function (w) {
+          var t = walkTxt(parseFloat(w.dataset.la), parseFloat(w.dataset.lo));
+          w.textContent = t; w.hidden = !t;
+        });
+      };
       if (trip) {
         $('nowTripName').textContent = trip.apt_title || trip.apt_name || '';
         $('nowTripStatus').textContent = window.rrTrip.status(trip, RU);
@@ -351,31 +339,34 @@ const mdEm = (raw: string) => esc(raw).replace(/\*([^*]+)\*/g, '<em>$1</em>').re
       if (pool.length < 3) pool = pool.concat(scored.filter(function (x) { return !fits(x.p) && x.o && pool.indexOf(x) < 0; }));
       if (!pool.length) pool = scored;
       // staying somewhere: keep the pick within a walk of the door when there's enough choice
-      if (trip) {
-        var near = pool.filter(function (x) { var mn = window.rrTrip.minutes(x.p.la, x.p.lo); return mn != null && mn <= 15; });
+      if (origin) {
+        var near = pool.filter(function (x) { var mn = minsTo(x.p.la, x.p.lo); return mn != null && mn <= 15; });
         if (near.length >= 3) pool = near;
       }
 
       // rotate daily so the pick changes but stays stable within a day + moment
       var day = Math.floor(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()) / 864e5);
-      var start = (day + MOMENTS.indexOf(m)) % pool.length;
-      var picks = pool.slice(start).concat(pool.slice(0, start)).slice(0, 3);
-      var hero = picks[0];
+      var start = pool.length ? (day + MOMENTS.indexOf(m)) % pool.length : 0;
+      var ordered = pool.slice(start).concat(pool.slice(0, start));
+      var hero = ordered[0];
       var heroCat = hero && catOf(hero.p.k);
+      // «ещё рядом сейчас»: the rest of the pick, topped up with other places open now — 6 at most
+      var more = ordered.slice(1);
+      scored.forEach(function (x) { if (x.o && x !== hero && more.indexOf(x) < 0) more.push(x); });
+      more = more.slice(0, 6);
+      var openCount = scored.filter(function (x) { return x.o; }).length;
 
-      // greeting — two lines, the second in italic, coloured like the hero's category (ink if none)
+      // greeting — two lines, the second in italic, coloured like the hero's world (ink if none)
       var hl = HELLO.filter(function (x) { return hour >= x.from && hour < x.to; })[0];
       var words = RU ? hl.ru : hl.en;
       var h1 = $('nowHello');
       h1.textContent = words[0];
       h1.appendChild(document.createElement('br'));
       var em = document.createElement('em'); em.textContent = words[1]; h1.appendChild(em);
-      if (heroCat) h1.style.setProperty('--accent-c', heroCat.c);
+      if (heroCat) { h1.style.setProperty('--accent-c', heroCat.c); $('nowMore').style.setProperty('--accent-c', heroCat.c); }
 
       if (hero) {
-        var heroEl = $('nowHero');
-        heroEl.href = BASE + '/app/place/' + hero.p.s;
-        if (heroCat) heroEl.style.setProperty('--hero-c', heroCat.c);
+        $('nowHero').href = BASE + '/app/place/' + hero.p.s;
         $('nowHeroImg').src = hero.p.p;
         var nm = $('nowName');
         nm.textContent = hero.p.n;
@@ -383,41 +374,66 @@ const mdEm = (raw: string) => esc(raw).replace(/\*([^*]+)\*/g, '<em>$1</em>').re
         var len = String(hero.p.n).length;
         if (len > 18) nm.classList.add('is-xlong'); else if (len > 11) nm.classList.add('is-long');
         if (hero.p.w) $('nowWhy').textContent = (RU ? '«' : '“') + hero.p.w + (RU ? '»' : '”');
-        $('nowMeta').textContent = join(hero.p.c, walk(hero.p.la, hero.p.lo));
+        if (heroCat) $('nowHeroTag').setAttribute('style', heroCat.s);
+        $('nowHeroCat').textContent = hero.p.c;
+        $('nowPick').textContent = RU ? m.ru : m.en;
+        $('nowHeroTags').hidden = false;
         var st = statusText(hero.o);
-        if (st) { $('nowStatus').textContent = st; $('nowHeroTags').hidden = false; }
+        if (st) { $('nowStatus').textContent = st; $('nowOpen').hidden = false; }
+        $('nowWalk').dataset.la = hero.p.la; $('nowWalk').dataset.lo = hero.p.lo;
       }
 
-      // two more places — a list card under the hero
-      var list = $('nowAlts');
-      var SVGNS = 'http://www.w3.org/2000/svg';
-      picks.slice(1).forEach(function (x) {
-        var a = document.createElement('a');
-        a.className = 'now-row';
-        a.href = BASE + '/app/place/' + x.p.s;
-        var th = document.createElement('span'); th.className = 'now-row__th';
-        var img = document.createElement('img'); img.src = x.p.q; img.alt = ''; img.loading = 'lazy';
+      // detailed cards: photo large on the left, stamp, name, «until 23:00 · 7 min walk», one line why
+      var list = $('nowList');
+      var el = function (tag, cls, txt) { var e = document.createElement(tag); if (cls) e.className = cls; if (txt) e.textContent = txt; return e; };
+      more.forEach(function (x) {
+        var a = el('a', 'now-pc'); a.href = BASE + '/app/place/' + x.p.s;
+        var th = el('span', 'now-pc__th');
+        var img = document.createElement('img'); img.src = x.p.q; img.alt = ''; img.loading = 'lazy'; img.decoding = 'async';
         img.onload = function () { img.classList.add('is-loaded'); };
         th.appendChild(img);
-        var t = document.createElement('span'); t.className = 'now-row__t';
-        var b = document.createElement('span'); b.className = 'now-row__name'; b.textContent = x.p.n;
-        var meta = document.createElement('span'); meta.className = 'now-row__meta';
+        var tx = el('span', 'now-pc__tx');
         var cs = catOf(x.p.k);
-        var tag = document.createElement('span'); tag.className = 'now-tag';
-        if (cs) tag.setAttribute('style', cs.s);
-        tag.appendChild(document.createElement('i'));
-        tag.appendChild(document.createTextNode(x.p.c));
-        var info = document.createElement('span'); info.className = 'now-row__info';
-        info.textContent = walk(x.p.la, x.p.lo) || shortStatus(x.o);
-        meta.appendChild(tag); meta.appendChild(info);
-        t.appendChild(b); t.appendChild(meta);
-        var chev = document.createElementNS(SVGNS, 'svg');
-        chev.setAttribute('class', 'now-row__chev'); chev.setAttribute('viewBox', '0 0 24 24'); chev.setAttribute('aria-hidden', 'true');
-        var path = document.createElementNS(SVGNS, 'path'); path.setAttribute('d', 'M9 6l6 6l-6 6'); chev.appendChild(path);
-        a.appendChild(th); a.appendChild(t); a.appendChild(chev);
+        var tag = el('span', 'now-tag'); if (cs) tag.setAttribute('style', cs.s);
+        tag.appendChild(el('i')); tag.appendChild(document.createTextNode(x.p.c));
+        var hrs = el('span', 'now-pc__hrs');
+        var sh = shortStatus(x.o);
+        if (sh) { var op = el('span', 'rr-open'); op.appendChild(el('i')); op.appendChild(document.createTextNode(sh)); hrs.appendChild(op); }
+        var wk = el('span', 'now-walk'); wk.hidden = true; wk.dataset.la = x.p.la; wk.dataset.lo = x.p.lo; hrs.appendChild(wk);
+        tx.appendChild(tag); tx.appendChild(el('b', 'now-pc__name', x.p.n)); tx.appendChild(hrs);
+        if (x.p.w) tx.appendChild(el('span', 'now-pc__say', x.p.w));
+        a.appendChild(th); a.appendChild(tx);
         list.appendChild(a);
       });
-      if (list.children.length) list.hidden = false;
+      if (list.children.length) {
+        var n = openCount, a10 = n % 10, a100 = n % 100;
+        $('nowOpenN').textContent = !n ? ''
+          : RU ? 'сейчас открыто ' + n + ' ' + (a10 === 1 && a100 !== 11 ? 'место' : a10 >= 2 && a10 <= 4 && (a100 < 10 || a100 >= 20) ? 'места' : 'мест')
+          : n + (n === 1 ? ' place' : ' places') + ' open now';
+        $('nowMore').hidden = false;
+      }
+      // with an origin the list reads nearest first
+      var sortByWalk = function () {
+        [].slice.call(list.children)
+          .map(function (c) { var w = c.querySelector('.now-walk'); return { c: c, k: minsTo(parseFloat(w.dataset.la), parseFloat(w.dataset.lo)) }; })
+          .sort(function (x, y) { return (x.k == null ? 1e9 : x.k) - (y.k == null ? 1e9 : y.k); })
+          .forEach(function (x) { list.appendChild(x.c); });
+      };
+      if (origin) { fillWalks(); sortByWalk(); }
+      // no trip: if the guest already allowed location, measure from where they are (never prompts)
+      else if (navigator.permissions && navigator.permissions.query && navigator.geolocation) {
+        try {
+          navigator.permissions.query({ name: 'geolocation' }).then(function (ps) {
+            if (ps.state !== 'granted') return;
+            navigator.geolocation.getCurrentPosition(function (pos) {
+              origin = { lat: pos.coords.latitude, lng: pos.coords.longitude };
+              // not in Batumi (city centre further than ~25 km on foot) — minutes would be noise
+              if (minsTo(41.6508, 41.6357) > 300) { origin = null; return; }
+              fillWalks(); sortByWalk();
+            }, function () {}, { maximumAge: 600000, timeout: 8000 });
+          }).catch(function () {});
+        } catch (e) {}
+      }
 
       // news: upcoming events only, soonest first, at most 6
       var today = now.getFullYear() + '-' + ('0' + (now.getMonth() + 1)).slice(-2) + '-' + ('0' + now.getDate()).slice(-2);
@@ -429,21 +445,6 @@ const mdEm = (raw: string) => esc(raw).replace(/\*([^*]+)\*/g, '<em>$1</em>').re
       events.forEach(function (e) { townRow.appendChild(e); e.hidden = false; });
       if (events.length) $('nowTown').hidden = false;
       if (events.length === 1) townRow.classList.add('is-single');
-
-      // booking mode: the guide rail shows the walk from the door, nearest first
-      if (trip) {
-        var placesRow = $('nowPlaces');
-        [].slice.call(placesRow.querySelectorAll('.now-pc'))
-          .map(function (c) {
-            var la = parseFloat(c.dataset.lat), lo = parseFloat(c.dataset.lng);
-            var w = isNaN(la) ? '' : walk(la, lo);
-            if (w) c.querySelector('.now-pc__meta').textContent = w;
-            var a = trip.apt || {};
-            return { c: c, k: isNaN(la) || a.lat == null ? 1e9 : Math.pow(la - a.lat, 2) + Math.pow((lo - a.lng) * Math.cos(a.lat * Math.PI / 180), 2) };
-          })
-          .sort(function (x, y) { return x.k - y.k; })
-          .forEach(function (x) { placesRow.appendChild(x.c); });
-      }
 
       // weather — Open-Meteo (no key, same source as the site's «right now» block).
       // Nothing is shown until real data arrives; offline → the line stays without a number.
@@ -466,7 +467,6 @@ const mdEm = (raw: string) => esc(raw).replace(/\*([^*]+)\*/g, '<em>$1</em>').re
           var seaTxt = typeof s === 'number' ? (RU ? 'море ' : 'sea ') + Math.round(s) + '°' : '';
           $('nowSky').textContent = join(sky(c.weather_code), seaTxt);
           $('nowWx').hidden = false;
-          $('nowWx').parentNode.classList.add('has-wx');
         }).catch(function () {});
       } catch (e) {}
     })();
