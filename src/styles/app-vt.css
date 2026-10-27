@@ -1,0 +1,14 @@
+/* Cross-document View Transitions for the app shells (layouts/App.astro + AppFull.astro).
+   Every tab is a full page load: the browser keeps the old frame until the new one is ready
+   and crossfades them — short and quiet (old out 160ms, new in 280ms, opacity only).
+   The tab bar opts out with its own view-transition-name (tabbar.css) and continues its
+   capsule motion from sessionStorage. Browsers without View Transitions just load the page.
+   prefers-reduced-motion → no animation at all. */
+@view-transition{ navigation:auto; }
+::view-transition-old(root){ animation:rr-vt-out .16s cubic-bezier(.23,1,.32,1) both; }
+::view-transition-new(root){ animation:rr-vt-in .28s cubic-bezier(.23,1,.32,1) both; }
+@keyframes rr-vt-out{ to{ opacity:0; } }
+@keyframes rr-vt-in{ from{ opacity:0; } }
+@media (prefers-reduced-motion:reduce){
+  ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*){ animation:none !important; }
+}
