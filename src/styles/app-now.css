@@ -363,3 +363,6 @@ html.has-trip .now-trip{
   .now-hero, .now-pc, .now-ct, .now-citypill{ transition:none; }
   .now-pc__th img, .now-news__ph img{ transition:none; }
 }
+
+/* stays tile: white on brand orange #FF5E1A is ~2.9:1 — the deep orange keeps the world colour and reads (≈4:1) */
+.now-ct.now-ct--stay{ background:var(--home-deep); }

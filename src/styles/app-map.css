@@ -188,7 +188,7 @@ html:has(.mp), html:has(.mp) body{ height:100%; overflow:hidden; overscroll-beha
 .mp-row{ width:100%; border:0; font:inherit; color:inherit; text-align:left; cursor:pointer; -webkit-tap-highlight-color:transparent; transition:transform .18s var(--ease-out), box-shadow .25s var(--ease-out); }
 .mp-row .now-pc__th{ width:112px; height:136px; }
 .mp-row.is-on{ box-shadow:0 0 0 2px var(--ink), var(--sh-card); }
-.mp-row .rr-open.is-closed{ color:var(--ink-3); font-weight:500; }
+.mp-row .rr-open.is-closed{ color:var(--ink-2); font-weight:500; }
 .mp-row__price{ color:var(--ink); font-weight:800; }
 .mp-row .now-pc__hrs .mp-row__price + .now-walk::before{ content:"· "; }
 .mp-empty{ padding:24px 8px; color:var(--ink-2); font-size:14px; text-align:center; }
@@ -209,7 +209,7 @@ html:has(.mp), html:has(.mp) body{ height:100%; overflow:hidden; overscroll-beha
 .mp-det__hrs{ margin-top:10px; display:flex; align-items:center; flex-wrap:wrap; gap:4px 8px; color:var(--ink-2); font-size:15px; }
 .mp-det__hrs:empty{ display:none; }
 .mp-det__hrs .rr-open{ color:var(--ink); font-weight:600; }
-.mp-det__hrs .rr-open.is-closed{ color:var(--ink-3); font-weight:500; }
+.mp-det__hrs .rr-open.is-closed{ color:var(--ink-2); font-weight:500; }
 .mp-det__hrs .rr-open + .now-walk::before, .mp-det__hrs .mp-row__price + .now-walk::before{ content:"· "; }
 .mp-det__say{ margin:12px 0 0; font-size:16px; line-height:1.45; color:#2a2826; }
 .mp-det__say:empty{ display:none; }

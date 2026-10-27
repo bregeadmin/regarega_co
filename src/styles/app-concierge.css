@@ -62,7 +62,7 @@ html.has-trip .cc-add{ display:none; }
   margin:8px 0 0;
   font-size:12.5px;
   line-height:1.4;
-  color:var(--ink-3);
+  color:var(--ink-2);
 }
 /* body.app-full a{color:inherit} (app-shell.css) outranks a bare class — scope the link */
 .cc-screen a.cc-add{
