@@ -108,6 +108,7 @@ const initJs = "window.__initGMap=function(){"
   </div>
 
   <script is:inline src="https://unpkg.com/@googlemaps/markerclusterer@2.5.3/dist/index.min.js"></script>
+  <script is:inline>document.documentElement.setAttribute("data-no-ptr","");</script>
   <script is:inline src="/rega-map.js"></script>
   <script is:inline set:html={'const MAP_DATA = ' + JSON.stringify(MAP_DATA) + ';' + initJs}></script>
   <script is:inline async src={'https://maps.googleapis.com/maps/api/js?key=' + GMAPS_KEY + '&callback=__initGMap&loading=async&language=' + LANG + '&region=GE'}></script>

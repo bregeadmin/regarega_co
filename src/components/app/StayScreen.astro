@@ -27,7 +27,8 @@ const { lang, apt } = Astro.props;
 const RU = lang === 'ru';
 const BASE = RU ? '/ru/georgia/batumi' : '/georgia/batumi';
 
-const title = ((RU ? apt.title_ru : null) || apt.title || '').trim();
+// flat names are brand names — always English, in both languages
+const title = (apt.title || '').trim();
 const photos = (apt.photos && apt.photos.length) ? apt.photos : ['https://picsum.photos/seed/' + apt.slug + '/1600/1000'];
 const op = operatorName(apt.operator_id);
 

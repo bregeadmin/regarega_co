@@ -108,7 +108,7 @@ const isIg = /instagram\.com/i.test(p.website || '');
 const tel = p.phone ? 'tel:' + String(p.phone).replace(/[^\d+]/g, '') : '';
 const shareUrl = `https://regarega.co${BASE}/guide/${p.slug}`;
 const km = (d: number) => (d < 1 ? `${Math.round(d * 1000 / 10) * 10} ${isRu ? 'м' : 'm'}` : `${d.toFixed(1)} ${isRu ? 'км' : 'km'}`);
-const aptTitle = (a: any) => (isRu && a.title_ru) || a.title;
+const aptTitle = (a: any) => a.title; // flat names stay English
 
 const ICONS = {
   back: '<path d="M15 6l-6 6l6 6" />',

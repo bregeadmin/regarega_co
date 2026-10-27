@@ -32,6 +32,7 @@ const {
   <link rel="manifest" href="/manifest.webmanifest" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-title" content="Rega Rega" />
+  <script is:inline>/* iOS «потянуть-обновить» спрашивает: можно ли перезагрузить? Нельзя, пока открыта шторка/диалог или карта. */Object.defineProperty(window,'rrNoPullRefresh',{configurable:true,get:function(){return !!document.querySelector('[aria-modal="true"]:not([hidden])')||document.documentElement.hasAttribute('data-no-ptr');}});</script>
   <script is:inline>if('serviceWorker' in navigator){window.addEventListener('load',function(){navigator.serviceWorker.register('/sw.js').catch(function(){});});}</script>
   <TripFlag />
 </head>

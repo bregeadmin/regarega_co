@@ -71,7 +71,7 @@ const STAYS: Record<string, any> = {};
 for (const a of (ap || []) as any[]) {
   const beds = !a.bedrooms ? (isRu ? 'студия' : 'studio') : isRu ? `${a.bedrooms} ${a.bedrooms === 1 ? 'спальня' : 'спальни'}` : `${a.bedrooms} bedroom${a.bedrooms === 1 ? '' : 's'}`;
   const sym = ({ usd: '$', eur: '€', gel: '₾' } as Record<string, string>)[String(a.price_currency || 'usd').toLowerCase()] || '$';
-  STAYS[a.slug] = { n: (isRu && a.title_ru) || a.title, c: `${beds}${a.price_from ? ` · ${isRu ? 'от' : 'from'} ${sym}${a.price_from}` : ''}`, p: a.photos && a.photos[0] ? thumb(a.photos[0], 320) : '' };
+  STAYS[a.slug] = { n: a.title, c: `${beds}${a.price_from ? ` · ${isRu ? 'от' : 'from'} ${sym}${a.price_from}` : ''}`, p: a.photos && a.photos[0] ? thumb(a.photos[0], 320) : '' };
 }
 const NEWS: Record<string, any> = {};
 for (const n of await loadNews()) {
