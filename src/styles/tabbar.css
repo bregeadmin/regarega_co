@@ -55,7 +55,7 @@
   border-radius:27px;
   color:var(--ink-2, #6B6862);
   text-decoration:none;
-  font-family:var(--font, "Bricolage Grotesque","Golos Text",system-ui,sans-serif);
+  font-family:var(--font, "Geologica",system-ui,sans-serif);
   -webkit-tap-highlight-color:transparent;
 }
 /* сильнее, чем body.app-shell a / body.app-full a { color:inherit } */

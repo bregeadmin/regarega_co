@@ -31,8 +31,8 @@
   --ease-out:cubic-bezier(.23,1,.32,1);
   --ease-io:cubic-bezier(.77,0,.175,1);
   --spring:linear(0,.009,.035 2.1%,.141 4.4%,.723 12.9%,.938 16.7%,1.017 20.1%,1.043 24%,1.035 28.1%,1.007 38.1%,.998 46.3%,1);
-  /* шрифты: латиница/цифры — Bricolage, кириллица — Golos Text; метки — JetBrains Mono */
-  --font:"Bricolage Grotesque","Golos Text",system-ui,sans-serif;
+  /* шрифты: всё — Geologica (латиница+кириллица одним шрифтом); Bricolage — только вордмарк логотипа; метки — JetBrains Mono */
+  --font:"Geologica",system-ui,sans-serif;
   --mono:"JetBrains Mono",ui-monospace,monospace;
   /* плавающее меню: высота и отступ от низа (над safe-area), для отступов контента */
   --tabbar-h:66px;
@@ -160,7 +160,7 @@ body.app-full a{ color:inherit; text-decoration:none; }
    r3/style.css: .display, .tag + .dot(.ring), .open, .card. Category colours arrive inline from
    src/lib/guideCats.ts (catStyle → --tag-c / --tag-t / --tag-d, --accent-c for the italic word). */
 
-/* display type: Bricolage for latin/digits, Golos 800 for cyrillic (via --font) */
+/* display type: Geologica 800 (via --font) */
 .now-display, .rr-display{
   margin:0;
   font-family:var(--font);
