@@ -268,12 +268,10 @@ function runSplash(root: HTMLElement, reduce: boolean, onDone: () => void) {
   const PARK: [number, number][] = []; for (let i = 0; i < 48; i++) { const a = (i / 48) * Math.PI * 2; PARK.push([-190 + Math.cos(a) * 70, 170 + Math.sin(a) * 52]); }
   const parkEl = el('path', { fill: PARK_C }, $('frGround'));
   /* walking rings */
-  const RINGS = [{ r: 170, lb: root.dataset.r1 || '' }, { r: 320, lb: root.dataset.r2 || '' }].map((o) => ({
+  const RINGS = [{ r: 170 }, { r: 320 }].map((o) => ({
     ...o,
     el: el('path', { fill: 'none', stroke: C.ink, 'stroke-opacity': 0.22, 'stroke-width': 1.3, 'stroke-dasharray': '3 6' }, $('frRings')),
-    tx: el('text', { class: 'fr-ring-lb' }, $('frRings')),
   }));
-  RINGS.forEach((o) => (o.tx.textContent = o.lb));
 
   /* places in world colours; 2 = our flat: orange pin with the hole-punch head */
   const KINDS: [string, number][] = [[C.eat, 1], [C.eat, 1], [C.home, 2], [C.eat, 1], [C.eat, 1], [C.eat, 0], [C.home, 2], [C.eat, 0], [C.well, 1], [C.well, 1], [C.home, 2], [C.well, 0], [C.well, 0], [C.blue, 1], [C.home, 2], [C.blue, 1], [C.eat, 1], [C.well, 1]];
@@ -301,12 +299,11 @@ function runSplash(root: HTMLElement, reduce: boolean, onDone: () => void) {
 
   /* script (ms) */
   const T = { disc: [0, 400], press: [430, 620], slide: [620, 1100], tilt: [900, 1700], burst: [1150, 1800], rise: [1350, 2050], rings: [1700, 2350],
-    c1: [650, 1780], c2: [1880, 3050], c3: [3100, 4000], back: [3880, 4380], lock: [4350, 4700], dock: [4820, 5150], end: 5250 } as const;
+    back: [3300, 3800], lock: [3750, 4100], dock: [4820, 5150], end: 5250 } as const;
   let LOCKW = 298;
   let dockX = 20, dockY = 68;
   const fadeEl = film.querySelector<HTMLElement>('.fr-fade')!;
   const lockEl = $('frLock'), wm = $('frWm'), slogan = $('frSlogan'), tapSkip = $('frTapSkip');
-  const caps = [['frC1', T.c1], ['frC2', T.c2], ['frC3', T.c3]] as const;
 
   function render(t: number) {
     const tl = eio(seg(t, T.tilt[0], T.tilt[1])), bk = eio(seg(t, T.back[0], T.back[1]));
@@ -377,15 +374,6 @@ function runSplash(root: HTMLElement, reduce: boolean, onDone: () => void) {
         const pts: number[][] = []; for (let j = 0; j < 72; j++) { const an = (j / 72) * Math.PI * 2; pts.push(P(Math.cos(an) * rr, Math.sin(an) * rr)); }
         o.el.setAttribute('d', ptsPath(pts));
       }
-      const ang = i ? -1.62 : -0.95; const lp = P(Math.cos(ang) * rr, Math.sin(ang) * rr);
-      o.tx.setAttribute('x', String(lp[0] + 6)); o.tx.setAttribute('y', String(lp[1] - 4));
-      o.tx.setAttribute('opacity', String(eout(seg(t, T.rings[1] + i * 180 - 200, T.rings[1] + i * 180 + 150)) * fade));
-    });
-
-    // captions: appear in place with a short horizontal drift
-    caps.forEach(([id, [a0, a1]]) => {
-      const i = eout(seg(t, a0, a0 + 300)), o = eout(seg(t, a1 - 220, a1));
-      const n = $(id); n.style.opacity = String(i * (1 - o)); n.style.transform = `translateX(${(1 - i) * 18 - o * 14}px)`;
     });
 
     // 5) the logo, the slogan, and docking into the onboarding header

@@ -26,21 +26,6 @@ html.rr-first .fr{
 .fr-sv{ position:absolute; left:0; top:0; display:block; }
 .fr-fade{ position:absolute; left:0; right:0; bottom:0; height:300px; pointer-events:none;
   background:linear-gradient(color-mix(in srgb, var(--bg) 0%, transparent), color-mix(in srgb, var(--bg) 92%, transparent) 45%); }
-.fr-cap{
-  position:absolute; left:24px; right:24px; top:calc(100% - 192px);
-  text-align:center; font-weight:700; font-size:23px; line-height:1.18; letter-spacing:-.025em;
-  color:var(--ink); opacity:0; will-change:transform,opacity;
-}
-html[lang="en"] .fr-cap{ letter-spacing:-.03em; }
-.fr-cap em{ font-style:normal; color:var(--home-deep); }
-.fr-cap em.nt{ color:var(--ink); }          /* «we» / «ходим сами» — нейтрально */
-.fr-cap em.pl{ color:var(--eat); }          /* «весь город» — цветом мест */
-html[lang="en"] .fr-cap em{ font-style:italic; font-weight:800; }
-.fr-cap small{ display:block; margin-top:12px; font-size:13px; font-weight:600; color:var(--ink-2); letter-spacing:-.005em; }
-.fr-legend{ display:flex; justify-content:center; flex-wrap:wrap; gap:6px 12px; margin-top:14px; font-size:12.5px; font-weight:700; color:var(--ink-2); line-height:1.2; }
-.fr-legend span{ display:inline-flex; align-items:center; gap:5px; }
-.fr-legend span.is-home{ color:var(--home-deep); }
-.fr-legend i{ width:9px; height:9px; border-radius:50%; }
 .fr-lock{ position:absolute; left:0; top:0; transform-origin:0 0; display:flex; align-items:center; gap:19.7px; opacity:0; will-change:transform; }
 .fr-lock > svg{ width:64px; height:64px; flex:none; display:block; }
 .fr-lock .fr-wm{ font-size:59.08px; }
@@ -48,7 +33,6 @@ html[lang="en"] .fr-cap em{ font-style:italic; font-weight:800; }
 .fr-slogan .rr-display{ font-size:34px; line-height:.95; }
 .fr-slogan em{ color:var(--home-deep); }
 .fr-tapskip{ position:absolute; left:0; right:0; bottom:calc(env(safe-area-inset-bottom) + 24px); text-align:center; font-size:12.5px; font-weight:600; color:var(--ink-3); opacity:0; }
-.fr-ring-lb{ font-family:var(--font); font-size:11.5px; font-weight:700; fill:var(--ink-2); paint-order:stroke; stroke:var(--bg); stroke-width:4px; stroke-linejoin:round; }
 
 /* ================= onboarding ================= */
 .fr-ob{ position:absolute; inset:0; z-index:1; background:var(--bg); opacity:0; }
