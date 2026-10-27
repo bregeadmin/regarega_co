@@ -49,17 +49,17 @@ const T = isRu
       s1h: 'найди квартиру,<br><em>влюбись</em> в город',
       s1sub: 'город глазами местных: мы сами ходим во все места гида, а квартиры берём только те, где жили бы сами.',
       say: '«завтракаем тут по пятницам — бери шакшуку»',
-      tags1: ['пробито нами', 'кофе', 'квартира'],
+      tags1: ['проверено нами', 'кофе', 'квартира'],
       q: 'что тебе ближе?',
       picks: ['есть и пить', 'велнес', 'работа', 'жильё'],
       next: 'дальше',
-      s2h: 'пробей первое <em>место</em>',
-      s2sub: 'кружок в углу — это «пробить». сохраним место — найдёшь его потом.',
+      s2h: 'сохрани первое <em>место</em>',
+      s2sub: 'нажми кружок в углу — место сохранится, найдёшь его потом.',
       hint: 'тапни кружок',
       tags2: ['до 05:00', 'кофе', 'велнес', 'работа'],
       caps2: ['коктейли без меню · 6 мин', 'флэт уайт и тишина до 10 утра', 'хаммам после моря', 'коворкинг с видом'],
-      punchAria: 'пробить',
-      pocket: 'сохранено', pkEmpty: 'пока пусто', need: 'сначала пробей одно',
+      punchAria: 'сохранить',
+      pocket: 'сохранено', pkEmpty: 'пока пусто', need: 'сначала сохрани одно',
       s3h: 'напишем, только когда <em>важно</em>',
       s3sub: 'никаких рассылок — только про твою поездку.',
       notes: [['бронь подтверждена', 'coral apartment · 14–18 ноя — bre ждёт тебя', 'сейчас'], ['bre ответил', '«да, квартира будет готова к 11:00»', '10:31'], ['код двери на сегодня', '4821 · работает с 14:00, wifi в поездке', '14 ноя']],
@@ -81,17 +81,17 @@ const T = isRu
       s1h: 'find a flat.<br><em>fall</em> for the city.',
       s1sub: 'the city through locals’ eyes: we go to every place in the guide ourselves — and only list flats we’d live in.',
       say: '“we have breakfast here on fridays — get the shakshuka”',
-      tags1: ['tried by us', 'coffee', 'flat'],
+      tags1: ['checked by us', 'coffee', 'flat'],
       q: 'what are you into?',
       picks: ['food & drink', 'wellness', 'work', 'stays'],
       next: 'next',
-      s2h: 'punch your first <em>place</em>',
-      s2sub: 'the circle in the corner means “punch it”. we’ll save the place — find it later.',
+      s2h: 'save your first <em>place</em>',
+      s2sub: 'tap the circle in the corner — the place is saved, find it later.',
       hint: 'tap the circle',
       tags2: ['till 5am', 'coffee', 'wellness', 'work'],
       caps2: ['cocktails, no menu · 6 min', 'flat white and quiet till 10am', 'hammam after the sea', 'coworking with a view'],
-      punchAria: 'punch',
-      pocket: 'saved', pkEmpty: 'empty for now', need: 'punch one first',
+      punchAria: 'save',
+      pocket: 'saved', pkEmpty: 'empty for now', need: 'save one first',
       s3h: 'we’ll only write when it <em>matters</em>',
       s3sub: 'no newsletters — just your trip.',
       notes: [['booking confirmed', 'coral apartment · nov 14–18 — bre is expecting you', 'now'], ['bre replied', '“yes, the flat will be ready by 11:00”', '10:31'], ['today’s door code', '4821 · works from 2pm, wifi in your trip', 'nov 14']],
@@ -102,8 +102,8 @@ const T = isRu
 
 // strings the script needs at run time (pocket count, toasts)
 const RT = isRu
-  ? { pkN: ['место', 'места', 'мест'], punched: '— пробито, сохранили', removed: '— убрано из сохранённых' }
-  : { pkN: ['place', 'places', 'places'], punched: '— punched, saved for later', removed: '— removed from saved' };
+  ? { pkN: ['место', 'места', 'мест'], punched: '— сохранили', removed: '— убрано из сохранённых' }
+  : { pkN: ['place', 'places', 'places'], punched: '— saved for later', removed: '— removed from saved' };
 
 // step 1 picks: world colour per choice (stored locally as rr_picks for later)
 const PICKS = [
@@ -170,7 +170,7 @@ const legStyle = (s: string) => (s.startsWith('ring:') ? `box-shadow:inset 0 0 0
         <div class="fr-foot"><button class="fr-btn" type="button" data-fr-next>{T.next}</button></div>
       </section>
 
-      <!-- 2 · пробей первое место -->
+      <!-- 2 · сохрани первое место (жест «пробить», слово не пишем) -->
       <section class="fr-step fr-s2" aria-label={T.step(2)}>
         <div class="fr-body">
           <h1 tabindex="-1" class="rr-display fr-h fr-h--eat"><Fragment set:html={T.s2h} /></h1>
