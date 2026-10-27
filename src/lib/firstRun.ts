@@ -18,7 +18,21 @@ const writeJSON = (k: string, v: unknown) => { try { localStorage.setItem(k, JSO
 
 export function initFirstRun() {
   const root = document.getElementById('fr');
+  if (root) root.dataset.ready = '1'; // the inline gate's watchdog sees the script has started
   if (!root || !document.documentElement.classList.contains('rr-first')) return;
+  try {
+    run(root);
+  } catch (err) {
+    // never leave a blank overlay / an inert page behind: fall through to the guide
+    console.warn('first run failed', err);
+    document.documentElement.classList.remove('rr-first');
+    document.querySelectorAll<HTMLElement>('[data-fr-inert]').forEach((n) => { n.inert = false; n.removeAttribute('aria-hidden'); delete n.dataset.frInert; });
+    root.remove();
+    try { localStorage.setItem('rr_onboarded', new Date().toISOString()); } catch {}
+  }
+}
+
+function run(root: HTMLElement) {
   const $ = (id: string) => document.getElementById(id)!;
   const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
   const rt: RT = JSON.parse(root.dataset.rt || '{}');
@@ -28,7 +42,7 @@ export function initFirstRun() {
 
   // modal: everything else on the page is inert + hidden from assistive tech until finish
   const others = [...document.body.children].filter((n) => n !== root && n.tagName !== 'SCRIPT') as HTMLElement[];
-  others.forEach((n) => { n.inert = true; n.setAttribute('aria-hidden', 'true'); });
+  others.forEach((n) => { n.inert = true; n.setAttribute('aria-hidden', 'true'); n.dataset.frInert = '1'; });
   const focusStep = (i: number) => {
     const h = steps[i]?.querySelector<HTMLElement>('.fr-h');
     h?.focus({ preventScroll: true });
@@ -184,7 +198,7 @@ export function initFirstRun() {
     window.scrollTo(0, 0);
     const end = () => {
       document.documentElement.classList.remove('rr-first');
-      others.forEach((n) => { n.inert = false; n.removeAttribute('aria-hidden'); });
+      others.forEach((n) => { n.inert = false; n.removeAttribute('aria-hidden'); delete n.dataset.frInert; });
       root!.remove();
       document.querySelector<HTMLElement>('.app-logo')?.focus({ preventScroll: true });
     };

@@ -330,7 +330,7 @@ const ICONS = { copy: icon('copy', 17), check: icon('check', 17), arrow: icon('a
 
         // --- status line ---
         var idx = pend ? 1 : past ? 5 : dCo === 0 ? 4 : (dCi != null && dCi < 0) ? 3 : 2;
-        var head = pend ? T.pending + (op ? ' ' + op : '')
+        var head = pend ? (op ? (RU ? T.pending + ' ' + op : 'waiting for ' + op + ' to confirm') : T.pending)
           : past ? (RU ? 'до встречи в батуми' : 'see you in batumi again')
           : idx === 4 ? (RU ? 'сегодня выезд' : 'checkout today')
           : idx === 3 ? (RU ? 'ты в квартире' : "you're in")
@@ -390,8 +390,8 @@ const ICONS = { copy: icon('copy', 17), check: icon('check', 17), arrow: icon('a
 
         // --- address + parking + directions / full guide ---
         var addr = strip(text(ins, 'addr'));
-        var map = ins.map_url || (t.apt && t.apt.lat != null ? 'https://www.google.com/maps/dir/?api=1&destination=' + t.apt.lat + ',' + t.apt.lng : '');
-        $('trAddrSec').hidden = pend;
+        var map = (typeof ins.map_url === 'string' && /^https?:\/\//i.test(ins.map_url) ? ins.map_url : '') || (t.apt && t.apt.lat != null ? 'https://www.google.com/maps/dir/?api=1&destination=' + t.apt.lat + ',' + t.apt.lng : '');
+        $('trAddrSec').hidden = pend || !(addr || map);
         $('trAddrText').textContent = addr || T.mapOpen;
         $('trAddr').hidden = !map;
         if (map) $('trAddr').href = map; else $('trAddr').removeAttribute('href');

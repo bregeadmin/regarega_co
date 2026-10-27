@@ -192,7 +192,6 @@ html[lang="en"] .fr-cap em{ font-style:italic; font-weight:800; }
   .fr-rail{ min-height:200px; }
   .fr-pc__cap b{ font-size:28px; }
   .fr-notes{ margin-top:16px; }
-  .fr-nt:nth-child(3){ display:none; }
   /* the toast would cover the «сохранено» pill above the button — show it at the top instead */
   .fr-toast{ top:calc(env(safe-area-inset-top) + 74px); bottom:auto; }
 }

@@ -66,7 +66,9 @@ const AMENITY: { re: RegExp; icon: string; en: string }[] = [
   { re: /утюг|iron/i, icon: 'iron', en: 'iron' },
   { re: /кофе|coffee/i, icon: 'coffee', en: 'coffee maker' },
   { re: /бассейн|pool/i, icon: 'pool', en: 'pool' },
-  { re: /мор[еяю]|\bsea|пляж|beach/i, icon: 'beach', en: 'sea view' },
+  { re: /пляжные принадлеж|beach essentials/i, icon: 'beach', en: 'beach essentials' },
+  { re: /пляж|beach/i, icon: 'beach', en: 'beach access' },
+  { re: /мор[еяю]|\bsea/i, icon: 'beach', en: 'sea view' },
 ];
 export function amenity(raw: string, lang: 'en' | 'ru'): { icon: string; label: string } {
   const hit = AMENITY.find((a) => a.re.test(String(raw).trim()));

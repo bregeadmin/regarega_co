@@ -172,7 +172,7 @@ const mdEm = (raw: string) => esc(raw).replace(/\*([^*]+)\*/g, '<em>$1</em>').re
         if (cat === 'news') visible = news.length;
         if (empty) empty.hidden = visible !== 0;
         if (user) {
-          chip.scrollIntoView({ inline: 'nearest', block: 'nearest', behavior: 'smooth' });
+          chip.scrollIntoView({ inline: 'nearest', block: 'nearest', behavior: matchMedia('(prefers-reduced-motion: reduce)').matches ? 'auto' : 'smooth' });
           try {
             var u = new URL(location.href);
             if (cat === 'all') u.searchParams.delete('cat'); else u.searchParams.set('cat', cat);

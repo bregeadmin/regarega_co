@@ -54,7 +54,7 @@ const T = isRu
       picks: ['есть и пить', 'велнес', 'работа', 'жильё'],
       next: 'дальше',
       s2h: 'сохрани первое <em>место</em>',
-      s2sub: 'нажми кружок в углу — место сохранится, найдёшь его потом.',
+      s2sub: 'нажми кружок в углу — место сохранится.',
       hint: 'тапни кружок',
       tags2: ['до 05:00', 'кофе', 'велнес', 'работа'],
       caps2: ['коктейли без меню · 6 мин', 'флэт уайт и тишина до 10 утра', 'хаммам после моря', 'коворкинг с видом'],
@@ -62,7 +62,7 @@ const T = isRu
       pocket: 'сохранено', pkEmpty: 'пока пусто', need: 'сначала сохрани одно',
       s3h: 'напишем, только когда <em>важно</em>',
       s3sub: 'никаких рассылок — только про твою поездку.',
-      notes: [['бронь подтверждена', 'coral apartment · 14–18 ноя — bre ждёт тебя', 'сейчас'], ['bre ответил', '«да, квартира будет готова к 11:00»', '10:31'], ['код двери на сегодня', '4821 · работает с 14:00, wifi в поездке', '14 ноя']],
+      notes: [['бронь подтверждена', 'coral apartment · 14–18 ноя', 'сейчас'], ['заявку отклонили', 'sunset apartment · 20–23 ноя', '10:31']],
       cityB: 'ты в батуми', citySm: 'гид уже про него · другие города скоро',
       notifOff: 'включить уведомления', notifOn: 'уведомления включены', open: 'открыть гид',
       step: (i: number) => `шаг ${i} из 3`,
@@ -86,7 +86,7 @@ const T = isRu
       picks: ['food & drink', 'wellness', 'work', 'stays'],
       next: 'next',
       s2h: 'save your first <em>place</em>',
-      s2sub: 'tap the circle in the corner — the place is saved, find it later.',
+      s2sub: 'tap the circle in the corner — the place is saved.',
       hint: 'tap the circle',
       tags2: ['till 5am', 'coffee', 'wellness', 'work'],
       caps2: ['cocktails, no menu · 6 min', 'flat white and quiet till 10am', 'hammam after the sea', 'coworking with a view'],
@@ -94,7 +94,7 @@ const T = isRu
       pocket: 'saved', pkEmpty: 'empty for now', need: 'save one first',
       s3h: 'we’ll only write when it <em>matters</em>',
       s3sub: 'no newsletters — just your trip.',
-      notes: [['booking confirmed', 'coral apartment · nov 14–18 — bre is expecting you', 'now'], ['bre replied', '“yes, the flat will be ready by 11:00”', '10:31'], ['today’s door code', '4821 · works from 2pm, wifi in your trip', 'nov 14']],
+      notes: [['booking confirmed', 'coral apartment · nov 14–18', 'now'], ['request declined', 'sunset apartment · nov 20–23', '10:31']],
       cityB: 'you’re in batumi', citySm: 'the guide is all about it · more cities soon',
       notifOff: 'turn on notifications', notifOn: 'notifications on', open: 'open the guide',
       step: (i: number) => `step ${i} of 3`,
@@ -134,7 +134,11 @@ const legStyle = (s: string) => (s.startsWith('ring:') ? `box-shadow:inset 0 0 0
       var q = new URLSearchParams(location.search), h = document.documentElement;
       var want = localStorage.getItem('rr_lang') || (/^ru/i.test(navigator.language || '') ? 'ru' : 'en');
       if (want !== h.lang) return;
-      if (q.has('welcome') || (!localStorage.getItem('rr_onboarded') && !q.has('t'))) h.classList.add('rr-first');
+      if (q.has('welcome') || (!localStorage.getItem('rr_onboarded') && !q.has('t'))) {
+        h.classList.add('rr-first');
+        // failsafe: if the bundled script never starts (blocked / failed to load), drop the overlay
+        setTimeout(function () { var f = document.getElementById('fr'); if (!f || !f.dataset.ready) h.classList.remove('rr-first'); }, 4000);
+      }
     } catch (e) {}
   })();
 </script>
