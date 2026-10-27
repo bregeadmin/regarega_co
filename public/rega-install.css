@@ -19,7 +19,7 @@
 /* android — строка с brand-CTA (тёмная пилюля, uppercase mono, стрелка) */
 #rr-install.android { flex-direction: row; align-items: center; gap: 12px; }
 .rri-txt {
-  flex: 1; font-family: "Bricolage Grotesque", sans-serif;
+  flex: 1; font-family: "Geologica", sans-serif;
   font-size: 14px; line-height: 1.15; font-weight: 700;
   color: var(--ink); text-transform: lowercase;
 }
@@ -39,7 +39,7 @@
 #rr-install.ios { flex-direction: column; align-items: stretch; gap: 13px; padding: 15px 16px 16px; }
 .rri-head { display: flex; align-items: center; gap: 10px; }
 .rri-title {
-  flex: 1; font-family: "Bricolage Grotesque", sans-serif;
+  flex: 1; font-family: "Geologica", sans-serif;
   font-weight: 800; font-size: 16px; line-height: 1.1;
   color: var(--ink); text-transform: lowercase; letter-spacing: -0.01em;
 }

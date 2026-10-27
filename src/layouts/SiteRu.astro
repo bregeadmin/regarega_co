@@ -47,7 +47,7 @@ const ogImage = new URL(image, Astro.site).href;
   <meta name="twitter:image" content={ogImage} />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@10..48,200..900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <link href="https://fonts.googleapis.com/css2?family=Geologica:wght@300..900&family=Bricolage+Grotesque:opsz,wght@12..96,800&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet" />
   <link rel="icon" href="/favicon.ico?v=2" sizes="48x48" />
   <link rel="icon" type="image/svg+xml" href="/favicon.svg?v=2" />
   <link rel="icon" type="image/png" sizes="32x32" href="/favicon-32.png?v=2" />
@@ -237,8 +237,8 @@ const ogImage = new URL(image, Astro.site).href;
 window.__rrBuildStory = async function (d) {
   const W = 1080, H = 1920;
   await Promise.all([
-    document.fonts.load('800 96px "Bricolage Grotesque"'),
-    document.fonts.load('400 36px "Bricolage Grotesque"'),
+    document.fonts.load('800 96px "Geologica"'), document.fonts.load('800 54px "Bricolage Grotesque"'),
+    document.fonts.load('400 36px "Geologica"'),
     document.fonts.load('700 26px "JetBrains Mono"'),
     document.fonts.load('500 26px "JetBrains Mono"'),
   ]);
@@ -301,7 +301,7 @@ window.__rrBuildStory = async function (d) {
   const MY = 110;
   mark(pad + 26, MY, 26);
   x.textBaseline = 'alphabetic';
-  x.font = '800 54px "Bricolage Grotesque"';
+  x.font = '800 54px "Bricolage Grotesque"'; // wordmark stays Bricolage (logo)
   const wmX = pad + 26 + 26 + 22;
   x.fillStyle = '#FAF7F0'; x.fillText('rega', wmX, MY + 18);
   const w1 = x.measureText('rega').width;
@@ -324,12 +324,12 @@ window.__rrBuildStory = async function (d) {
   x.beginPath(); x.moveTo(pad, y); x.lineTo(W - pad, y); x.stroke();
   // editorial line (max 3 lines)
   y -= 36;
-  x.font = '400 35px "Bricolage Grotesque"'; x.fillStyle = 'rgba(250,247,240,0.9)';
+  x.font = '400 35px "Geologica"'; x.fillStyle = 'rgba(250,247,240,0.9)';
   const ll = wrap(d.line, W - 2 * pad).slice(0, 3);
   for (let i = ll.length - 1; i >= 0; i--) { x.fillText(ll[i], pad, y); y -= 48; }
   // name (big, white), max 2 lines
   y -= 14;
-  x.font = '800 100px "Bricolage Grotesque"'; x.fillStyle = '#FFFFFF';
+  x.font = '800 100px "Geologica"'; x.fillStyle = '#FFFFFF';
   const nl = wrap(String(d.name) + '.', W - 2 * pad).slice(0, 2);
   for (let i = nl.length - 1; i >= 0; i--) { x.fillText(nl[i], pad, y); y -= 100; }
   // tag pill
