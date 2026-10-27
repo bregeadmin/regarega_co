@@ -9,12 +9,11 @@ import { createClient } from '@supabase/supabase-js';
 const __dir = dirname(fileURLToPath(import.meta.url));
 const F = (n) => join(__dir, 'og-fonts', n);
 GlobalFonts.registerFromPath(F('bricolage-800.woff'), 'BricolageBold');
-GlobalFonts.registerFromPath(F('bricolage-400.woff'), 'BricolageReg');
 GlobalFonts.registerFromPath(F('mono-700.woff'), 'MonoBold');
 GlobalFonts.registerFromPath(F('mono-600.woff'), 'MonoSemi');
-// Cyrillic-capable fonts for RU cards (Bricolage has no Cyrillic; site falls back to a neutral sans too).
-GlobalFonts.registerFromPath(F('inter-bold.woff2'), 'InterB');
-GlobalFonts.registerFromPath(F('inter-reg.woff2'), 'InterR');
+// Card type = Geologica (the site/app font; latin + cyrillic in one face). Bricolage stays only in the wordmark.
+GlobalFonts.registerFromPath(F('geologica-800.ttf'), 'GeoBold');
+GlobalFonts.registerFromPath(F('geologica-400.ttf'), 'GeoReg');
 GlobalFonts.registerFromPath(F('jbm-bold.woff2'), 'JBM');
 
 const OUT = join(__dir, '..', 'dist', 'og');
@@ -67,8 +66,8 @@ function wrap(x, text, maxW) {
 
 async function card(d) {
   const cv = createCanvas(W, H); const x = cv.getContext('2d');
-  const fName = d.ru ? 'InterB' : 'BricolageBold';
-  const fLine = d.ru ? 'InterR' : 'BricolageReg';
+  const fName = 'GeoBold';
+  const fLine = 'GeoReg';
   const fMono = d.ru ? 'JBM' : 'MonoBold';
   const fMonoS = d.ru ? 'JBM' : 'MonoSemi';
   x.fillStyle = '#FAF7F0'; x.fillRect(0, 0, W, H);
@@ -102,16 +101,23 @@ async function card(d) {
   x.fillStyle = d.accent; roundRect(x, px, y - tph + 8, tw + tpx * 2, tph, 999); x.fill();
   x.fillStyle = '#FAF7F0'; x.fillText(tagT, px + tpx, y - 8);
 
-  // name (BricolageBold ~62, max 2 lines)
+  // name (Geologica 800 ~62, max 2 lines)
   y += 36;
   x.font = '62px ' + fName; x.fillStyle = '#0A0908';
   const nameLines = wrap(x, String(d.name) + '.', pr - px).slice(0, 2);
   for (const ln of nameLines) { y += 58; x.fillText(ln, px, y); }
 
-  // line (BricolageReg ~27, max 3 lines)
+  // line (Geologica 400 ~27, max 3 lines)
   y += 30;
   x.font = '27px ' + fLine; x.fillStyle = '#6B6862';
-  const lineLines = wrap(x, d.line, pr - px).slice(0, 3);
+  // as many lines as fit above the footer rule (a two-line name leaves room for fewer)
+  const room = Math.max(1, Math.min(3, Math.floor((H - 64 - 30 - 18 - y) / 38)));
+  const all = wrap(x, d.line, pr - px), lineLines = all.slice(0, room);
+  if (all.length > room) {
+    let last = lineLines[room - 1];
+    while (last && x.measureText(last + '…').width > pr - px) last = last.replace(/\s*\S+$/, '');
+    lineLines[room - 1] = last.replace(/[\s,.;:—-]+$/, '') + '…';
+  }
   for (const ln of lineLines) { y += 38; x.fillText(ln, px, y); }
 
   // footer (anchored to bottom)
@@ -145,7 +151,7 @@ async function card(d) {
     // EN
     writeFileSync(join(OUT, 'stay-' + a.slug + '.png'), await card({ img, name: String(a.title || '').toLowerCase(), tag: 'apartment', accent: '#FF5E1A', kicker: 'batumi · stays', cta: 'book direct', line: clip(a.summary, 130) })); n++;
     // RU
-    writeFileSync(join(OUT, 'stay-' + a.slug + '-ru.png'), await card({ img, name: String(a.title_ru || a.title || '').toLowerCase(), tag: 'квартира', accent: '#FF5E1A', kicker: 'батуми · квартиры', cta: 'забронировать', ru: true, line: clip(a.summary_ru || a.summary, 130) })); n++;
+    writeFileSync(join(OUT, 'stay-' + a.slug + '-ru.png'), await card({ img, name: String(a.title || '').toLowerCase(), tag: 'квартира', accent: '#FF5E1A', kicker: 'батуми · квартиры', cta: 'забронировать', ru: true, line: clip(a.summary_ru || a.summary, 130) })); n++;
   }
   // --- news (editorial link-preview cards) ---
   const { data: news } = await supabase.from('news').select('*').eq('status', 'published');
@@ -155,7 +161,9 @@ async function card(d) {
     const name = String(nw.title || '').toLowerCase();
     const line = clip(nw.descr || nw.body, 130);
     writeFileSync(join(OUT, 'news-' + nw.slug + '.png'), await card({ img, name, tag: 'news', accent: '#FF5E1A', kicker: 'batumi · the guide', cta: 'read', line })); n++;
-    writeFileSync(join(OUT, 'news-' + nw.slug + '-ru.png'), await card({ img, name, tag: 'новости', accent: '#FF5E1A', kicker: 'батуми · гид', cta: 'читать', ru: true, line })); n++;
+    const nameRu = String(nw.title_ru || nw.title || '').toLowerCase();
+    const lineRu = clip(nw.descr_ru || nw.body_ru || nw.descr || nw.body, 130);
+    writeFileSync(join(OUT, 'news-' + nw.slug + '-ru.png'), await card({ img, name: nameRu, tag: 'новости', accent: '#FF5E1A', kicker: 'батуми · гид', cta: 'читать', ru: true, line: lineRu })); n++;
   }
 
   // --- longreads (editorial stories — hardcoded pages, no DB row) ---
