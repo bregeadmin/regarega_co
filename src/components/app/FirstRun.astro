@@ -1,8 +1,8 @@
 ---
 // First run of the app: splash → 3-step onboarding → the guide underneath. Rendered by
 // NowScreen (the app's start screen) right at the top of <body>.
-// Visual source (approved, ported 1:1): rega-design-panel r3/splash3/jakub-2b.html (≈5.25 s
-// «квартира на карте, в объёме») and r3/onboarding/onboarding.html (3 steps).
+// Visual source (approved): rega-design-panel r3/splash3/jakub-2b.html (≈5.25 s
+// «квартира на карте, в объёме»), trimmed 2026-10-27 to animation + slogan only (no captions) and r3/onboarding/onboarding.html (3 steps).
 // Gate: shown ONLY when localStorage rr_onboarded is not set — decided by the inline script
 // below before the guide paints (it puts `rr-first` on <html>; app-firstrun.css shows the
 // overlay only then), so the guide never flashes first. It lives on the start screen only,
@@ -35,13 +35,8 @@ const flatPhoto = thumb((flat as any)?.photos?.[0] || '', 480);
 const T = isRu
   ? {
       // splash
-      c1: 'это твоя квартира.<small>проверенная — мы жили бы в ней сами</small>',
-      c2: 'а вокруг — места,<br>куда мы <em class="nt">ходим сами</em>',
-      leg: ['еда', 'велнес', 'работа', 'дорога', 'впечатления', 'наши квартиры'],
-      c3: 'из одной квартиры —<br><em class="pl">весь город</em> пешком.',
       slo: 'найди квартиру,<br><em>влюбись</em> в город',
       tapSkip: 'тапни, чтобы пропустить',
-      r1: '5 мин', r2: '15 мин',
       filmLabel: 'заставка — тапни, чтобы пропустить',
       dialog: 'знакомство с rega rega',
       // onboarding
@@ -68,13 +63,8 @@ const T = isRu
       step: (i: number) => `шаг ${i} из 3`,
     }
   : {
-      c1: 'this is your flat.<small>checked — we’d live here ourselves</small>',
-      c2: 'and around it — the places<br><em class="nt">we</em> actually go',
-      leg: ['food', 'wellness', 'work', 'getting around', 'experiences', 'our flats'],
-      c3: 'one flat —<br>the <em class="pl">whole city</em> on foot.',
       slo: 'find a flat.<br><em>fall</em> for the city.',
       tapSkip: 'tap to skip',
-      r1: '5 min', r2: '15 min',
       filmLabel: 'intro — tap to skip',
       dialog: 'welcome to rega rega',
       skip: 'skip',
@@ -123,8 +113,6 @@ const CARDS = [
   .filter((c) => c.img);
 
 const MARK = 'M 50,50 m -50,0 a 50,50 0 1,1 100,0 a 50,50 0 1,1 -100,0 z M 64,64 m -12,0 a 12,12 0 1,1 24,0 a 12,12 0 1,1 -24,0 z';
-const LEG_STYLE = ['fill:var(--eat)', 'fill:var(--well)', 'ring:var(--well)', 'ring:var(--eat)', 'fill:var(--blue)', 'fill:var(--home)'];
-const legStyle = (s: string) => (s.startsWith('ring:') ? `box-shadow:inset 0 0 0 2px ${s.slice(5)}` : `background:${s.slice(5)}`);
 ---
 <script is:inline>
   // before the guide paints: first run? (not onboarded, no ?t=, and the start screen is not
@@ -142,7 +130,7 @@ const legStyle = (s: string) => (s.startsWith('ring:') ? `box-shadow:inset 0 0 0
     } catch (e) {}
   })();
 </script>
-<div class="fr" id="fr" role="dialog" aria-modal="true" aria-label={T.dialog} data-rt={JSON.stringify(RT)} data-r1={T.r1} data-r2={T.r2}>
+<div class="fr" id="fr" role="dialog" aria-modal="true" aria-label={T.dialog} data-rt={JSON.stringify(RT)}>
   <!-- onboarding (under the splash; the splash hands over to it) -->
   <div class="fr-ob" id="frOb">
     <div class="fr-bar">
@@ -241,11 +229,6 @@ const legStyle = (s: string) => (s.startsWith('ring:') ? `box-shadow:inset 0 0 0
       <g id="frPiece"></g>
     </svg>
     <div class="fr-fade" aria-hidden="true"></div>
-    <div class="fr-cap" id="frC1"><Fragment set:html={T.c1} /></div>
-    <div class="fr-cap" id="frC2"><Fragment set:html={T.c2} />
-      <div class="fr-legend">{T.leg.map((l, i) => <span class={i === 5 ? 'is-home' : ''}><i style={legStyle(LEG_STYLE[i])}></i>{l}</span>)}</div>
-    </div>
-    <div class="fr-cap" id="frC3"><Fragment set:html={T.c3} /></div>
     <div class="fr-lock" id="frLock" aria-hidden="true"><svg viewBox="0 0 100 100"><path fill-rule="evenodd" fill="var(--home)" d={MARK} /></svg><span class="fr-wm" id="frWm">rega<span class="twin">rega</span></span></div>
     <div class="fr-slogan" id="frSlogan" aria-hidden="true"><p class="rr-display">
       <Fragment set:html={T.slo} /></p></div>
