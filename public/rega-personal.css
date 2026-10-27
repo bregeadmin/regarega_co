@@ -14,7 +14,7 @@
   margin: 0 0 14px;
 }
 .rrp-greet {
-  font-family: "Bricolage Grotesque", sans-serif;
+  font-family: "Geologica", sans-serif;
   font-weight: 800;
   font-size: clamp(22px, 5vw, 30px);
   line-height: 1.05;
@@ -76,7 +76,7 @@
 }
 .rrp-meta { display: block; }
 .rrp-meta b {
-  display: block; font-family: "Bricolage Grotesque", sans-serif;
+  display: block; font-family: "Geologica", sans-serif;
   font-weight: 700; font-size: 14px; line-height: 1.15;
   text-transform: lowercase;
   overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
@@ -95,7 +95,7 @@
 }
 .rrp-offer-top { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; }
 .rrp-offer-top b {
-  font-family: "Bricolage Grotesque", sans-serif; font-weight: 800;
+  font-family: "Geologica", sans-serif; font-weight: 800;
   font-size: 17px; text-transform: lowercase;
 }
 .rrp-cnt {

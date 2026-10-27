@@ -10,7 +10,7 @@
 .hero .inner{max-width:1400px;margin:0 auto;display:grid;grid-template-columns:1fr 1.4fr;gap:48px;align-items:end}
 .hero .pill{display:inline-flex;align-items:center;gap:8px;padding:6px 12px;border-radius:999px;font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;font-weight:600;background:var(--cat-tint);color:var(--cat-dark);margin-bottom:20px}
 .hero .pill .sw{width:8px;height:8px;border-radius:50%;background:var(--cat-color)}
-.hero h1{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:clamp(38px,5vw,72px);line-height:.88;letter-spacing:-.045em;text-transform:lowercase}
+.hero h1{font-family:"Geologica",sans-serif;font-weight:800;font-size:clamp(38px,5vw,72px);line-height:.88;letter-spacing:-.045em;text-transform:lowercase}
 .hero h1 em{font-style:italic;color:var(--cat-color)}
 .hero .summary{margin-top:24px;font-size:18px;line-height:1.55;color:var(--ink-soft);max-width:36ch}
 .hero .summary b{color:var(--ink);font-weight:700}
@@ -31,7 +31,7 @@
 .body .text{display:flex;flex-direction:column;gap:24px}
 .body .text .kicker{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--cat-dark);font-weight:600;display:inline-flex;align-items:center;gap:8px;background:var(--cat-tint);padding:5px 11px;border-radius:999px;width:fit-content}
 .body .text .kicker .dot{display:none}
-.body .text h2{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:clamp(32px,4vw,52px);line-height:.95;letter-spacing:-.035em;text-transform:lowercase;margin-bottom:6px}
+.body .text h2{font-family:"Geologica",sans-serif;font-weight:800;font-size:clamp(32px,4vw,52px);line-height:.95;letter-spacing:-.035em;text-transform:lowercase;margin-bottom:6px}
 .body .text h2 em{font-style:italic;color:var(--cat-color)}
 .body .text p{font-size:18px;line-height:1.65;color:var(--ink)}
 .body .text p b{font-weight:700}
@@ -40,7 +40,7 @@
 .body .text .tag{padding:5px 12px;background:var(--paper);border:1px solid var(--line);border-radius:999px;font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;font-weight:600;color:var(--ink-soft)}
 .aside{position:sticky;top:120px;display:flex;flex-direction:column;gap:14px}
 .panel{padding:24px;background:var(--paper);border:1px solid var(--line);border-radius:14px}
-.panel h4{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:18px;letter-spacing:-.02em;text-transform:lowercase;margin-bottom:14px;display:flex;align-items:center;gap:8px}
+.panel h4{font-family:"Geologica",sans-serif;font-weight:700;font-size:18px;letter-spacing:-.02em;text-transform:lowercase;margin-bottom:14px;display:flex;align-items:center;gap:8px}
 .panel h4 svg{flex:none;color:var(--cat-color)}
 .panel ul{list-style:none;display:grid;grid-template-columns:auto 1fr;gap:9px 28px;align-items:baseline}
 .panel li{display:contents;font-size:13.5px;line-height:1.4;color:var(--ink)}
@@ -76,7 +76,7 @@
 .nearby-head{max-width:1400px;margin:0 auto 40px;display:flex;justify-content:space-between;align-items:flex-end;gap:24px;flex-wrap:wrap}
 .nearby-head .kicker{font-family:"JetBrains Mono",monospace;font-size:11px;letter-spacing:.22em;text-transform:uppercase;color:var(--cat-dark);font-weight:600;margin-bottom:14px;display:inline-flex;align-items:center;gap:8px;background:var(--cat-tint);padding:5px 11px;border-radius:999px;width:fit-content}
 .nearby-head .kicker .dot{display:none}
-.nearby-head h3{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:clamp(32px,4.5vw,56px);line-height:.95;letter-spacing:-.035em;text-transform:lowercase}
+.nearby-head h3{font-family:"Geologica",sans-serif;font-weight:800;font-size:clamp(32px,4.5vw,56px);line-height:.95;letter-spacing:-.035em;text-transform:lowercase}
 .nearby-head h3 em{font-style:italic;color:var(--cat-color)}
 .nearby-head .right{max-width:280px;font-size:13.5px;color:var(--ink-soft);text-align:right;line-height:1.5}
 .nearby{max-width:1400px;margin:0 auto;display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
@@ -85,7 +85,7 @@
 .apt .ph{aspect-ratio:5/4;border-radius:8px;overflow:hidden;background:var(--bg-2)}
 .apt .ph img{width:100%;height:100%;object-fit:cover}
 .apt .top{display:flex;justify-content:space-between;align-items:baseline;gap:10px}
-.apt h4{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:18px;letter-spacing:-.02em;text-transform:lowercase}
+.apt h4{font-family:"Geologica",sans-serif;font-weight:700;font-size:18px;letter-spacing:-.02em;text-transform:lowercase}
 .apt .price{font-family:"JetBrains Mono",monospace;font-size:13px;font-weight:700;color:var(--ink);white-space:nowrap}
 .apt .price .u{font-size:9px;color:var(--ink-soft);font-weight:500}
 .apt .sub{font-size:12.5px;color:var(--ink-soft)}
@@ -94,7 +94,7 @@
 .related{padding:80px 28px 96px}
 .related .container{max-width:1400px;margin:0 auto}
 .related .top{display:flex;justify-content:space-between;align-items:flex-end;gap:24px;flex-wrap:wrap;margin-bottom:40px}
-.related h3{font-family:"Bricolage Grotesque",sans-serif;font-weight:800;font-size:clamp(28px,3.5vw,44px);line-height:.95;letter-spacing:-.03em;text-transform:lowercase}
+.related h3{font-family:"Geologica",sans-serif;font-weight:800;font-size:clamp(28px,3.5vw,44px);line-height:.95;letter-spacing:-.03em;text-transform:lowercase}
 .related h3 em{font-style:italic;color:var(--cat-color)}
 .related .top .right{font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-soft);font-weight:600}
 .related .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
@@ -104,7 +104,7 @@
 .related .pl .ph img{width:100%;height:100%;object-fit:cover}
 .related .pl .kicker{font-family:"JetBrains Mono",monospace;font-size:9px;letter-spacing:.22em;text-transform:uppercase;color:var(--ink-soft);font-weight:600;display:flex;align-items:center;gap:8px;margin-top:4px}
 .related .pl .kicker .sw{width:6px;height:6px;border-radius:50%;background:var(--cat-color)}
-.related .pl h5{font-family:"Bricolage Grotesque",sans-serif;font-weight:700;font-size:18px;letter-spacing:-.02em;text-transform:lowercase}
+.related .pl h5{font-family:"Geologica",sans-serif;font-weight:700;font-size:18px;letter-spacing:-.02em;text-transform:lowercase}
 .related .pl .summary{font-size:12.5px;line-height:1.5;color:var(--ink-soft)}
 .related .pl .meta{font-family:"JetBrains Mono",monospace;font-size:9.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-soft);display:flex;gap:8px}
 @media (max-width:880px){
