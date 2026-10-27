@@ -48,3 +48,5 @@ export const catFill = (c: string): string => (GUIDE_CATS[c]?.outline ? 'transpa
 export const catLabel = (c: string, lang: Lang): string => GUIDE_CATS[c]?.label[lang] || c;
 // inline vars for a category stamp / chip / pin: style={catStyle(k)} + --tag-i icon mask
 export const catStyle = (c: string): string => `--tag-c:${catColor(c)};--tag-t:${catTint(c)};--tag-d:${catDark(c)};--tag-i:${catIconUrl(c)};--tag-w:14px`;
+// news is not a category: eat-world colours, plain dot (no --tag-i icon)
+export const newsStyle = `--tag-c:${catColor('eat-drink')};--tag-t:${catTint('eat-drink')};--tag-d:${catDark('eat-drink')}`;

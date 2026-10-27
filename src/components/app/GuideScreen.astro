@@ -11,7 +11,7 @@
 import App from '../../layouts/App.astro';
 import '../../styles/app-guide.css';
 import { supabase } from '../../lib/supabase';
-import { catLabel, catColor, catOutline, catStyle } from '../../lib/guideCats';
+import { catLabel, catColor, catStyle, newsStyle } from '../../lib/guideCats';
 import { thumb } from '../../lib/thumb';
 import { loadNews, newsPhotos, newsText, newsDate, newsDay } from '../../lib/appNews';
 
@@ -86,9 +86,9 @@ const mdEm = (raw: string) => esc(raw).replace(/\*([^*]+)\*/g, '<em>$1</em>').re
     <nav class="gd-chips" aria-label={T.cats}>
       <button class="rr-chip is-active" data-cat="all" type="button">{T.all}</button>
       {cats.map((c) => (
-        <button class={`rr-chip`} data-cat={c} type="button" style={catStyle(c)}><i></i>{catLabel(c, lang)}</button>
+        <button class="rr-chip" data-cat={c} type="button" style={catStyle(c)}><i></i>{catLabel(c, lang)}</button>
       ))}
-      {news.length > 0 && <button class="rr-chip" data-cat="news" type="button" style={catStyle('eat-drink')}><i></i>{T.news}</button>}
+      {news.length > 0 && <button class="rr-chip" data-cat="news" type="button" style={newsStyle}><i></i>{T.news}</button>}
     </nav>
 
     <div class="place-grid" id="placeGrid">
@@ -117,7 +117,7 @@ const mdEm = (raw: string) => esc(raw).replace(/\*([^*]+)\*/g, '<em>$1</em>').re
             <span class="place-tile__photo">
               {photo && <img src={thumb(photo, 480)} alt="" loading="lazy" onload="this.classList.add('is-loaded')" />}
             </span>
-            <span class={`rr-tag place-tile__tag`} style={catStyle(p.category)}><i></i><span>{catLabel(p.category, lang)}</span></span>
+            <span class="rr-tag place-tile__tag" style={catStyle(p.category)}><i></i><span>{catLabel(p.category, lang)}</span></span>
             <span class="place-tile__name">{p.title || p.name}</span>
             <span class="place-tile__meta">{area}</span>
           </a>

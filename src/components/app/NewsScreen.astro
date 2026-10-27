@@ -10,7 +10,7 @@ import '../../styles/app-shell.css';
 import '../../styles/app-place.css';
 import '../../styles/app-news.css';
 import TabBar from '../TabBar.astro';
-import { catLabel, catColor, catDark, catOutline, catStyle } from '../../lib/guideCats';
+import { catLabel, catColor, catDark, catStyle, newsStyle } from '../../lib/guideCats';
 import { thumb } from '../../lib/thumb';
 import { newsPhotos, newsText, newsDate } from '../../lib/appNews';
 
@@ -54,7 +54,7 @@ const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fi
     </div>
 
     <div class="pl-sheet">
-      <p class="pl-kicker"><span class="rr-tag" style={catStyle('eat-drink')}><i></i><span>{T.news}{when ? ` · ${when}` : ''}</span></span></p>
+      <p class="pl-kicker"><span class="rr-tag" style={newsStyle}><i></i><span>{T.news}{when ? ` · ${when}` : ''}</span></span></p>
       <h1 class="rr-display pl-name nw-title">{t.title}</h1>
       {t.headline && <p class="pl-take" set:html={md(t.headline)} />}
       {bodyHtml && <div class="pl-body" set:html={bodyHtml} />}
@@ -68,7 +68,7 @@ const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fi
                 <span class="nw-place__photo">{((p.photos && p.photos[0]) || p.image) && <img src={thumb((p.photos && p.photos[0]) || p.image, 320)} alt="" loading="lazy" onload="this.classList.add('is-loaded')" />}</span>
                 <span class="nw-place__body">
                   <span class="nw-place__name">{p.title || p.name}</span>
-                  <span class="nw-place__meta"><span class={`rr-tag`} style={catStyle(p.category)}><i></i><span>{catLabel(p.category, lang)}</span></span></span>
+                  <span class="nw-place__meta"><span class="rr-tag" style={catStyle(p.category)}><i></i><span>{catLabel(p.category, lang)}</span></span></span>
                 </span>
                 <Fragment set:html={svg(ICONS.chevron, 'pl-row__chev')} />
               </a>

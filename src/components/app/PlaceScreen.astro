@@ -10,7 +10,7 @@ import AppFull from '../../layouts/AppFull.astro';
 import '../../styles/app-shell.css';
 import '../../styles/app-place.css';
 import TabBar from '../TabBar.astro';
-import { catLabel, catColor, catDark, catOutline, catStyle } from '../../lib/guideCats';
+import { catLabel, catColor, catDark, catStyle } from '../../lib/guideCats';
 import { priceSym } from '../../lib/price';
 import { thumb } from '../../lib/thumb';
 import type { NearbyApt } from '../../lib/appPlace';
@@ -141,7 +141,7 @@ const svg = (d: string, cls = '') => `<svg class="${cls}" viewBox="0 0 24 24" fi
 
     <div class="pl-sheet">
       <p class="pl-kicker">
-        <span class={`rr-tag`} style={catStyle(p.category)}><i></i><span>{catLabel(p.category, lang)}</span></span>
+        <span class="rr-tag" style={catStyle(p.category)}><i></i><span>{catLabel(p.category, lang)}</span></span>
         {areaOf(p) && <span class="pl-kicker__area">{areaOf(p)}</span>}
       </p>
       <h1 class="rr-display pl-name">{name}</h1>

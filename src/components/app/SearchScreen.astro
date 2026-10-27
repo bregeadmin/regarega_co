@@ -7,7 +7,7 @@
 import App from '../../layouts/App.astro';
 import '../../styles/app-search.css';
 import { supabase, applyNames, type Apartment } from '../../lib/supabase';
-import { GUIDE_CATS, catLabel, catColor, catTint, catDark, catOutline, catStyle } from '../../lib/guideCats';
+import { GUIDE_CATS, catLabel, catColor, catTint, catDark, catStyle } from '../../lib/guideCats';
 import { priceSym } from '../../lib/price';
 import { thumb } from '../../lib/thumb';
 
@@ -76,7 +76,7 @@ const stays = ((apts as Apartment[]) || []).map(applyNames).map((a: any) => ({
       a.bedrooms ? '' : 'studio студия'].filter(Boolean).join(' ').toLowerCase(),
 }));
 // category stamp colours for the result rows — from guideCats.ts, never duplicated
-const CAT_STYLE = Object.fromEntries(Object.keys(GUIDE_CATS).map((k) => [k, { c: catColor(k), t: catTint(k), d: catDark(k), o: false, s: catStyle(k) }]));
+const CAT_STYLE = Object.fromEntries(Object.keys(GUIDE_CATS).map((k) => [k, { c: catColor(k), t: catTint(k), d: catDark(k), s: catStyle(k) }]));
 const STAY_TAG = isRu ? 'жильё' : 'stay';
 ---
 <App lang={lang} view="search" title={T.title} description={T.desc}>
@@ -123,7 +123,7 @@ const STAY_TAG = isRu ? 'жильё' : 'stay';
         var m = document.createElement('span'); m.className = 'sr-row__meta';
         var cs = CATS[r.c];
         var tag = document.createElement('span');
-        tag.className = 'rr-tag' + (r.k === 's' ? ' rr-tag--home' : '') + (cs && cs.o ? ' is-ring' : '');
+        tag.className = 'rr-tag' + (r.k === 's' ? ' rr-tag--home' : '');
         if (cs) tag.setAttribute('style', cs.s);
         tag.appendChild(document.createElement('i'));
         var tl = document.createElement('span'); tl.textContent = r.k === 's' ? STAY_TAG : r.m; tag.appendChild(tl);

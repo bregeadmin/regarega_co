@@ -19,7 +19,7 @@ import AppHeader from '../AppHeader.astro';
 import TabBar from '../TabBar.astro';
 import FirstRun from './FirstRun.astro';
 import { supabase } from '../../lib/supabase';
-import { GUIDE_CATS, catLabel, catColor, catTint, catDark, catOutline, catStyle } from '../../lib/guideCats';
+import { GUIDE_CATS, catLabel, catColor, catTint, catDark, catStyle } from '../../lib/guideCats';
 import { thumb } from '../../lib/thumb';
 import { loadNews, newsPhotos, newsText, newsDate, newsDay } from '../../lib/appNews';
 
@@ -108,7 +108,7 @@ const PICK_DATA = withPhoto.map((p) => ({
   lo: p.lng,
 }));
 // category colours for the client (hero accent, list tags) — from guideCats.ts, never duplicated
-const CAT_STYLE = Object.fromEntries(Object.keys(GUIDE_CATS).map((k) => [k, { c: catColor(k), t: catTint(k), d: catDark(k), o: false, s: catStyle(k) }]));
+const CAT_STYLE = Object.fromEntries(Object.keys(GUIDE_CATS).map((k) => [k, { c: catColor(k), t: catTint(k), d: catDark(k), s: catStyle(k) }]));
 // category stamp: tint background + dark text + colour dot (ring for outline categories)
 const tagStyle = (k: string) => catStyle(k);
 
@@ -234,7 +234,7 @@ const mdEm = (raw: string) => esc(raw).replace(/\*([^*]+)\*/g, '<em>$1</em>').re
         return (
           <a class="now-pc" data-category={p.category} data-lat={p.lat} data-lng={p.lng} href={`${BASE}/app/place/${p.slug}`}>
             <span class="now-pc__ph"><img src={thumb(photoOf(p), 480)} alt="" loading="lazy" onload="this.classList.add('is-loaded')" /></span>
-            <span class={`now-tag`} style={tagStyle(p.category)}><i></i>{catLabel(p.category, lang)}</span>
+            <span class="now-tag" style={tagStyle(p.category)}><i></i>{catLabel(p.category, lang)}</span>
             <span class="now-pc__name">{p.title || p.name}</span>
             <span class="now-pc__meta" data-area={area}>{area}</span>
           </a>
@@ -403,7 +403,7 @@ const mdEm = (raw: string) => esc(raw).replace(/\*([^*]+)\*/g, '<em>$1</em>').re
         var b = document.createElement('span'); b.className = 'now-row__name'; b.textContent = x.p.n;
         var meta = document.createElement('span'); meta.className = 'now-row__meta';
         var cs = catOf(x.p.k);
-        var tag = document.createElement('span'); tag.className = 'now-tag' + (cs && cs.o ? ' is-ring' : '');
+        var tag = document.createElement('span'); tag.className = 'now-tag';
         if (cs) tag.setAttribute('style', cs.s);
         tag.appendChild(document.createElement('i'));
         tag.appendChild(document.createTextNode(x.p.c));
