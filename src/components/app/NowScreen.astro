@@ -429,7 +429,7 @@ const eatC = catColor('eat-drink');
               origin = { lat: pos.coords.latitude, lng: pos.coords.longitude };
               // not in Batumi (city centre further than ~25 km on foot) — minutes would be noise
               if (minsTo(41.6508, 41.6357) > 300) { origin = null; return; }
-              fillWalks(); sortByWalk();
+              fillWalks(); // minutes only — no reorder after paint
             }, function () {}, { maximumAge: 600000, timeout: 8000 });
           }).catch(function () {});
         } catch (e) {}

@@ -79,7 +79,7 @@
   height:30px;
   padding:0 12px;
   border-radius:var(--r-pill);
-  background:rgba(10,9,8,.42);
+  background:rgba(10,9,8,.55);
   -webkit-backdrop-filter:blur(12px);
   backdrop-filter:blur(12px);
   font-family:var(--mono);
