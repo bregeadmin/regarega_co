@@ -327,3 +327,15 @@ body:has(.cc-compose) .tabbar-fade{ height:calc(180px + env(safe-area-inset-bott
 .cc-dish__ph{ flex:0 0 72%; max-width:280px; margin:0; scroll-snap-align:start; }
 .cc-dish__ph img{ display:block; width:100%; aspect-ratio:4/5; object-fit:cover; border-radius:18px; background:var(--line, #ECE8DF); }
 .cc-dish__ph figcaption{ margin-top:6px; font:500 11px/1.3 "JetBrains Mono", monospace; color:var(--ink-soft, #6B6862); white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+
+/* [[host]] → «спросить хозяина»: opens the chat with the host (ChatScreen) — a light pill under the reply */
+.cc-host{
+  align-self:flex-start; display:inline-flex; align-items:center; gap:8px;
+  height:44px; padding:0 18px 0 14px; border:0; border-radius:var(--r-pill);
+  background:var(--surface); box-shadow:var(--sh-card); color:var(--ink);
+  font-family:var(--font); font-size:15px; font-weight:700; letter-spacing:-.02em; cursor:pointer;
+  transition:transform .16s var(--ease-out);
+}
+.cc-host svg{ width:19px; height:19px; flex:none; }
+.cc-host:active{ transform:scale(.96); }
+@media (prefers-reduced-motion:reduce){ .cc-host{ transition:none; } }
