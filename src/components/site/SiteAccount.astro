@@ -211,12 +211,13 @@ const svg = (d: string) => `<svg viewBox="0 0 24 24" fill="none" stroke="current
     }
     $('saMe').addEventListener('click', function () { menuOpen($('saMenu').hidden); });
     $('saMenuScrim').addEventListener('click', function () { menuOpen(false); });
-    $('saLogin').addEventListener('click', function () { open(); });
+    // signed in from the header: reload so the page and the saves sync start as this guest
+    $('saLogin').addEventListener('click', function () { open().then(function (r) { if (r.ok) location.reload(); }); });
     $('saOut').addEventListener('click', function () {
       menuOpen(false);
       whenAuth(function (rr) {
         rr.signOut().then(function () {
-          ['rr_trip', 'rr_trip_token', 'rr_claimed', 'rr_cc', 'rr_uid', 'rr_chat_lang', 'rr_chat_unread'].forEach(function (k) { ls(k, null); });
+          ['rr_trip', 'rr_trip_token', 'rr_claimed', 'rr_cc', 'rr_uid', 'rr_chat_lang', 'rr_chat_unread', 'rr_favs'].forEach(function (k) { ls(k, null); });
           if (window.rrSaves) window.rrSaves.forget();
           location.reload();
         });
@@ -398,6 +399,20 @@ const svg = (d: string) => `<svg viewBox="0 0 24 24" fill="none" stroke="current
       });
     });
     document.addEventListener('visibilitychange', pollUnread);
+    // back/forward cache: a page we left by navigating (after «send», or from another page where
+    // the guest signed in/out) comes back as it was — close the window, re-read who is signed in
+    addEventListener('pageshow', function (e) {
+      if (!e.persisted) return;
+      winClose(false); menuOpen(false);
+      busy('saB4', false, '', T.askSend);
+      signed = !!ls('rr_uid'); paint(); setUnread(ls('rr_chat_unread'));
+      whenAuth(function (rr) {
+        rr.session().then(function (s) {
+          signed = !!s; if (!s) { prof = null; setUnread(0); }
+          paint(); if (s) pollUnread();
+        });
+      });
+    });
     window.dispatchEvent(new Event('rr-login-ready'));
   })();
 </script>

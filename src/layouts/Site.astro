@@ -210,7 +210,8 @@ const ogImage = new URL(image, Astro.site).href;
     var KEY='rr_favs', SLUG=/^[a-z0-9-]{1,120}$/;
     function lsLoad(){ try{ return new Set(JSON.parse(localStorage.getItem(KEY)||'[]')); }catch(e){ return new Set(); } }
     function lsSave(s){ try{ localStorage.setItem(KEY, JSON.stringify(Array.from(s))); }catch(e){} }
-    function changed(s){ document.dispatchEvent(new CustomEvent('rr:favschange',{detail:Array.from(s)})); }
+    var self=false;   // our own rr:favschange — not a list from the booking-token layer
+    function changed(s){ self=true; try{ document.dispatchEvent(new CustomEvent('rr:favschange',{detail:Array.from(s)})); } finally { self=false; } }
     function has(slug){ return window.rrSaves ? window.rrSaves.has('stay', slug) : lsLoad().has(slug); }
     function slugOf(b){ var c=b.closest('[data-slug]'); if(c&&c.getAttribute('data-slug'))return c.getAttribute('data-slug'); var a=b.closest('a[href*="/stays/"]'); if(a){ var m=a.getAttribute('href').match(/\/stays\/([^\/?#]+)/); if(m)return m[1]; } return null; }
     function paint(b, on){ b.textContent = on ? '♥' : '♡'; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); }
@@ -238,10 +239,19 @@ const ogImage = new URL(image, Astro.site).href;
         try{ localStorage.setItem('rr_favs_mig','1'); }catch(e){}
       }
       paintAll();
-      // the account is the truth once synced: keep the mirror equal to it
+      // favourites the booking-token layer (rega-personal.js) loads from the server join «my batumi»
+      document.addEventListener('rr:favschange', function(e){
+        if(self || !Array.isArray(e.detail)) return;
+        e.detail.forEach(function(x){ if(typeof x==='string' && SLUG.test(x) && !R.has('stay', x)) R.set('stay', x, true, 'batumi'); });
+        paintAll();
+      });
+      // keep the mirror a UNION: the token layer replaces its server list with whatever it is
+      // handed, so it must never receive a shorter list than it already has (only a tap removes)
       window.addEventListener('rr-saves', function(){
-        var s=new Set(R.list().filter(function(x){ return x.k==='stay'; }).map(function(x){ return x.s; }));
-        lsSave(s); paintAll(); changed(s);
+        var s=lsLoad(), grew=false;
+        R.list().forEach(function(x){ if(x.k==='stay' && !s.has(x.s)){ s.add(x.s); grew=true; } });
+        paintAll();
+        if(grew){ lsSave(s); changed(s); }
       });
     }
     // app-saves.js is deferred: it has run by DOMContentLoaded

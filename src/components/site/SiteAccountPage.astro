@@ -61,7 +61,7 @@ const T = isRu
   <script is:inline define:vars={{ T, BASE }}>
     (function () {
       var $ = function (id) { return document.getElementById(id); };
-      var KEYS = ['rr_trip', 'rr_trip_token', 'rr_claimed', 'rr_cc', 'rr_uid', 'rr_chat_lang', 'rr_chat_unread'];
+      var KEYS = ['rr_trip', 'rr_trip_token', 'rr_claimed', 'rr_cc', 'rr_uid', 'rr_chat_lang', 'rr_chat_unread', 'rr_favs'];
       function state(t) { $('apState').textContent = t || ''; $('apState').hidden = !t; }
       function clearLocal() {
         try { KEYS.forEach(function (k) { localStorage.removeItem(k); }); } catch (e) {}

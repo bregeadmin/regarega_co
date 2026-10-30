@@ -2,7 +2,7 @@
    Lives outside the blended .topbar: fixed, normal blending, z above the topbar (50) and brand-sign (60),
    below the burger overlay (90) for the button, above it for the menu and the window. */
 .topbar .right .sa-space{display:inline-block;flex:none;width:108px;height:32px}
-html.sa-in .topbar .right .sa-space{width:62px}
+html.sa-in .topbar .right .sa-space{width:72px}
 html.in-app .sa,html.in-app .topbar .right .sa-space{display:none!important}
 
 .sa{position:fixed;top:22px;right:28px;z-index:61;height:32px;display:flex;align-items:center}
@@ -83,6 +83,8 @@ html.in-app .sa,html.in-app .topbar .right .sa-space{display:none!important}
 .sa-guard span svg{width:15px;height:15px;display:block;margin-top:1px}
 
 html.sa-locked,html.sa-locked body{overflow:hidden}
+/* the iOS «add to home screen» banner (rega-install, z 200) would cover the sheet's buttons */
+html.sa-locked #rr-install{display:none!important}
 
 @media (max-width:880px){
   .topbar .right .sa-space{width:44px;height:44px}
