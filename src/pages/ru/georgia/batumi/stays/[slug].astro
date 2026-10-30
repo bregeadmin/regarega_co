@@ -7,6 +7,7 @@ import { stripEmoji } from '../../../../../lib/text';
 import { GMAPS_KEY } from '../../../../../lib/maps';
 import { tRoom, tAmenity } from '../../../../../lib/roomsRu';
 import { priceFrom, priceSym } from '../../../../../lib/price';
+import { operatorName } from '../../../../../lib/stayUi';
 
 export async function getStaticPaths() {
   const { data } = await supabase
@@ -136,6 +137,9 @@ content = content
   .replace(/<div class="loc-near pending">[\s\S]*?<\/div>\s*<\/div>/, locNearHtml);
 
 content = content.replace('%%STORY%%', '');
+const opName = operatorName(apt.operator_id) || 'хозяин';
+const escO = (x: string) => String(x).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+content = content.replaceAll('%%OPI%%', escO(opName.charAt(0).toUpperCase())).replaceAll('%%OP%%', escO(opName));
 const photosJson = JSON.stringify(photos.map((p) => ({ src: p, alt: apt.title })));
 const script = pageScript.replaceAll('%%TITLE%%', apt.title).replace('%%PHOTOS%%', photosJson);
 const aptMapInit = "window.__initAptMap=function(){RegaMap.single('aptMap',APT_GEO,{routeLabel:'↗ проложить маршрут'});};";
@@ -144,7 +148,7 @@ const SB_URL = import.meta.env.PUBLIC_SUPABASE_URL || 'https://qkzinjawtumhjbezl
 const SB_KEY = import.meta.env.PUBLIC_SUPABASE_ANON_KEY || 'sb_publishable_R0NeSmTwX9qt0bxlHYj1AA_JIVRqsqU';
 const aptBookCfg = JSON.stringify({
   id: apt.id, title: apt.title_ru || apt.title, maxGuests: apt.max_guests ?? 2, url: SB_URL, key: SB_KEY,
-  lang: 'ru',
+  lang: 'ru', base: '/ru/georgia/batumi', op: opName, photo: photos[0] || '',
   t: {
     months: ['Январь','Февраль','Март','Апрель','Май','Июнь','Июль','Август','Сентябрь','Октябрь','Ноябрь','Декабрь'],
     week: ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'],
@@ -152,9 +156,8 @@ const aptBookCfg = JSON.stringify({
     nightsForms: ['ночь','ночи','ночей'],
     pickIn: '→ выберите заезд', pickOut: '→ теперь выезд',
     cleaning: 'уборка', total: 'итого', onRequest: 'по запросу',
-    errDates: 'сначала выберите даты', errName: 'укажите имя', errContact: 'укажите контакт',
-    errSend: 'не отправилось — напишите в telegram', send: '↗ отправить заявку', sending: 'отправляем…',
-    placeholders: { telegram: '@username', whatsapp: '+995 …', email: 'name@email.com' },
+    errDates: 'сначала выберите даты', errSend: 'не отправилось — попробуйте ещё раз', errTaken: 'эти даты уже заняты — выберите другие',
+    send: '↗ отправить заявку', sending: 'отправляем…', signIn: 'войдите, чтобы отправить заявку',
   },
 });
 ---
@@ -162,7 +165,17 @@ const aptBookCfg = JSON.stringify({
 <Fragment set:html={content} />
 <script is:inline set:html={'window.APT_BOOK=' + aptBookCfg + ';'}></script>
 <script is:inline set:html={script}></script>
-<script is:inline src="/apt-booking.js"></script>
+<script is:inline src="/apt-booking.js?v=2"></script>
+<script is:inline>
+/* «ask the host»: shown only when someone at the operator answers chat (chat_can_message works signed out). */
+(function(){
+  var C = window.APT_BOOK || {}, box = document.getElementById('askHost'), btn = document.getElementById('askHostBtn');
+  if (!box || !btn || !C.id) return;
+  function go(rr){ rr.chat.canMessage(C.id).then(function(r){ if (r && r.ok && r.data === true) box.hidden = false; }); }
+  window.rrAuth ? go(window.rrAuth) : addEventListener('rr-auth-ready', function(){ go(window.rrAuth); }, { once: true });
+  btn.addEventListener('click', function(){ if (window.rrLogin) window.rrLogin.ask({ apt: C.id, op: C.op, title: C.title, photo: C.photo }); });
+})();
+</script>
 <script is:inline src="/rega-map.js"></script>
 <script is:inline set:html={'const APT_GEO=' + JSON.stringify({lat:apt.lat,lng:apt.lng,title:apt.title}) + ';' + aptMapInit}></script>
 <script is:inline async src={'https://maps.googleapis.com/maps/api/js?key=' + GMAPS_KEY + '&callback=__initAptMap&loading=async&language=ru&region=GE'}></script>

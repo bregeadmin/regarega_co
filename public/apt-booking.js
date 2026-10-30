@@ -2,7 +2,9 @@
    Reads window.APT_BOOK = { id, title, maxGuests, url, key, lang, t }.
    - Pulls live availability + prices from the public RPCs (035/036).
    - Calendar: booked nights struck-through & locked; free nights show price/night (+10%).
-   - On a valid range: shows price breakdown + request form; submits to /api/booking.
+   - On a valid range: shows price breakdown + the send button. Sending needs a signed-in guest
+     (window.rrLogin from components/site/SiteAccount.astro, like Airbnb): the request goes to
+     /api/booking with the guest's access token, so it lands on their account (no contact fields).
    Shared by EN and RU pages; all visible copy comes from APT_BOOK.t (English fallback).
    WEBSITE ONLY. The app's stay screen (src/components/app/StayScreen.astro) has its own copy of the
    pricing / markup / min-nights / turnover (check-in day = valid check-out) / snap-to-minimum rules —
@@ -31,12 +33,10 @@
   var abPick = document.getElementById('abPick');
   var abSummary = document.getElementById('abSummary');
   var abForm = document.getElementById('abForm');
-  var abName = document.getElementById('abName');
-  var abContact = document.getElementById('abContact');
-  var abSeg = document.getElementById('abSeg');
   var abSend = document.getElementById('abSend');
   var abErr = document.getElementById('abErr');
   var abCompany = document.getElementById('abCompany');
+  var abSentMsg = document.getElementById('abSentMsg');
   var mobBtn = document.getElementById('bookBtnMobile');
   if (!trigger || !pop || !panel) return;
 
@@ -77,7 +77,6 @@
   var viewYear = today.getFullYear();
   var viewMonth = today.getMonth();
   var startDate = null, endDate = null, mode = 'start';
-  var channel = 'telegram';
   var sending = false;
 
   function sym(c) { return (c || CUR) === 'gel' ? '₾' : '$'; }
@@ -270,53 +269,57 @@
     setTimeout(openPop, 320);
   });
 
-  // ---------- channel segment ----------
-  var placeholders = T.placeholders || { telegram: '@username', whatsapp: '+995 …', email: 'name@email.com' };
-  if (abSeg) abSeg.querySelectorAll('.ab-seg-b').forEach(function (b) {
-    b.addEventListener('click', function () {
-      abSeg.querySelectorAll('.ab-seg-b').forEach(function (x) { x.classList.remove('active'); });
-      b.classList.add('active');
-      channel = b.dataset.ch;
-      if (abContact) { abContact.placeholder = placeholders[channel] || ''; abContact.type = channel === 'email' ? 'email' : 'text'; }
-    });
-  });
-
-  // ---------- submit ----------
+  // ---------- submit (signed-in guests only) ----------
   function showErr(m) { if (abErr) { abErr.textContent = m; abErr.style.display = m ? 'block' : 'none'; } }
+  function idle() { sending = false; abSend.disabled = false; abSend.textContent = t('send', '↗ send request'); }
+  function errFor(code) {
+    if (code === 'unavailable') return t('errTaken', 'these dates are taken — pick others');
+    return t('errSend', 'could not send — please try again');
+  }
+  function signIn() { return window.rrLogin ? window.rrLogin.open({ title: t('signIn', 'sign in to send the request') }) : Promise.resolve({ ok: false }); }
+  function post(adults, amount, retried) {
+    return window.rrAuth.session().then(function (sess) {
+      if (!sess || !sess.access_token) return signIn().then(function (r) { return r.ok && !retried ? post(adults, amount, true) : null; });
+      return fetch('/api/booking', {
+        method: 'POST', headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + sess.access_token },
+        body: JSON.stringify({
+          apartment_id: CFG.id, apt_title: CFG.title || '',
+          ci: fmtKey(startDate), co: fmtKey(endDate), adults: adults,
+          amount: amount, currency: CUR, company: abCompany ? abCompany.value : ''
+        })
+      }).then(function (r) { return r.json().catch(function () { return { ok: false, error: r.status === 429 ? 'rate' : 'rejected' }; }); })
+        .then(function (res) {
+          if (res && res.ok && res.guest_token) return res;
+          // no profile yet / expired session → the window finishes it, then one more try
+          if (res && (res.error === 'no_profile' || res.error === 'auth') && !retried) {
+            return signIn().then(function (r) { return r.ok ? post(adults, amount, true) : null; });
+          }
+          throw new Error((res && res.error) || 'rejected');
+        });
+    });
+  }
   if (abForm) abForm.addEventListener('submit', function (e) {
     e.preventDefault();
     if (sending) return;
     showErr('');
     if (!(startDate && endDate && nightsCount() >= MIN_NIGHTS)) { showErr(t('errDates', 'pick your dates first')); return; }
-    var name = (abName.value || '').trim();
-    var contact = (abContact.value || '').trim();
-    if (!name) { showErr(t('errName', 'add your name')); abName.focus(); return; }
-    if (!contact) { showErr(t('errContact', 'add a contact')); abContact.focus(); return; }
-    if (channel === 'email' && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(contact)) { showErr(t('errEmail', CFG.lang === 'ru' ? 'проверьте email — например name@mail.com' : 'check the email — e.g. name@mail.com')); abContact.focus(); return; }
     var g = (window.__getBookingGuests && window.__getBookingGuests()) || { adults: 2, children: 0 };
     var adults = (g.adults || 2) + (g.children || 0);
     var amount = abSummary && abSummary.dataset.amount ? Number(abSummary.dataset.amount) : null;
-
     sending = true; abSend.disabled = true; abSend.textContent = t('sending', 'sending…');
-    fetch('/api/booking', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        apartment_id: CFG.id, apt_title: CFG.title || '',
-        ci: fmtKey(startDate), co: fmtKey(endDate), adults: adults,
-        name: name, channel: channel, contact: contact,
-        amount: amount, currency: CUR, company: abCompany ? abCompany.value : ''
-      })
-    }).then(function (r) { return r.json().catch(function () { return { ok: r.ok }; }); })
-      .then(function (res) {
-        if (res && res.ok) { setState('sent'); if (panel.scrollIntoView) panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' }); }
-        else { showErr(t('errSend', 'could not send — try telegram')); }
-      })
-      .catch(function () { showErr(t('errSend', 'could not send — try telegram')); })
-      .finally(function () { sending = false; abSend.disabled = false; abSend.textContent = t('send', '↗ send request'); });
+    var start = function () {
+      post(adults, amount, false).then(function (res) {
+        idle();
+        if (!res) return;                       // closed the sign-in window — nothing sent
+        try { localStorage.setItem('rr_trip_token', res.guest_token); } catch (e2) {}
+        if (abSentMsg) abSentMsg.href = (CFG.base || '/georgia/batumi') + '/messages';
+        setState('sent'); if (panel.scrollIntoView) panel.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+      }, function (err) { idle(); showErr(errFor(err && err.message)); });
+    };
+    window.rrAuth ? start() : addEventListener('rr-auth-ready', start, { once: true });
   });
 
   // init
-  if (abContact) abContact.placeholder = placeholders.telegram;
   localizeGuests();
   updateMinChip();
   var gpApply = document.getElementById('gpApply');
