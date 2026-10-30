@@ -1,0 +1,403 @@
+---
+// Guest account on the website (regarega.co), like Airbnb in a browser: the account button in the
+// top-right corner, its menu (messages · trips · saved · account · sign out) and the sign-in window
+// that opens over the current page (email → 6-digit code → name on first sign-in → optional
+// «ask the host» question). One component for both languages, placed once by Site/SiteRu layouts.
+// The topbar blends with mix-blend-mode:difference, so everything here lives OUTSIDE it (fixed,
+// like .brand-sign); the topbar only keeps an empty .sa-space so its own items don't overlap.
+// Inside the app (html.in-app) all of this is hidden — the tab bar has the profile instead.
+// API for other scripts: window.rrLogin.open({ title?, sub? }) → Promise<{ ok }> (ok = signed in
+// with a profile) and window.rrLogin.ask({ apt, op, title, photo? }) → signs in if needed, then the
+// question step; sending lands on <BASE>/messages?c=<id>.
+// The code/error flow is a copy of src/components/app/LoginScreen.astro — keep the two in sync.
+import '../../styles/site-account.css';
+
+export interface Props { lang: 'en' | 'ru' }
+const { lang } = Astro.props;
+const isRu = lang === 'ru';
+const BASE = isRu ? '/ru/georgia/batumi' : '/georgia/batumi';
+
+const T = isRu
+  ? {
+      signIn: 'войти', menu: 'меню аккаунта', guest: 'гость',
+      messages: 'сообщения', trips: 'поездки', saved: 'избранное', account: 'профиль', signOut: 'выйти',
+      close: 'закрыть', back: 'назад',
+      h1: 'вход', p1: 'пришлём код на почту — пароль не нужен.',
+      email: 'почта', getCode: 'получить код', sending: 'отправляем…',
+      h2: 'код из письма', sent: 'отправили на', code: 'код из 6 цифр', verify: 'войти', verifying: 'проверяем…',
+      resend: 'отправить ещё раз', resendIn: 'ещё раз через', sec: 'с', other: 'другая почта',
+      h3: 'как вас зовут?', p3: 'имя увидит хозяин жилья. телефон — по желанию.',
+      name: 'имя', phone: 'телефон (необязательно)', done: 'готово', saving: 'сохраняем…',
+      askH: 'ваш вопрос', askPh: 'например: можно заехать пораньше?', askGuard: 'до брони телефоны, почты и ссылки в переписке скрываются.',
+      askSend: 'отправить', askSending: 'отправляем…', askTo: 'спросить',
+      eBadEmail: 'проверьте почту — похоже, в адресе опечатка.',
+      eCode: 'код не подошёл или устарел — проверьте цифры или запросите новый.',
+      eRate: 'слишком много попыток — подождите минуту и попробуйте снова.',
+      eNet: 'нет сети — проверьте соединение и попробуйте ещё раз.',
+      eGeneric: 'что-то пошло не так — попробуйте ещё раз.',
+      eName: 'напишите имя.', eEmpty: 'напишите вопрос.', eTooLong: 'слишком длинно — сократите до 4000 знаков.',
+      eNoHost: 'у этой квартиры сейчас некому ответить в переписке.', eSoon: 'переписка скоро заработает — попробуйте позже.',
+      retry: 'повторить',
+    }
+  : {
+      signIn: 'sign in', menu: 'account menu', guest: 'guest',
+      messages: 'messages', trips: 'trips', saved: 'saved', account: 'account', signOut: 'sign out',
+      close: 'close', back: 'back',
+      h1: 'sign in', p1: "we'll email you a code — no password needed.",
+      email: 'email', getCode: 'get code', sending: 'sending…',
+      h2: 'code from your email', sent: 'sent to', code: '6-digit code', verify: 'sign in', verifying: 'checking…',
+      resend: 'send again', resendIn: 'again in', sec: 's', other: 'different email',
+      h3: "what's your name?", p3: 'your host will see it. phone is optional.',
+      name: 'name', phone: 'phone (optional)', done: 'done', saving: 'saving…',
+      askH: 'your question', askPh: 'e.g. can we check in a bit earlier?', askGuard: 'before a booking, phone numbers, emails and links in the chat are hidden.',
+      askSend: 'send', askSending: 'sending…', askTo: 'ask',
+      eBadEmail: 'check your email — the address looks off.',
+      eCode: "that code didn't work or has expired — check the digits or ask for a new one.",
+      eRate: 'too many tries — wait a minute and try again.',
+      eNet: "you're offline — check your connection and try again.",
+      eGeneric: 'something went wrong — please try again.',
+      eName: 'please enter your name.', eEmpty: 'write your question.', eTooLong: 'too long — keep it under 4000 characters.',
+      eNoHost: 'nobody can answer chat messages for this flat right now.', eSoon: 'messages are coming soon — please try later.',
+      retry: 'try again',
+    };
+
+const I = {
+  menu: '<path d="M4 6h16"/><path d="M4 12h16"/><path d="M4 18h16"/>',
+  user: '<path d="M8 7a4 4 0 1 0 8 0a4 4 0 0 0 -8 0"/><path d="M6 21v-2a4 4 0 0 1 4 -4h4a4 4 0 0 1 4 4v2"/>',
+  msg: '<path d="M3 20l1.3 -3.9c-2.324 -3.437 -1.426 -7.872 2.1 -10.374c3.526 -2.501 8.59 -2.296 11.845 .48c3.255 2.777 3.695 7.266 1.029 10.501c-2.666 3.235 -7.615 4.215 -11.574 2.293l-4.7 1"/>',
+  trip: '<path d="M6 8a2 2 0 0 1 2 -2h8a2 2 0 0 1 2 2v10a2 2 0 0 1 -2 2h-8a2 2 0 0 1 -2 -2z"/><path d="M9 6v-1a2 2 0 0 1 2 -2h2a2 2 0 0 1 2 2v1"/><path d="M6 10h12"/><path d="M6 16h12"/><path d="M9 20v1"/><path d="M15 20v1"/>',
+  heart: '<path d="M19.5 12.572l-7.5 7.428l-7.5 -7.428a5 5 0 1 1 7.5 -6.566a5 5 0 1 1 7.5 6.572"/>',
+  out: '<path d="M14 8v-2a2 2 0 0 0 -2 -2h-7a2 2 0 0 0 -2 2v12a2 2 0 0 0 2 2h7a2 2 0 0 0 2 -2v-2"/><path d="M9 12h12l-3 -3"/><path d="M18 15l3 -3"/>',
+  x: '<path d="M18 6l-12 12"/><path d="M6 6l12 12"/>',
+  shield: '<path d="M11.46 20.846a12 12 0 0 1 -7.96 -14.846a12 12 0 0 0 8.5 -3a12 12 0 0 0 8.5 3a12 12 0 0 1 -.09 7.06"/><path d="M15 19l2 2l4 -4"/>',
+};
+const svg = (d: string) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+---
+<div class="sa" id="sa" data-state="out">
+  <button class="sa-login" id="saLogin" type="button"><span class="sa-login__ic" set:html={svg(I.user)} /><span class="sa-login__t">{T.signIn}</span></button>
+  <button class="sa-me" id="saMe" type="button" aria-haspopup="menu" aria-expanded="false" aria-controls="saMenu" aria-label={T.menu}>
+    <span class="sa-me__ic" set:html={svg(I.menu)} />
+    <span class="sa-me__av" id="saAv">?</span>
+    <span class="sa-me__dot" id="saDot" hidden></span>
+  </button>
+</div>
+
+<div class="sa-scrim" id="saMenuScrim" hidden></div>
+<nav class="sa-menu" id="saMenu" aria-label={T.menu} hidden>
+  <div class="sa-menu__grab" aria-hidden="true"></div>
+  <div class="sa-menu__who"><b id="saName">{T.guest}</b><span id="saMail"></span></div>
+  <a class="sa-menu__it" id="saMsgIt" href={`${BASE}/messages`}><span set:html={svg(I.msg)} />{T.messages}<em class="sa-menu__n" id="saMsgN" hidden></em></a>
+  <a class="sa-menu__it" href={`${BASE}/trips`}><span set:html={svg(I.trip)} />{T.trips}</a>
+  <a class="sa-menu__it" href={`${BASE}/saved`}><span set:html={svg(I.heart)} />{T.saved}</a>
+  <hr />
+  <a class="sa-menu__it" href={`${BASE}/account`}><span set:html={svg(I.user)} />{T.account}</a>
+  <button class="sa-menu__it" id="saOut" type="button"><span set:html={svg(I.out)} />{T.signOut}</button>
+</nav>
+
+<div class="sa-scrim sa-scrim--win" id="saWinScrim" hidden></div>
+<div class="sa-win" id="saWin" role="dialog" aria-modal="true" aria-labelledby="saWinH" hidden>
+  <button class="sa-win__x" id="saWinX" type="button" aria-label={T.close} set:html={svg(I.x)} />
+  <p class="sa-win__k" id="saWinK" hidden></p>
+  <h2 class="sa-win__h" id="saWinH">{T.h1}</h2>
+
+  <p class="sa-win__p" id="saLoading" hidden>…</p>
+
+  <section id="saSE" hidden>
+    <p class="sa-win__p">{T.eNet}</p>
+    <button class="sa-btn" id="saRetry" type="button">{T.retry}</button>
+  </section>
+
+  <form id="saS1" novalidate hidden>
+    <p class="sa-win__p" id="saP1">{T.p1}</p>
+    <input class="sa-field" id="saEmail" type="email" inputmode="email" autocomplete="email" autocapitalize="off" spellcheck="false" placeholder={T.email} aria-label={T.email} />
+    <p class="sa-err" id="saE1" role="alert" hidden></p>
+    <button class="sa-btn" id="saB1" type="submit">{T.getCode}</button>
+  </form>
+
+  <form id="saS2" novalidate hidden>
+    <p class="sa-win__p">{T.sent} <b id="saMailTo"></b></p>
+    <input class="sa-field sa-field--code" id="saCode" type="text" inputmode="numeric" autocomplete="one-time-code" maxlength="6" pattern="[0-9]*" placeholder="000000" aria-label={T.code} />
+    <p class="sa-err" id="saE2" role="alert" hidden></p>
+    <button class="sa-btn" id="saB2" type="submit">{T.verify}</button>
+    <div class="sa-alt">
+      <button class="sa-link" id="saResend" type="button" disabled>{T.resend}</button>
+      <button class="sa-link" id="saOther" type="button">{T.other}</button>
+    </div>
+  </form>
+
+  <form id="saS3" novalidate hidden>
+    <p class="sa-win__p">{T.p3}</p>
+    <input class="sa-field" id="saNameIn" type="text" autocomplete="name" placeholder={T.name} aria-label={T.name} />
+    <input class="sa-field" id="saPhoneIn" type="tel" inputmode="tel" autocomplete="tel" placeholder={T.phone} aria-label={T.phone} />
+    <p class="sa-err" id="saE3" role="alert" hidden></p>
+    <button class="sa-btn" id="saB3" type="submit">{T.done}</button>
+  </form>
+
+  <form id="saS4" novalidate hidden>
+    <div class="sa-apt">
+      <span class="sa-apt__ph" id="saAptPh"></span>
+      <span class="sa-apt__t"><b id="saAptT"></b><span id="saAptOp"></span></span>
+    </div>
+    <textarea class="sa-field sa-field--ta" id="saQ" rows="4" maxlength="4000" placeholder={T.askPh} aria-label={T.askH}></textarea>
+    <p class="sa-guard"><span set:html={svg(I.shield)} />{T.askGuard}</p>
+    <p class="sa-err" id="saE4" role="alert" hidden></p>
+    <button class="sa-btn" id="saB4" type="submit">{T.askSend}</button>
+  </form>
+</div>
+
+<script is:inline define:vars={{ T, BASE, LANG: lang }}>
+  (function () {
+    var $ = function (id) { return document.getElementById(id); };
+    var root = document.documentElement;
+    var signed = false, prof = null, email = '', timer = null, opts = {}, resolveWin = null, conv = null, unreadT = null;
+    var STEPS = ['saLoading', 'saSE', 'saS1', 'saS2', 'saS3', 'saS4'];
+
+    // ---------- small helpers (same checks as src/lib/guestCore.js — inline scripts can't import) ----------
+    function isEmail(s) { return /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(String(s || '').trim()); }
+    function cleanCode(s) { return String(s || '').replace(/\D/g, '').slice(0, 6); }
+    function initialOf(n, e) { var s = String(n || '').trim() || String(e || '').trim(); return s ? s.charAt(0).toUpperCase() : '?'; }
+    function unreadText(n) { var v = Math.floor(Number(n) || 0); return v <= 0 ? '' : v > 99 ? '99+' : String(v); }
+    function uuid() {
+      return crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) { var r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 3 | 8)).toString(16); });
+    }
+    function ls(k, v) { try { if (v === undefined) return localStorage.getItem(k); if (v === null) localStorage.removeItem(k); else localStorage.setItem(k, v); } catch (e) { return null; } }
+    function ss(k, v) { try { if (v === undefined) return sessionStorage.getItem(k); if (v === null) sessionStorage.removeItem(k); else sessionStorage.setItem(k, v); } catch (e) { return null; } }
+    // raw Supabase text never reaches the screen (copy of LoginScreen.astro mapErr)
+    function mapErr(r, kind) {
+      var m = String((r && r.error) || '').toLowerCase();
+      if (m === 'network' || /fetch|network|failed to/.test(m)) return T.eNet;
+      if (/\brate\b|too many|429|security purposes|after \d+ s/.test(m)) return T.eRate;
+      if (kind === 'verify' && /expired|invalid|token|otp|code/.test(m)) return T.eCode;
+      if (kind === 'send' && /invalid|email/.test(m)) return T.eBadEmail;
+      return T.eGeneric;
+    }
+    function err(id, msg) { var e = $(id); e.textContent = msg || ''; e.hidden = !msg; }
+    function busy(id, on, label, idle) { var b = $(id); b.disabled = on; b.textContent = on ? label : idle; }
+    function whenAuth(fn) { window.rrAuth ? fn(window.rrAuth) : addEventListener('rr-auth-ready', function () { fn(window.rrAuth); }, { once: true }); }
+
+    // ---------- header ----------
+    function paint() {
+      $('sa').setAttribute('data-state', signed ? 'in' : 'out');
+      root.classList.toggle('sa-in', signed);
+      var n = prof && prof.name, m = (prof && prof.email) || '';
+      $('saAv').textContent = initialOf(n, m);
+      $('saName').textContent = n || T.guest;
+      $('saMail').textContent = m; $('saMail').hidden = !m;
+    }
+    function setUnread(n) {
+      var t = unreadText(n);
+      ls('rr_chat_unread', String(Math.max(0, Math.floor(Number(n) || 0))));
+      $('saDot').hidden = !t;
+      $('saMsgN').hidden = !t; $('saMsgN').textContent = t;
+      $('saMsgIt').classList.toggle('is-unread', !!t);
+    }
+    function pollUnread() {
+      if (!signed || !window.rrAuth || document.hidden) return;
+      window.rrAuth.chat.unread().then(function (r) { if (r && r.ok) setUnread(r.data); });
+    }
+    // first paint from what this browser already knows — no flash of «sign in» for a signed-in guest
+    signed = !!ls('rr_uid');
+    paint();
+    setUnread(ls('rr_chat_unread'));
+
+    // ---------- menu ----------
+    var mq = window.matchMedia ? matchMedia('(max-width: 760px)') : { matches: false };
+    function menuOpen(on) {
+      $('saMenu').hidden = !on; $('saMenuScrim').hidden = !on;
+      $('saMe').setAttribute('aria-expanded', on ? 'true' : 'false');
+      root.classList.toggle('sa-locked', on && mq.matches);
+      if (on) requestAnimationFrame(function () { $('saMenu').classList.add('is-open'); });
+      else $('saMenu').classList.remove('is-open');
+    }
+    $('saMe').addEventListener('click', function () { menuOpen($('saMenu').hidden); });
+    $('saMenuScrim').addEventListener('click', function () { menuOpen(false); });
+    $('saLogin').addEventListener('click', function () { open(); });
+    $('saOut').addEventListener('click', function () {
+      menuOpen(false);
+      whenAuth(function (rr) {
+        rr.signOut().then(function () {
+          ['rr_trip', 'rr_trip_token', 'rr_claimed', 'rr_cc', 'rr_uid', 'rr_chat_lang', 'rr_chat_unread'].forEach(function (k) { ls(k, null); });
+          if (window.rrSaves) window.rrSaves.forget();
+          location.reload();
+        });
+      });
+    });
+    document.addEventListener('keydown', function (e) {
+      if (e.key !== 'Escape') return;
+      if (!$('saWin').hidden) winClose(false); else if (!$('saMenu').hidden) menuOpen(false);
+    });
+
+    // ---------- sign-in window ----------
+    function show(id) { STEPS.forEach(function (x) { $(x).hidden = x !== id; }); }
+    function title(h) { $('saWinH').textContent = h; }
+    function winShow() {
+      menuOpen(false);
+      $('saWin').hidden = false; $('saWinScrim').hidden = false;
+      root.classList.add('sa-locked');
+      requestAnimationFrame(function () { $('saWin').classList.add('is-open'); });
+    }
+    function winClose(ok) {
+      clearInterval(timer);
+      $('saWin').classList.remove('is-open');
+      $('saWin').hidden = true; $('saWinScrim').hidden = true;
+      root.classList.remove('sa-locked');
+      if (resolveWin) { var r = resolveWin; resolveWin = null; r({ ok: !!ok }); }
+    }
+    $('saWinX').addEventListener('click', function () { winClose(false); });
+    $('saWinScrim').addEventListener('click', function () { winClose(false); });
+
+    function open(o) {
+      opts = o || {};
+      if (resolveWin) { var prev = resolveWin; resolveWin = null; prev({ ok: false }); }
+      var p = new Promise(function (res) { resolveWin = res; });
+      $('saWinK').hidden = !opts.title; $('saWinK').textContent = opts.title || '';
+      $('saP1').textContent = opts.sub || T.p1;
+      title(T.h1); show('saLoading'); winShow();
+      whenAuth(function (rr) {
+        rr.session().then(function (s) { if (!s) { show('saS1'); $('saEmail').focus(); } else after(rr); });
+      });
+      return p;
+    }
+    function after(rr) {
+      show('saLoading');
+      rr.profile().then(function (p) {
+        if (p && p.error) { show('saSE'); return; }
+        if (!p) { title(T.h3); show('saS3'); $('saNameIn').focus(); return; }
+        prof = p; signed = true; paint(); pollUnread();
+        if (opts.ask) askStep(rr); else winClose(true);
+      });
+    }
+    $('saRetry').addEventListener('click', function () { whenAuth(after); });
+
+    function startTimer() {
+      clearInterval(timer);
+      var left = 60, b = $('saResend');
+      b.disabled = true;
+      function tick() {
+        if (left <= 0) { clearInterval(timer); b.disabled = false; b.textContent = T.resend; return; }
+        b.textContent = T.resendIn + ' ' + left + ' ' + T.sec; left--;
+      }
+      tick(); timer = setInterval(tick, 1000);
+    }
+    $('saS1').addEventListener('submit', function (e) {
+      e.preventDefault();
+      var v = $('saEmail').value.trim();
+      if (!isEmail(v)) { err('saE1', T.eBadEmail); return; }
+      err('saE1'); busy('saB1', true, T.sending, T.getCode);
+      whenAuth(function (rr) {
+        rr.sendCode(v).then(function (r) {
+          busy('saB1', false, '', T.getCode);
+          if (!r.ok) { err('saE1', mapErr(r, 'send')); return; }
+          email = v; $('saMailTo').textContent = email; $('saCode').value = ''; err('saE2');
+          title(T.h2); show('saS2'); startTimer(); $('saCode').focus();
+        });
+      });
+    });
+    function verify() {
+      var c = cleanCode($('saCode').value);
+      if (c.length !== 6) { err('saE2', T.eCode); return; }
+      err('saE2'); busy('saB2', true, T.verifying, T.verify);
+      whenAuth(function (rr) {
+        rr.verify(email, c).then(function (r) {
+          busy('saB2', false, '', T.verify);
+          if (!r.ok) { err('saE2', mapErr(r, 'verify')); return; }
+          clearInterval(timer);
+          after(rr);
+        });
+      });
+    }
+    $('saS2').addEventListener('submit', function (e) { e.preventDefault(); verify(); });
+    $('saCode').addEventListener('input', function () {
+      this.value = cleanCode(this.value); err('saE2');
+      if (this.value.length === 6 && !$('saB2').disabled) verify();
+    });
+    $('saResend').addEventListener('click', function () {
+      if (this.disabled) return;
+      this.disabled = true; err('saE2');
+      whenAuth(function (rr) {
+        rr.sendCode(email).then(function (r) {
+          if (!r.ok) { err('saE2', mapErr(r, 'send')); $('saResend').disabled = false; $('saResend').textContent = T.resend; return; }
+          startTimer();
+        });
+      });
+    });
+    $('saOther').addEventListener('click', function () { clearInterval(timer); err('saE1'); title(T.h1); show('saS1'); $('saEmail').focus(); });
+    $('saS3').addEventListener('submit', function (e) {
+      e.preventDefault();
+      var n = $('saNameIn').value.trim();
+      if (!n) { err('saE3', T.eName); return; }
+      err('saE3'); busy('saB3', true, T.saving, T.done);
+      whenAuth(function (rr) {
+        rr.saveProfile(n, $('saPhoneIn').value.trim() || null).then(function (r) {
+          busy('saB3', false, '', T.done);
+          if (!r.ok) { err('saE3', r.error === 'bad_name' ? T.eName : mapErr(r, 'save')); return; }
+          after(rr);
+        });
+      });
+    });
+
+    // ---------- «ask the host» ----------
+    function draftKey() { return 'rr_ask_draft:' + ((opts.ask && opts.ask.apt) || ''); }
+    function askStep(rr) {
+      var a = opts.ask;
+      show('saLoading');
+      rr.chat.inquiry(a.apt).then(function (r) {
+        var d = r && r.ok ? r.data : null;
+        if (!d || !d.ok || !d.id) {
+          title(T.askH); show('saS4'); fillAsk(a);
+          err('saE4', r && r.missing ? T.eSoon : d && d.error === 'no_responders' ? T.eNoHost : T.eGeneric);
+          $('saB4').disabled = true;
+          return;
+        }
+        conv = d.id;
+        // already talking about this flat → open that conversation instead of a new question
+        rr.chat.messages(conv, 0).then(function (m) {
+          var list = m && m.ok && m.data && m.data.ok ? (m.data.messages || []) : [];
+          if (list.length && !ss(draftKey())) { location.href = BASE + '/messages?c=' + encodeURIComponent(conv); return; }
+          title(T.askH); fillAsk(a); err('saE4'); $('saB4').disabled = false; show('saS4'); $('saQ').focus();
+        });
+      });
+    }
+    function fillAsk(a) {
+      $('saAptT').textContent = a.title || '';
+      $('saAptOp').textContent = a.op || '';
+      $('saAptPh').style.backgroundImage = a.photo ? 'url("' + String(a.photo).replace(/"/g, '%22') + '")' : '';
+      $('saQ').value = ss(draftKey()) || $('saQ').value || '';
+    }
+    $('saQ').addEventListener('input', function () { ss(draftKey(), this.value || null); err('saE4'); });
+    $('saS4').addEventListener('submit', function (e) {
+      e.preventDefault();
+      var text = $('saQ').value.trim();
+      if (!text) { err('saE4', T.eEmpty); return; }
+      if (text.length > 4000) { err('saE4', T.eTooLong); return; }
+      err('saE4'); busy('saB4', true, T.askSending, T.askSend);
+      whenAuth(function (rr) {
+        rr.chat.send({ conv: conv, client_id: uuid(), text: text, lang: LANG }).then(function (r) {
+          if (!r.ok) { busy('saB4', false, '', T.askSend); err('saE4', r.error === 'missing' ? T.eSoon : r.error === 'too_long' ? T.eTooLong : mapErr(r)); return; }
+          if (r.lang && /^[a-z]{2}$/.test(r.lang)) ls('rr_chat_lang', r.lang);
+          ss(draftKey(), null);
+          location.href = BASE + '/messages?c=' + encodeURIComponent(conv);
+        });
+      });
+    });
+    function ask(a) {
+      if (!a || !/^[0-9a-f-]{36}$/i.test(String(a.apt || ''))) return Promise.resolve({ ok: false });
+      return open({ ask: a, title: T.askTo + (a.op ? ' · ' + a.op : '') });
+    }
+
+    window.rrLogin = { open: open, ask: ask };
+
+    // ---------- real state once auth is up ----------
+    whenAuth(function (rr) {
+      rr.session().then(function (s) {
+        if (!s) { if (signed) { signed = false; prof = null; paint(); setUnread(0); } return; }
+        signed = true; paint();
+        rr.profile().then(function (p) { if (p && !p.error) { prof = p; paint(); } });
+        pollUnread();
+        clearInterval(unreadT); unreadT = setInterval(pollUnread, 60000);
+      });
+    });
+    document.addEventListener('visibilitychange', pollUnread);
+    window.dispatchEvent(new Event('rr-login-ready'));
+  })();
+</script>

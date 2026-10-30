@@ -33,3 +33,27 @@ export function nextPath(search, fallback) {
     return out[0] === '/' && out[1] !== '/' ? out : fallback;
   } catch (e) { return fallback; }
 }
+
+// Site header: the letter in the account disc (name first, then email).
+export function initialOf(name, email) {
+  const s = String(name || '').trim() || String(email || '').trim();
+  return s ? s.charAt(0).toUpperCase() : '?';
+}
+
+// Unread counter text: nothing for 0, capped at 99+.
+export function unreadText(n) {
+  const v = Math.floor(Number(n) || 0);
+  return v <= 0 ? '' : v > 99 ? '99+' : String(v);
+}
+
+// Old site hearts (localStorage rr_favs, flat slugs) → «my batumi» saves not already there.
+export function favsToSaves(favs, have) {
+  const seen = new Set((have || []).filter((x) => x && x.k === 'stay').map((x) => x.s));
+  const out = [];
+  for (const s of favs || []) {
+    if (typeof s !== 'string' || !/^[a-z0-9-]{1,120}$/.test(s) || seen.has(s)) continue;
+    seen.add(s);
+    out.push({ k: 'stay', s, c: 'batumi' });
+  }
+  return out;
+}

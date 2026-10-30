@@ -6,6 +6,7 @@ import { WORDMARK_SVG, WORDMARK_PATHS } from '../lib/wordmark.js';
 import '../styles/date-sheet.css';
 import '../styles/tabbar.css';
 import TabBar from '../components/TabBar.astro';
+import SiteAccount from '../components/site/SiteAccount.astro';
 export interface Props { title?: string; description?: string; ogTitle?: string; ogDescription?: string; accent?: string; accentDeep?: string; image?: string; ogType?: string; }
 const {
   title = 'rega rega — apartments & the batumi guide',
@@ -104,9 +105,11 @@ const ogImage = new URL(image, Astro.site).href;
   <div class="right">
     <a href="#" class="city">batumi <span class="arr">▾</span></a>
     <a href={ruHref} class="lang" title="русский">ru</a>
+    <span class="sa-space" aria-hidden="true"></span>
     <button class="burger" id="burger" aria-label="menu" type="button"><span></span><span></span></button>
   </div>
 </header>
+<SiteAccount lang="en" />
 
 <div class="menu-overlay" id="menuOverlay" hidden>
   <button class="menu-close" id="menuClose" type="button" aria-label="close menu"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M5 5l14 14M19 5L5 19" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg></button>
@@ -372,5 +375,7 @@ window.__rrBuildStory = async function (d) {
 <script is:inline src="/rega-install.js"></script>
 <script is:inline src="/rega-enhance.js"></script>
 <TabBar lang="en" site />
+<script>import '../lib/guestAuth';</script>
+<script is:inline src="/app-saves.js?v=1" defer></script>
 </body>
 </html>
