@@ -43,7 +43,7 @@ const TABS = [
   { key: 'stays', i: 1, href: `${base}/app/stays`, active: isActive('/app/stays', '/stays'), icon: ICONS.bed, label: L.stays },
   { key: 'trip', i: 1, href: `${base}/app/trip`, active: isActive('/app/trip'), icon: ICONS.key, label: L.trip, dot: true },
   { key: 'concierge', i: 2, href: `${base}/app/concierge`, active: isActive('/app/concierge'), icon: ICONS.sparkles, label: L.concierge },
-  { key: 'profile', i: 3, href: `${base}/app/profile`, active: isActive('/app/profile', '/app/my'), icon: ICONS.user, label: L.profile },
+  { key: 'profile', i: 3, href: `${base}/app/profile`, active: isActive('/app/profile', '/app/my'), icon: ICONS.user, label: L.profile, msg: true },
 ];
 const activeTab = TABS.find((t) => t.active);
 const activeI = activeTab ? activeTab.i : -1;
@@ -68,6 +68,7 @@ const activeI = activeTab ? activeTab.i : -1;
         <svg class="tabbar__icon" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" set:html={t.icon} />
         <span class="tabbar__label">{t.label}</span>
         {t.dot && <i class="tabbar__dot" aria-hidden="true"></i>}
+        {t.msg && <i class="tabbar__dot tabbar__dot--msg" aria-hidden="true"></i>}
       </a>
     ))}
   </div>
@@ -80,6 +81,7 @@ const activeI = activeTab ? activeTab.i : -1;
             <svg class="tabbar__icon" viewBox="0 0 24 24" width="24" height="24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" set:html={t.icon} />
             <span class="tabbar__label">{t.label}</span>
             {t.dot && <i class="tabbar__dot"></i>}
+            {t.msg && <i class="tabbar__dot tabbar__dot--msg"></i>}
           </span>
         ))}
       </div>
@@ -242,5 +244,25 @@ const activeI = activeTab ? activeTab.i : -1;
   bar.addEventListener('lostpointercapture', function (e) { if (e.target === bar) up(e); });
   addEventListener('blur', function () { up(null); });
   bar.addEventListener('dragstart', function (e) { e.preventDefault(); });
+})();
+</script>
+<script is:inline>
+/* Unread host messages → a dot on «профиль» (html.has-unread). The last count is kept in
+   localStorage rr_chat_unread so the dot paints without a flash; refreshed on load, every
+   60 s and when the app comes back. Signed out / migration not run → no dot. */
+(function () {
+  if (window.__rrUnread) return; window.__rrUnread = 1;
+  var set = function (n) { document.documentElement.classList.toggle('has-unread', n > 0); try { localStorage.setItem('rr_chat_unread', String(n)); } catch (e) {} };
+  try { if (+localStorage.getItem('rr_chat_unread') > 0) document.documentElement.classList.add('has-unread'); } catch (e) {}
+  var poll = function () {
+    var a = window.rrAuth; if (!a || !a.chat || document.hidden) return;
+    a.session().then(function (s) {
+      if (!s) return set(0);
+      a.chat.unread().then(function (r) { if (r.ok) set(+r.data || 0); });
+    });
+  };
+  window.rrAuth ? poll() : addEventListener('rr-auth-ready', poll, { once: true });
+  setInterval(poll, 60000);
+  document.addEventListener('visibilitychange', poll);
 })();
 </script>

@@ -1,0 +1,85 @@
+---
+// Native app "messages" — the guest's conversations with hosts (one per booking + questions
+// before booking), newest first, unread marked. Opened from the profile. Each row → app/chat?c=.
+// Data: rrAuth.chat.list() (RPC chat_list, migration 089). Signed out → login and back here.
+import AppFull from '../../layouts/AppFull.astro';
+import '../../styles/app-shell.css';
+import '../../styles/app-chat.css';
+import AppHeader from '../AppHeader.astro';
+import TabBar from '../TabBar.astro';
+
+export interface Props { lang: 'en' | 'ru' }
+const { lang } = Astro.props;
+const isRu = lang === 'ru';
+const BASE = isRu ? '/ru/georgia/batumi' : '/georgia/batumi';
+const T = isRu
+  ? { title: 'сообщения — rega rega', desc: 'переписка с хозяевами квартир.', h: 'сообщения', loading: 'загружаю…',
+      empty: 'пока нет переписок. написать хозяину можно из поездки или со страницы квартиры.',
+      net: 'нет связи с сервером.', missing: 'переписка с хозяином скоро появится.',
+      inquiry: 'вопрос до брони', pending: 'заявка', photo: 'фото', you: 'ты: ' }
+  : { title: 'messages — rega rega', desc: 'your conversations with hosts.', h: 'messages', loading: 'loading…',
+      empty: 'no conversations yet. message a host from your trip or from an apartment page.',
+      net: 'no connection to the server.', missing: 'messaging your host is coming soon.',
+      inquiry: 'question before booking', pending: 'request', photo: 'photo', you: 'you: ' };
+---
+<AppFull lang={lang} title={T.title} description={T.desc}>
+  <AppHeader lang={lang} />
+  <main class="ml-screen">
+    <h1 class="rr-display ml-h1">{T.h}</h1>
+    <p class="ml-state" id="mlState">{T.loading}</p>
+    <ul class="ml-list" id="mlList"></ul>
+  </main>
+  <TabBar lang={lang} />
+
+  <script is:inline define:vars={{ LANG: lang, BASE, T }}>
+    (function () {
+      var RU = LANG === 'ru';
+      var $ = function (id) { return document.getElementById(id); };
+      var myLang = (function () { try { return localStorage.getItem('rr_chat_lang') || LANG; } catch (e) { return LANG; } })();
+      function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+      function fmtDay(d) { try { return new Date(d + 'T12:00:00').toLocaleDateString(RU ? 'ru-RU' : 'en-GB', { day: 'numeric', month: 'short' }).replace('.', ''); } catch (e) { return d; } }
+      function when(ts) {
+        if (!ts) return '';
+        var d = new Date(ts), now = new Date();
+        if (d.toDateString() === now.toDateString()) return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
+        return d.toLocaleDateString(RU ? 'ru-RU' : 'en-GB', { day: 'numeric', month: 'short' }).replace('.', '');
+      }
+      function row(c) {
+        var li = el('li');
+        var a = el('a', 'ml-row' + (c.unread > 0 ? ' is-unread' : ''));
+        a.href = BASE + '/app/chat?c=' + c.id;
+        var tx = el('div', 'ml-row__text');
+        var top = el('div', 'ml-row__top');
+        top.appendChild(el('p', 'ml-row__title', c.apt_title || c.operator_name || ''));
+        top.appendChild(el('span', 'ml-row__time', when(c.last_at)));
+        tx.appendChild(top);
+        var sub = [c.operator_name];
+        if (!c.booking_id) sub.push(T.inquiry);
+        else if (c.pending) sub.push(T.pending);
+        else if (c.ci && c.co) sub.push(fmtDay(c.ci) + ' – ' + fmtDay(c.co));
+        tx.appendChild(el('p', 'ml-row__sub', sub.filter(Boolean).join(' · ')));
+        if (c.last_at) {
+          var t = (!c.last_mine && c.last_tr && (c.last_tr[myLang] || c.last_tr[LANG])) || c.last_body || T.photo;
+          tx.appendChild(el('p', 'ml-row__last', (c.last_mine ? T.you : '') + t));
+        }
+        a.appendChild(tx);
+        if (c.unread > 0) { var dot = el('span', 'ml-row__dot'); dot.setAttribute('aria-label', String(c.unread)); a.appendChild(dot); }
+        li.appendChild(a);
+        return li;
+      }
+      function go() {
+        window.rrAuth.session().then(function (s) {
+          if (!s) { location.replace(BASE + '/app/login?next=' + encodeURIComponent(location.pathname)); return; }
+          window.rrAuth.chat.list().then(function (r) {
+            if (!r.ok) { $('mlState').textContent = r.missing ? T.missing : T.net; return; }
+            var list = Array.isArray(r.data) ? r.data : [];
+            $('mlState').textContent = list.length ? '' : T.empty;
+            $('mlState').hidden = !!list.length;
+            list.forEach(function (c) { $('mlList').appendChild(row(c)); });
+          });
+        });
+      }
+      window.rrAuth ? go() : window.addEventListener('rr-auth-ready', go, { once: true });
+    })();
+  </script>
+</AppFull>

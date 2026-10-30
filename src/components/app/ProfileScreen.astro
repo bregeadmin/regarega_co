@@ -23,7 +23,7 @@ const OTHER = isRu ? '/georgia/batumi/app/profile' : '/ru/georgia/batumi/app/pro
 const T = isRu
   ? {
       title: 'профиль — rega rega', desc: 'твой профиль rega rega — поездки и настройки.',
-      h: 'профиль', my: 'мой батуми', myEmpty: 'сохраняй места кружком в углу карточки', guest: 'гость', trip: 'моя поездка', haveBooking: 'у меня есть бронь', settings: 'настройки', lang: 'язык',
+      h: 'профиль', msgs: 'сообщения', msgsHint: 'переписка с хозяевами', my: 'мой батуми', myEmpty: 'сохраняй места кружком в углу карточки', guest: 'гость', trip: 'моя поездка', haveBooking: 'у меня есть бронь', settings: 'настройки', lang: 'язык',
       langValue: 'русский', signIn: 'войти', signInHint: 'войди по коду из письма — твои поездки будут везде с тобой.',
       edit: 'изменить', name: 'имя', phone: 'телефон (необязательно)', save: 'сохранить', saving: 'сохраняем…', cancel: 'отмена',
       eName: 'напиши имя.', eNet: 'нет сети — попробуй ещё раз.', eGeneric: 'что-то пошло не так — попробуй ещё раз.',
@@ -34,7 +34,7 @@ const T = isRu
     }
   : {
       title: 'profile — rega rega', desc: 'your rega rega profile — trips and settings.',
-      h: 'profile', my: 'my batumi', myEmpty: 'save places with the circle on a card', guest: 'guest', trip: 'my trip', haveBooking: 'i have a booking', settings: 'settings', lang: 'language',
+      h: 'profile', msgs: 'messages', msgsHint: 'your conversations with hosts', my: 'my batumi', myEmpty: 'save places with the circle on a card', guest: 'guest', trip: 'my trip', haveBooking: 'i have a booking', settings: 'settings', lang: 'language',
       langValue: 'english', signIn: 'sign in', signInHint: 'sign in with a code from your email — your trips follow you everywhere.',
       edit: 'edit', name: 'name', phone: 'phone (optional)', save: 'save', saving: 'saving…', cancel: 'cancel',
       eName: 'please enter your name.', eNet: "you're offline — try again.", eGeneric: 'something went wrong — please try again.',
@@ -50,6 +50,7 @@ const ICONS = {
   pencil: '<path d="M4 20h4l10.5 -10.5a2.828 2.828 0 1 0 -4 -4l-10.5 10.5v4" /><path d="M13.5 6.5l4 4" />',
   pin: '<path d="M9 11a3 3 0 1 0 6 0a3 3 0 0 0 -6 0" /><path d="M17.657 16.657l-4.243 4.243a2 2 0 0 1 -2.827 0l-4.244 -4.243a8 8 0 1 1 11.314 0z" />',
   chevron: '<path d="M9 6l6 6l-6 6" />',
+  message: '<path d="M8 9h8" /><path d="M8 13h6" /><path d="M18 4a3 3 0 0 1 3 3v8a3 3 0 0 1 -3 3h-5l-5 3v-3h-2a3 3 0 0 1 -3 -3v-8a3 3 0 0 1 3 -3h12z" />',
 };
 const ic = (d: string, cls: string) => `<svg class="${cls}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
 const chev = `<svg class="pf-row__chevron" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${ICONS.chevron}</svg>`;
@@ -94,6 +95,15 @@ const chev = `<svg class="pf-row__chevron" viewBox="0 0 24 24" fill="none" strok
     <section class="pf-section pf-card pf-signin" id="pfOut" hidden>
       <p class="pf-signin__p">{T.signInHint}</p>
       <a class="pf-primary" id="pfSignIn" href={`${BASE}/app/login?next=${encodeURIComponent(BASE + '/app/profile')}`}>{T.signIn}</a>
+    </section>
+
+    <!-- signed in: messages with hosts (ChatListScreen) -->
+    <section class="pf-section" id="pfMsgSec" hidden>
+      <a class="pf-city" href={`${BASE}/app/messages`}>
+        <span class="pf-tile" set:html={ic(ICONS.message, 'pf-tile__icon')} />
+        <span class="pf-city__label">{T.msgs}<span class="pf-my__n pf-msg__n" id="pfMsgN"></span><small class="pf-my__hint">{T.msgsHint}</small></span>
+        <Fragment set:html={chev} />
+      </a>
     </section>
 
     <!-- signed in: trips -->
@@ -176,7 +186,7 @@ const chev = `<svg class="pf-row__chevron" viewBox="0 0 24 24" fill="none" strok
       }
       // this phone's trip/concierge state — cleared on sign-out and delete so the next account starts clean
       function clearLocal() {
-        try { ['rr_trip', 'rr_trip_token', 'rr_claimed', 'rr_cc', 'rr_uid'].forEach(function (k) { localStorage.removeItem(k); }); } catch (e) {}
+        try { ['rr_trip', 'rr_trip_token', 'rr_claimed', 'rr_cc', 'rr_uid', 'rr_chat_lang', 'rr_chat_unread'].forEach(function (k) { localStorage.removeItem(k); }); } catch (e) {}
         if (window.rrSaves) window.rrSaves.forget(); // the account's saves leave with it (a phone-only list stays)
       }
       function renderTrips(list) {
@@ -221,6 +231,11 @@ const chev = `<svg class="pf-row__chevron" viewBox="0 0 24 24" fill="none" strok
             paint(p);
             $('pfEdit').hidden = false; $('pfAcct').hidden = false;
             $('pfLinkSec').hidden = true; $('pfTripsSec').hidden = false;
+            if (rr.chat) rr.chat.unread().then(function (r) {
+              if (!r.ok) return;          // migration not in the database yet → no row
+              $('pfMsgSec').hidden = false;
+              $('pfMsgN').textContent = r.data > 0 ? ' · ' + r.data : '';
+            });
             return rr.trips().then(renderTrips);
           });
         }).catch(signedOut);

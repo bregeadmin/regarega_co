@@ -15,7 +15,8 @@
 // The status line (заявка → бронь → заезд → в квартире → выезд) uses the same dot vocabulary
 // as the booking track on 08 (StayScreen): done = filled orange, now = orange ring + dot.
 // No «улучши поездку» block: there are no add-on services in the data yet (r3 shows fake ones).
-// «написать хозяину» does not exist yet (messaging = stage 4), so it isn't drawn.
+// «написать хозяину» (under the status line): signed in → app/chat?b=<booking id> (hidden when the
+// operator has nobody to answer — chat_for_booking says no_responders); signed out → login.
 import AppFull from '../../layouts/AppFull.astro';
 import '../../styles/app-shell.css';
 import '../../styles/app-trip.css';
@@ -143,6 +144,10 @@ const ICONS = { copy: icon('copy', 17), check: icon('check', 17), arrow: icon('a
           {T.rail.map((l) => <li><i></i><span>{l}</span></li>)}
         </ol>
         <p class="tr-flow__note" id="trPendingNote" hidden>{T.pendingP}</p>
+        <a class="tr-btn tr-btn--light tr-host" id="trHost" hidden>
+          <svg viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M8 9h8" /><path d="M8 13h6" /><path d="M18 4a3 3 0 0 1 3 3v8a3 3 0 0 1 -3 3h-5l-5 3v-3h-2a3 3 0 0 1 -3 -3v-8a3 3 0 0 1 3 -3h12z" /></svg>
+          <span id="trHostL"></span><i class="tr-host__dot" id="trHostDot" hidden></i>
+        </a>
       </section>
 
       <!-- the apartment + dates -->
@@ -338,6 +343,9 @@ const ICONS = { copy: icon('copy', 17), check: icon('check', 17), arrow: icon('a
           : (RU ? 'бронь подтверждена' : 'booking confirmed');
         $('trFlowH').textContent = head;
         $('trFlowOp').textContent = pend ? '' : op;
+        $('trHostL').textContent = (RU ? 'написать хозяину' : 'message your host') + (op ? ' · ' + op : '');
+        $('trHost').hidden = !op;
+        $('trHost').href = BASE + '/app/login?next=' + encodeURIComponent(BASE + '/app/trip');
         Array.prototype.forEach.call($('trRail').children, function (li, i) {
           li.className = i < idx ? 'is-done' : i === idx ? 'is-now' : '';
         });
@@ -509,6 +517,24 @@ const ICONS = { copy: icon('copy', 17), check: icon('check', 17), arrow: icon('a
       function setRole(role, id) {
         bookingId = id || bookingId;
         $('trInvite').hidden = !(role === 'owner' && bookingId != null);
+        hostLink();
+      }
+      // «написать хозяину» → the booking's conversation (hidden if nobody can answer)
+      function hostLink() {
+        if (bookingId == null || !window.rrAuth || !window.rrAuth.chat) return;
+        var id = bookingId;
+        window.rrAuth.chat.forBooking(id).then(function (r) {
+          if (id !== bookingId) return;
+          if (r.ok && r.data && r.data.ok) {
+            $('trHost').href = BASE + '/app/chat?c=' + r.data.id;
+            window.rrAuth.chat.list().then(function (l) {
+              var c = l.ok && (l.data || []).filter(function (x) { return x.id === r.data.id; })[0];
+              $('trHostDot').hidden = !(c && c.unread > 0);
+            });
+          } else if (r.ok && r.data && r.data.error === 'no_responders') $('trHost').hidden = true;
+          else if (!r.missing) $('trHost').href = BASE + '/app/chat?b=' + id;
+          else $('trHost').hidden = true;   // migration not in the database yet
+        });
       }
 
       // after a trip is shown: claim a ?t= link once per device, then learn our role (owner → invite)

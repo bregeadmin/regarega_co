@@ -332,3 +332,12 @@ html.bk-lock, html.bk-lock body{ overflow:hidden; }
   .bk-tick{ animation:none; stroke-dashoffset:0; }
   .bk-d::before, .bk-d::after, .st-btn, .st-round, .bk-grid{ transition:none; }
 }
+/* «спросить хозяина» → ChatScreen ?a= (question before booking) */
+.st-host__ask{
+  flex:none; margin-left:auto;
+  height:38px; padding:0 15px; display:inline-flex; align-items:center;
+  border-radius:var(--r-pill); background:var(--sunk);
+  font-size:14px; font-weight:700; letter-spacing:-.02em; white-space:nowrap;
+}
+.st-host__ask[hidden]{ display:none; }
+.app-full a.st-host__ask{ color:var(--ink); }

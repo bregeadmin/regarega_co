@@ -89,6 +89,36 @@ const rrAuth = {
     set(k: string, s: string, c: string, on: boolean) { return rrAuth.saves.call('set_save', { p_kind: k, p_slug: s, p_city: c, p_on: on }); },
     merge(items: unknown[]) { return rrAuth.saves.call('merge_saves', { p_items: items }); },
   },
+  // Переписка с хозяином (migration 089 + Edge Function `chat`). Same contract as `saves`:
+  // { ok, data } | { ok:false, missing } — missing = not in the database yet.
+  chat: {
+    canMessage(apt: string) { return rrAuth.saves.call('chat_can_message', { p_apartment: apt }); },
+    forBooking(id: number | string) { return rrAuth.saves.call('chat_for_booking', { p_booking: id }); },
+    inquiry(apt: string) { return rrAuth.saves.call('chat_inquiry', { p_apartment: apt }); },
+    list() { return rrAuth.saves.call('chat_list'); },
+    messages(conv: string, after = 0) { return rrAuth.saves.call('chat_messages', { p_conv: conv, p_after: after }); },
+    read(conv: string) { return rrAuth.saves.call('chat_mark_read', { p_conv: conv }); },
+    unread() { return rrAuth.saves.call('chat_unread'); },
+    // POST /functions/v1/chat → { ok, id, dup, lang } | { ok:false, error }
+    async fn(body: Record<string, unknown>): Promise<R> {
+      try {
+        const s = await rrAuth.session();
+        if (!s) return { ok: false, error: 'no_session' };
+        const res = await fetch(url + '/functions/v1/chat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + s.access_token, apikey: key },
+          body: JSON.stringify(body),
+        });
+        const j = await res.json().catch(() => ({}));
+        if (res.status === 404) return { ok: false, error: 'missing' };
+        return res.ok && j.ok ? j : { ok: false, error: j.error || 'network' };
+      } catch { return { ...NET }; }
+    },
+    send(p: { conv: string; client_id: string; text: string; lang: string; photos?: string[] }) {
+      return rrAuth.chat.fn({ action: 'send', ...p });
+    },
+    photos(conv: string, paths: string[]) { return rrAuth.chat.fn({ action: 'photos', conv, paths }); },
+  },
   async signOut(): Promise<R> {
     try { await sb.auth.signOut(); } catch {}
     mirror('');

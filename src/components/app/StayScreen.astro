@@ -188,6 +188,7 @@ const sign = `<svg viewBox="0 0 100 100" aria-hidden="true"><path fill-rule="eve
       <div class="st-host st-card">
         <span class="st-av">{avatar ? avatar : <Fragment set:html={sign} />}</span>
         <span class="st-host__t"><b>{T.hosts}</b><span class="st-meta">{T.human}</span></span>
+        <a class="st-host__ask" id="stAsk" href={`${BASE}/app/chat?a=${apt.id}`} hidden>{RU ? 'спросить хозяина' : 'ask the host'}</a>
       </div>
 
       {aboutHtml && (
@@ -725,6 +726,11 @@ const sign = `<svg viewBox="0 0 100 100" aria-hidden="true"><path fill-rule="eve
     history.replaceState({ rrv: 'stay' }, '');
 
     $('stCta').addEventListener('click', () => step('dates'));
+    // «спросить хозяина» (question before booking, ChatScreen ?a=) — only if someone can answer
+    {
+      const showAsk = () => (window as any).rrAuth.chat.canMessage(C.id).then((r: any) => { if (r.ok && r.data === true) $('stAsk').hidden = false; });
+      (window as any).rrAuth ? showAsk() : addEventListener('rr-auth-ready', showAsk, { once: true });
+    }
     $('bkDatesX').addEventListener('click', () => back('stay'));
     $('bkScrim').addEventListener('click', () => back('stay'));
     document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && view === 'dates') back('stay'); });

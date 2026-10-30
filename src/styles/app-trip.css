@@ -403,3 +403,9 @@
   .tr-in, .tr-rail::after{ animation:none; }
   .tr-stay__ph img, .tr-cp, .tr-btn, .tr-invite, .tr-add__btn{ transition:none; }
 }
+
+/* «написать хозяину» under the status line (ChatScreen) — light pill, unread = the home dot */
+.tr-host{ position:relative; margin-top:14px; }
+.tr-host[hidden]{ display:none; }
+.tr-host__dot{ width:8px; height:8px; border-radius:50%; background:var(--home); flex:none; }
+.tr-host__dot[hidden]{ display:none; }
