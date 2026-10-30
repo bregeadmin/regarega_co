@@ -1,0 +1,79 @@
+---
+// regarega.co/trips — the guest's bookings (rrAuth.trips() → RPC my_trips): flat, dates, «request»
+// while unconfirmed. A row opens the trip page with the guest's OWN booking token (the same link the
+// app and the booking email use); «message the host» opens the booking's conversation.
+import Site from '../../layouts/Site.astro';
+import SiteRu from '../../layouts/SiteRu.astro';
+import '../../styles/site-pages.css';
+
+export interface Props { lang: 'en' | 'ru' }
+const { lang } = Astro.props;
+const isRu = lang === 'ru';
+const Layout = isRu ? SiteRu : Site;
+const BASE = isRu ? '/ru/georgia/batumi' : '/georgia/batumi';
+const T = isRu
+  ? { title: 'поездки — rega rega batumi', desc: 'ваши брони.', h: 'поездки', loading: 'загружаю…',
+      empty: 'пока нет поездок.', toStays: 'выбрать квартиру', net: 'не получилось загрузить — нет связи.', retry: 'повторить',
+      pending: 'заявка — ждёт подтверждения', msg: 'написать хозяину', open: 'открыть поездку',
+      signIn: 'войдите, чтобы увидеть свои поездки.', signInBtn: 'войти' }
+  : { title: 'trips — rega rega batumi', desc: 'your bookings.', h: 'trips', loading: 'loading…',
+      empty: 'no trips yet.', toStays: 'find a flat', net: "couldn't load — no connection.", retry: 'try again',
+      pending: 'request — awaiting confirmation', msg: 'message the host', open: 'open the trip',
+      signIn: 'sign in to see your trips.', signInBtn: 'sign in' };
+---
+<Layout title={T.title} description={T.desc} noindex>
+  <main class="sp st">
+    <h1 class="sp-h">{T.h}<span>.</span></h1>
+    <p class="sp-state" id="stState">{T.loading}</p>
+    <button class="sp-btn" id="stSignIn" type="button" hidden>{T.signInBtn}</button>
+    <button class="sp-btn sp-btn--ghost" id="stRetry" type="button" hidden>{T.retry}</button>
+    <a class="sp-btn" id="stToStays" href={`${BASE}/stays`} hidden>{T.toStays}</a>
+    <ul class="st-list" id="stList"></ul>
+  </main>
+  <script is:inline define:vars={{ T, BASE, LANG: lang }}>
+    (function () {
+      var $ = function (id) { return document.getElementById(id); };
+      function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+      function fmt(d) { try { return new Date(d + 'T12:00:00').toLocaleDateString(LANG === 'ru' ? 'ru-RU' : 'en-GB', { day: 'numeric', month: 'short' }).replace('.', ''); } catch (e) { return d; } }
+      function state(t) { $('stState').textContent = t || ''; $('stState').hidden = !t; }
+      function render(list) {
+        var ul = $('stList'); ul.textContent = '';
+        list.forEach(function (t) {
+          var li = el('li', 'st-row');
+          var a = el('a', 'st-row__main'); a.href = BASE + '/trip?t=' + encodeURIComponent(t.guest_token || '');
+          a.appendChild(el('span', 'st-row__t', String(t.apt_title || '').toLowerCase()));
+          a.appendChild(el('span', 'st-row__d', fmt(t.ci) + ' – ' + fmt(t.co) + (t.operator_name ? ' · ' + t.operator_name : '')));
+          if (t.pending) a.appendChild(el('span', 'st-row__tag', T.pending));
+          li.appendChild(a);
+          var act = el('div', 'st-row__act');
+          var open = el('a', 'sp-link', T.open); open.href = a.href; act.appendChild(open);
+          var m = el('button', 'sp-link', T.msg); m.type = 'button';
+          m.addEventListener('click', function () {
+            window.rrAuth.chat.forBooking(t.booking_id).then(function (r) {
+              if (r && r.ok && r.data && r.data.ok) location.href = BASE + '/messages?c=' + encodeURIComponent(r.data.id);
+              else m.hidden = true;   // nobody at the operator answers chat / not available yet
+            });
+          });
+          act.appendChild(m); li.appendChild(act); ul.appendChild(li);
+        });
+      }
+      function load() {
+        $('stRetry').hidden = true; state(T.loading);
+        window.rrAuth.trips().then(function (list) {
+          if (list == null) { state(T.net); $('stRetry').hidden = false; return; }
+          if (!list.length) { state(T.empty); $('stToStays').hidden = false; return; }
+          state(''); render(list);
+        });
+      }
+      function go() {
+        window.rrAuth.session().then(function (s) {
+          if (!s) { state(T.signIn); $('stSignIn').hidden = false; return; }
+          load();
+        });
+      }
+      $('stRetry').addEventListener('click', load);
+      $('stSignIn').addEventListener('click', function () { if (window.rrLogin) window.rrLogin.open().then(function (r) { if (r.ok) location.reload(); }); });
+      window.rrAuth ? go() : addEventListener('rr-auth-ready', go, { once: true });
+    })();
+  </script>
+</Layout>

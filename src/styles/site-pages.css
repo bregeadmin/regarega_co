@@ -1,0 +1,94 @@
+/* Guest pages of the website: /messages, /trips, /saved, /account (components/site/Site*.astro).
+   Site tokens (shell.css); the chat and «my batumi» parts bring the app's own styles and are only
+   re-laid out here for the website (no tab bar, page scroll, fixed site topbar above). */
+.sp{max-width:1180px;margin:0 auto;padding:112px 28px 72px;font-family:"Geologica",sans-serif;color:var(--ink)}
+.sp-h{margin:0 0 22px;font-size:clamp(36px,5vw,56px);font-weight:800;letter-spacing:-.04em;line-height:1;text-transform:lowercase}
+.sp-h span{color:var(--accent)}
+.sp-state{margin:0 0 16px;font-size:15px;line-height:1.5;color:var(--ink-soft)}
+.sp-state[hidden],.sp-btn[hidden],.sp-link[hidden]{display:none}
+.sp-btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;padding:12px 20px;border:0;border-radius:999px;background:var(--ink);color:var(--on-color);
+  font-family:"JetBrains Mono",monospace;font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;text-decoration:none;cursor:pointer;transition:background .2s var(--ease-rega)}
+.sp-btn:hover{background:var(--accent);opacity:1}
+.sp-btn:disabled{opacity:.55;cursor:default}
+.sp-btn--ghost{background:transparent;color:var(--ink);border:1px solid var(--line-strong)}
+.sp-btn--ghost:hover{background:var(--bg-2);color:var(--ink)}
+.sp-link{padding:0;border:0;background:none;font:inherit;font-size:14px;font-weight:600;color:var(--ink);text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.sp-link:hover{color:var(--accent);opacity:1}
+.sp-link--danger{color:#B3261E}
+
+/* ---------- messages ---------- */
+.sm{display:grid;grid-template-columns:340px minmax(0,1fr);gap:24px;align-items:start;max-width:1240px;padding-bottom:24px}
+/* like Airbnb: the conversation page has no footer — the chat ends at the bottom of the screen */
+body:has(main.sm)>footer{display:none}
+.sm-list{position:sticky;top:96px;max-height:calc(100vh - 120px);overflow:auto;padding:16px 10px;border:1px solid var(--line);border-radius:22px;background:var(--paper)}
+.sm-list .ml-h1{margin:2px 8px 12px;font-size:30px}
+.sm-list .ml-state{margin:4px 8px 12px}
+.sm-list .ml-list{margin:0;padding:0}
+.sm-list .ml-row.is-current{background:var(--bg-2)}
+.ml-signin{margin:0 8px 8px;display:inline-flex;padding:11px 18px;border:0;border-radius:999px;background:var(--ink);color:var(--on-color);
+  font-family:"JetBrains Mono",monospace;font-size:11px;font-weight:600;letter-spacing:.14em;text-transform:uppercase;cursor:pointer}
+.ml-signin[hidden]{display:none}
+.sm-pane{min-height:calc(100vh - 136px);display:flex;flex-direction:column;border:1px solid var(--line);border-radius:22px;background:var(--paper)}
+.sm-pane .ch-top{top:76px;padding:14px 18px;border-radius:22px 22px 0 0;background:var(--paper);-webkit-backdrop-filter:none;backdrop-filter:none}
+.sm-pane .ch-back{display:none}
+.sm-pane .ch-screen{flex:1;padding:4px 18px 16px}
+.sm-pane .cc-compose{position:sticky;bottom:16px;left:auto;right:auto;max-width:none;margin:0 14px 14px;z-index:5}
+.sm-pane .ch-state{margin:40px 4px}
+
+@media (max-width:900px){
+  .sp{padding:96px 16px 48px}
+  .sm{display:block;padding-bottom:0}
+  html.sm-open .sm{padding-top:77px}
+  .sm-list{position:static;max-height:none;border:0;background:none;padding:0}
+  html.sm-open .sm-list{display:none}
+  html:not(.sm-open) .sm-pane{display:none}
+  .sm-pane{min-height:calc(100vh - 77px);border:0;border-radius:0;background:none;margin:0 -16px}
+  .sm-pane .ch-top{top:77px;border-radius:0}
+  .sm-pane .ch-back{display:grid}
+  .sm-pane .ch-screen{padding:4px 16px 12px}
+  .sm-pane .cc-compose{margin:0 12px calc(12px + env(safe-area-inset-bottom))}
+}
+
+/* ---------- trips ---------- */
+.st{max-width:820px}
+.st-list{list-style:none;margin:0;padding:0;display:flex;flex-direction:column;gap:12px}
+.st-row{display:flex;align-items:center;gap:16px;padding:18px 20px;border:1px solid var(--line);border-radius:20px;background:var(--paper)}
+.st-row__main{display:flex;flex-direction:column;gap:4px;min-width:0;flex:1;text-decoration:none;color:var(--ink)}
+.st-row__main:hover{opacity:1}
+.st-row__t{font-size:19px;font-weight:700;letter-spacing:-.02em}
+.st-row__d{font-family:"JetBrains Mono",monospace;font-size:12px;letter-spacing:.04em;color:var(--ink-soft)}
+.st-row__tag{align-self:flex-start;margin-top:4px;padding:3px 9px;border-radius:999px;background:var(--accent-soft);color:var(--accent-deep);
+  font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.08em;text-transform:uppercase;font-weight:600}
+.st-row__act{display:flex;flex-direction:column;align-items:flex-end;gap:8px;flex:none}
+@media (max-width:640px){
+  .st-row{flex-direction:column;align-items:stretch}
+  .st-row__act{flex-direction:row;justify-content:space-between;align-items:center}
+}
+
+/* ---------- saved («my batumi» from the app) ---------- */
+.ss{max-width:1080px}
+.ss .my-screen{padding:0}
+.ss .my-h{font-size:clamp(40px,5vw,56px)}
+@media (min-width:700px){
+  .ss .my-grid,.ss .my-grid--wide{grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+  .ss .my-grid--wide .my-it__ph{aspect-ratio:4/3}
+}
+@media (min-width:1000px){ .ss .my-grid:not(.my-grid--wide){grid-template-columns:repeat(4,minmax(0,1fr))} }
+
+/* ---------- account ---------- */
+.ap-page{max-width:620px}
+.ap-card{display:flex;flex-direction:column;padding:22px;margin:0 0 16px;border:1px solid var(--line);border-radius:22px;background:var(--paper)}
+.ap-card[hidden]{display:none}
+.ap-card--quiet{flex-direction:row;align-items:flex-start;justify-content:space-between;gap:16px;flex-wrap:wrap}
+.ap-l{margin:10px 0 6px;font-family:"JetBrains Mono",monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase;color:var(--ink-soft);font-weight:600}
+.ap-l:first-child{margin-top:0}
+.ap-f{width:100%;padding:12px 14px;border:1px solid var(--line-strong);border-radius:13px;background:#fff;font:inherit;font-size:16px;color:var(--ink);outline:none}
+.ap-f:focus{border-color:var(--ink)}
+.ap-f[readonly]{background:var(--bg-2);color:var(--ink-soft)}
+.ap-note{margin:6px 0 0;font-size:12.5px;line-height:1.45;color:var(--ink-soft)}
+.ap-err{margin:12px 0 0;font-size:13px;color:#B3261E}
+.ap-err[hidden],.ap-ok[hidden]{display:none}
+.ap-row{display:flex;align-items:center;gap:14px;margin-top:18px}
+.ap-ok{font-size:13px;color:var(--green)}
+.ap-del{display:flex;flex-direction:column;align-items:flex-end;max-width:300px;text-align:right}
+@media (max-width:640px){.ap-del{align-items:flex-start;text-align:left}}

@@ -1,0 +1,89 @@
+---
+// The guest's conversations with hosts (one per booking + questions before booking), newest first,
+// unread marked — shared by the app screen (ChatListScreen.astro, rows → app/chat?c=) and the
+// website's messages page (mode 'site', rows → messages?c=, the open one highlighted).
+// Data: rrAuth.chat.list() (RPC chat_list, migration 089). Signed out → app: login and back here;
+// site: a «sign in» button (window.rrLogin).
+import '../../styles/app-shell.css';
+import '../../styles/app-chat.css';
+
+export interface Props { lang: 'en' | 'ru'; mode?: 'app' | 'site' }
+const { lang, mode = 'app' } = Astro.props;
+const isRu = lang === 'ru';
+const BASE = isRu ? '/ru/georgia/batumi' : '/georgia/batumi';
+const T = isRu
+  ? { title: 'сообщения — rega rega', desc: 'переписка с хозяевами квартир.', h: 'сообщения', loading: 'загружаю…',
+      empty: 'пока нет переписок. написать хозяину можно из поездки или со страницы квартиры.',
+      net: 'нет связи с сервером.', missing: 'переписка с хозяином скоро появится.',
+      inquiry: 'вопрос до брони', pending: 'заявка', photo: 'фото', you: 'ты: ',
+      signIn: 'войдите, чтобы увидеть переписку с хозяевами.', signInBtn: 'войти' }
+  : { title: 'messages — rega rega', desc: 'your conversations with hosts.', h: 'messages', loading: 'loading…',
+      empty: 'no conversations yet. message a host from your trip or from an apartment page.',
+      net: 'no connection to the server.', missing: 'messaging your host is coming soon.',
+      inquiry: 'question before booking', pending: 'request', photo: 'photo', you: 'you: ',
+      signIn: 'sign in to see your conversations with hosts.', signInBtn: 'sign in' };
+---
+<h1 class="rr-display ml-h1">{T.h}</h1>
+<p class="ml-state" id="mlState">{T.loading}</p>
+{mode === 'site' && <button class="ml-signin" id="mlSignIn" type="button" hidden>{T.signInBtn}</button>}
+<ul class="ml-list" id="mlList"></ul>
+
+<script is:inline define:vars={{ LANG: lang, BASE, T, MODE: mode }}>
+    (function () {
+      var RU = LANG === 'ru';
+      var $ = function (id) { return document.getElementById(id); };
+      var CUR = (function () { try { return new URLSearchParams(location.search).get('c') || ''; } catch (e) { return ''; } })();
+      var myLang = (function () { try { return localStorage.getItem('rr_chat_lang') || LANG; } catch (e) { return LANG; } })();
+      function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+      function fmtDay(d) { try { return new Date(d + 'T12:00:00').toLocaleDateString(RU ? 'ru-RU' : 'en-GB', { day: 'numeric', month: 'short' }).replace('.', ''); } catch (e) { return d; } }
+      function when(ts) {
+        if (!ts) return '';
+        var d = new Date(ts), now = new Date();
+        if (d.toDateString() === now.toDateString()) return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
+        return d.toLocaleDateString(RU ? 'ru-RU' : 'en-GB', { day: 'numeric', month: 'short' }).replace('.', '');
+      }
+      function row(c) {
+        var li = el('li');
+        var a = el('a', 'ml-row' + (c.unread > 0 ? ' is-unread' : ''));
+        a.href = BASE + (MODE === 'site' ? '/messages?c=' : '/app/chat?c=') + c.id;
+        if (c.id === CUR) { a.classList.add('is-current'); a.setAttribute('aria-current', 'page'); }
+        var tx = el('div', 'ml-row__text');
+        var top = el('div', 'ml-row__top');
+        top.appendChild(el('p', 'ml-row__title', c.apt_title || c.operator_name || ''));
+        top.appendChild(el('span', 'ml-row__time', when(c.last_at)));
+        tx.appendChild(top);
+        var sub = [c.operator_name];
+        if (!c.booking_id) sub.push(T.inquiry);
+        else if (c.pending) sub.push(T.pending);
+        else if (c.ci && c.co) sub.push(fmtDay(c.ci) + ' – ' + fmtDay(c.co));
+        tx.appendChild(el('p', 'ml-row__sub', sub.filter(Boolean).join(' · ')));
+        if (c.last_at) {
+          var t = (!c.last_mine && c.last_tr && (c.last_tr[myLang] || c.last_tr[LANG])) || c.last_body || T.photo;
+          tx.appendChild(el('p', 'ml-row__last', (c.last_mine ? T.you : '') + t));
+        }
+        a.appendChild(tx);
+        if (c.unread > 0) { var dot = el('span', 'ml-row__dot'); dot.setAttribute('aria-label', String(c.unread)); a.appendChild(dot); }
+        li.appendChild(a);
+        return li;
+      }
+      function go() {
+        window.rrAuth.session().then(function (s) {
+          if (!s && MODE === 'site') {
+            $('mlState').textContent = T.signIn; $('mlSignIn').hidden = false;
+            return;
+          }
+          if (!s) { location.replace(BASE + '/app/login?next=' + encodeURIComponent(location.pathname)); return; }
+          window.rrAuth.chat.list().then(function (r) {
+            if (!r.ok) { $('mlState').textContent = r.missing ? T.missing : T.net; return; }
+            var list = Array.isArray(r.data) ? r.data : [];
+            $('mlState').textContent = list.length ? '' : T.empty;
+            $('mlState').hidden = !!list.length;
+            list.forEach(function (c) { $('mlList').appendChild(row(c)); });
+          });
+        });
+      }
+      var si = $('mlSignIn');
+      if (si) si.addEventListener('click', function () { if (window.rrLogin) window.rrLogin.open().then(function (r) { if (r.ok) location.reload(); }); });
+      window.rrAuth ? go() : window.addEventListener('rr-auth-ready', go, { once: true });
+    })();
+  </script>

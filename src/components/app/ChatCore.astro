@@ -1,0 +1,332 @@
+---
+// "Message the host" conversation — markup + script shared by the app screen (ChatScreen.astro,
+// pages app/chat and ru/app/chat) and the website's messages page (mode 'site'). A conversation with the apartment's operator team (Rega OS «сообщения»), spec
+// docs/superpowers/specs/2026-10-30-guest-host-messaging-design.md. Opened as
+//   ?c=<conversation id> · ?b=<booking id> (trip) · ?a=<apartment id> (question before booking)
+//   + &q=<text> to pre-fill the field (the concierge hands a question over).
+// Reads go through RPCs (rrAuth.chat.*, migration 089); sending goes through the Edge Function
+// `chat`, which hides contacts before a confirmed booking and translates. Each person reads the
+// other side in their own language, with «show original». New messages: polled every 4 s while
+// the screen is visible. Photos — only once the booking is confirmed (photos_ok).
+import '../../styles/app-shell.css';
+import '../../styles/app-concierge.css';
+import '../../styles/app-chat.css';
+
+// mode 'app' = the app screen (ChatScreen.astro), 'site' = the right pane of regarega.co/messages
+// (components/site/SiteMessages.astro): back goes to the site list, signing in uses window.rrLogin.
+export interface Props { lang: 'en' | 'ru'; mode?: 'app' | 'site' }
+const { lang, mode = 'app' } = Astro.props;
+const isRu = lang === 'ru';
+const BASE = isRu ? '/ru/georgia/batumi' : '/georgia/batumi';
+
+const T = isRu
+  ? {
+      title: 'переписка с хозяином — rega rega', desc: 'переписка с хозяином квартиры в приложении rega rega.',
+      back: 'назад', field: 'написать хозяину', send: 'отправить', photo: 'добавить фото', remove: 'убрать фото',
+      loading: 'открываю переписку…', inquiry: 'вопрос до брони', pending: 'заявка ждёт подтверждения',
+      guard: 'контакты в сообщениях скрыты до подтверждения брони',
+      empty: 'напиши хозяину — ответ придёт сюда и уведомлением.',
+      orig: 'показать оригинал', tr: 'показать перевод', sending: 'отправляется…',
+      failed: 'не отправилось', retry: 'повторить', rate: 'слишком быстро — подожди минуту.',
+      forbidden: 'эта переписка недоступна.', noresp: 'у этой квартиры сейчас некому ответить.',
+      missing: 'переписка с хозяином скоро появится.', net: 'нет связи с сервером.',
+      tooBig: 'не получилось подготовить фото.', pick: 'выберите переписку слева.', signIn: 'войдите, чтобы открыть переписку.', you: 'ты', today: 'сегодня', yesterday: 'вчера',
+    }
+  : {
+      title: 'messages with your host — rega rega', desc: 'messages with your apartment host in the rega rega app.',
+      back: 'back', field: 'message your host', send: 'send', photo: 'add photos', remove: 'remove photo',
+      loading: 'opening the conversation…', inquiry: 'question before booking', pending: 'request awaiting confirmation',
+      guard: 'contact details are hidden until the booking is confirmed',
+      empty: 'message your host — the reply lands here and as a notification.',
+      orig: 'show original', tr: 'show translation', sending: 'sending…',
+      failed: 'not sent', retry: 'retry', rate: 'too fast — wait a minute.',
+      forbidden: 'this conversation is not available.', noresp: 'nobody can answer for this apartment right now.',
+      missing: 'messaging your host is coming soon.', net: 'no connection to the server.',
+      tooBig: "couldn't prepare the photo.", pick: 'choose a conversation on the left.', signIn: 'sign in to open the conversation.', you: 'you', today: 'today', yesterday: 'yesterday',
+    };
+
+// Real Tabler-icons "outline" path data (viewBox 0 0 24 24).
+const ICONS = {
+  back: '<path d="M15 6l-6 6l6 6" />',
+  send: '<path d="M12 5l0 14" /><path d="M18 11l-6 -6" /><path d="M6 11l6 -6" />',
+  photo: '<path d="M15 8h.01" /><path d="M3 6a3 3 0 0 1 3 -3h12a3 3 0 0 1 3 3v12a3 3 0 0 1 -3 3h-12a3 3 0 0 1 -3 -3v-12z" /><path d="M3 16l5 -5c.928 -.893 2.072 -.893 3 0l5 5" /><path d="M14 14l1 -1c.928 -.893 2.072 -.893 3 0l3 3" />',
+  lock: '<path d="M5 13a2 2 0 0 1 2 -2h10a2 2 0 0 1 2 2v6a2 2 0 0 1 -2 2h-10a2 2 0 0 1 -2 -2v-6z" /><path d="M11 16a1 1 0 1 0 2 0a1 1 0 0 0 -2 0" /><path d="M8 11v-4a4 4 0 1 1 8 0v4" />',
+  x: '<path d="M18 6l-12 12" /><path d="M6 6l12 12" />',
+};
+const svg = (d: string) => `<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">${d}</svg>`;
+---
+  <header class="ch-top">
+    <a class="ch-back" id="chBack" href={mode === 'site' ? `${BASE}/messages` : `${BASE}/app/messages`} aria-label={T.back} set:html={svg(ICONS.back)} />
+    <div class="ch-top__text">
+      <p class="ch-top__title" id="chTitle"></p>
+      <p class="ch-top__sub" id="chSub"></p>
+    </div>
+  </header>
+
+  <main class="cc-screen ch-screen">
+    <p class="ch-state" id="chState">{T.loading}</p>
+    <div class="cc-log ch-log" id="chLog" aria-live="polite"></div>
+    <p class="ch-guard" id="chGuard" hidden><Fragment set:html={svg(ICONS.lock)} />{T.guard}</p>
+  </main>
+
+  <div class="ch-light" id="chLight" hidden><img alt="" id="chLightImg" /></div>
+
+  <form class="cc-compose ch-compose" id="chForm" novalidate hidden>
+    <div class="ch-pend" id="chPend" hidden></div>
+    <div class="ch-compose__row">
+      <label class="ch-photo" id="chPhotoBtn" hidden aria-label={T.photo}>
+        <Fragment set:html={svg(ICONS.photo)} />
+        <input type="file" accept="image/*" multiple id="chFile" />
+      </label>
+      <textarea class="cc-compose__field" id="chField" rows="1" maxlength="4000" placeholder={T.field} aria-label={T.field}></textarea>
+      <button class="cc-compose__send" id="chSend" type="submit" aria-label={T.send} disabled set:html={svg(ICONS.send)} />
+    </div>
+  </form>
+
+  <script is:inline define:vars={{ LANG: lang, BASE, T, XICON: svg(ICONS.x), MODE: mode }}>
+    (function () {
+      var RU = LANG === 'ru';
+      var $ = function (id) { return document.getElementById(id); };
+      var qs = new URLSearchParams(location.search);
+      var conv = null, meta = null, lastId = 0, timer = null, photosOk = false;
+      var msgs = [];          // from the server, by id
+      var pending = [];       // { client_id, text, photos:[dataUrl], state:'sending'|'failed' }
+      var urlCache = {};      // photo path → signed url
+      var picked = [];        // data urls waiting in the composer
+      var myLang = (function () { try { return localStorage.getItem('rr_chat_lang') || LANG; } catch (e) { return LANG; } })();
+
+      function state(text) { var s = $('chState'); s.textContent = text || ''; s.hidden = !text; }
+      function uuid() {
+        return crypto.randomUUID ? crypto.randomUUID() : 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, function (c) { var r = Math.random() * 16 | 0; return (c === 'x' ? r : (r & 3 | 8)).toString(16); });
+      }
+      function el(tag, cls, text) { var e = document.createElement(tag); if (cls) e.className = cls; if (text != null) e.textContent = text; return e; }
+
+      // back: inside the app → history; a push / direct visit → the list
+      $('chBack').addEventListener('click', function (e) {
+        if (document.referrer && new URL(document.referrer).origin === location.origin && history.length > 1) { e.preventDefault(); history.back(); }
+      });
+
+      // ---------- header ----------
+      function fmtDay(d) {
+        try { return new Date(d + 'T12:00:00').toLocaleDateString(RU ? 'ru-RU' : 'en-GB', { day: 'numeric', month: 'short' }).replace('.', ''); } catch (e) { return d; }
+      }
+      function head() {
+        $('chTitle').textContent = meta.apt_title || meta.operator_name || '';
+        var bits = [meta.operator_name];
+        if (!meta.booking_id) bits.push(T.inquiry);
+        else if (meta.pending) bits.push(T.pending);
+        else if (meta.ci && meta.co) bits.push(fmtDay(meta.ci) + ' – ' + fmtDay(meta.co));
+        $('chSub').textContent = bits.filter(Boolean).join(' · ');
+        $('chGuard').hidden = !meta.protected;
+        photosOk = !!meta.photos_ok;
+        $('chPhotoBtn').hidden = !photosOk;
+        if (!photosOk && picked.length) { picked = []; drawPicked(); }
+      }
+
+      // ---------- messages ----------
+      function textFor(m) {
+        if (m.mine) return { text: m.body, alt: null };
+        var t = m.tr && (m.tr[myLang] || m.tr[LANG]);
+        if (t && t !== m.body && m.lang !== myLang) return { text: t, alt: m.body };
+        return { text: m.body, alt: null };
+      }
+      function dayKey(ts) { var d = new Date(ts); return d.getFullYear() + '-' + d.getMonth() + '-' + d.getDate(); }
+      function dayLabel(ts) {
+        var d = new Date(ts), now = new Date(), y = new Date(now); y.setDate(now.getDate() - 1);
+        if (dayKey(d) === dayKey(now)) return T.today;
+        if (dayKey(d) === dayKey(y)) return T.yesterday;
+        return d.toLocaleDateString(RU ? 'ru-RU' : 'en-GB', { day: 'numeric', month: 'long' });
+      }
+      function hhmm(ts) { var d = new Date(ts); return ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2); }
+
+      function photoGrid(paths, local) {
+        var g = el('div', 'ch-photos ch-photos--' + Math.min(paths.length, 4));
+        paths.forEach(function (p) {
+          var b = el('button', 'ch-photos__ph'); b.type = 'button';
+          var img = el('img'); img.alt = ''; img.loading = 'lazy';
+          if (local) img.src = p; else if (urlCache[p]) img.src = urlCache[p]; else img.setAttribute('data-path', p);
+          b.appendChild(img);
+          b.addEventListener('click', function () { if (img.src) { $('chLightImg').src = img.src; $('chLight').hidden = false; } });
+          g.appendChild(b);
+        });
+        return g;
+      }
+
+      function bubble(m) {
+        var wrap = el('div', 'cc-msg ch-msg ' + (m.mine ? 'cc-msg--me ch-msg--me' : 'ch-msg--them'));
+        var col = el('div', 'ch-col');
+        if (!m.mine && m.sender_kind === 'guest' && m.sender_name) col.appendChild(el('span', 'ch-who', m.sender_name));
+        if (m.photos && m.photos.length) col.appendChild(photoGrid(m.photos, !!m.local));
+        var tf = textFor(m);
+        if (tf.text) {
+          var p = el('p', 'cc-bubble ch-bubble'); p.textContent = tf.text; col.appendChild(p);
+          if (tf.alt) {
+            var b = el('button', 'ch-orig', T.orig); b.type = 'button'; var showing = false;
+            b.addEventListener('click', function () { showing = !showing; p.textContent = showing ? tf.alt : tf.text; b.textContent = showing ? T.tr : T.orig; });
+            col.appendChild(b);
+          }
+        }
+        var t = el('span', 'ch-time');
+        if (m.state === 'sending') t.textContent = T.sending;
+        else if (m.state === 'failed') {
+          t.className += ' ch-time--err'; t.textContent = T.failed + (m.why ? ' · ' + m.why : '') + ' · ';
+          var r = el('button', 'ch-retry', T.retry); r.type = 'button';
+          r.addEventListener('click', function () { m.state = 'sending'; m.why = ''; render(); push(m); });
+          t.appendChild(r);
+        } else t.textContent = hhmm(m.created_at);
+        col.appendChild(t);
+        wrap.appendChild(col);
+        return wrap;
+      }
+
+      function render() {
+        var log = $('chLog'), atBottom = window.innerHeight + window.scrollY >= document.body.scrollHeight - 80;
+        log.textContent = '';
+        var lastDay = '';
+        msgs.concat(pending.map(function (p) { return { mine: true, local: true, body: p.text, photos: p.photos, state: p.state, why: p.why, created_at: Date.now(), _p: p }; }))
+          .forEach(function (m) {
+            var k = dayKey(m.created_at);
+            if (k !== lastDay) { log.appendChild(el('p', 'ch-day', dayLabel(m.created_at))); lastDay = k; }
+            var node = bubble(m._p ? Object.assign(m._p, m) : m);
+            log.appendChild(node);
+          });
+        if (!msgs.length && !pending.length) log.appendChild(el('p', 'ch-empty', T.empty));
+        signPhotos();
+        if (atBottom) bottom();
+      }
+      function bottom() { requestAnimationFrame(function () { window.scrollTo(0, document.body.scrollHeight); }); }
+
+      function signPhotos() {
+        var need = [].slice.call(document.querySelectorAll('img[data-path]')).map(function (i) { return i.getAttribute('data-path'); });
+        if (!need.length) return;
+        window.rrAuth.chat.photos(conv, need).then(function (r) {
+          if (!r.ok || !r.urls) return;
+          Object.keys(r.urls).forEach(function (k) { urlCache[k] = r.urls[k]; });
+          [].slice.call(document.querySelectorAll('img[data-path]')).forEach(function (i) {
+            var u = urlCache[i.getAttribute('data-path')]; if (u) { i.src = u; i.removeAttribute('data-path'); }
+          });
+        });
+      }
+
+      // ---------- load / poll ----------
+      function load(first) {
+        return window.rrAuth.chat.messages(conv, lastId).then(function (r) {
+          if (!r.ok) { if (first) state(r.missing ? T.missing : T.net); return; }
+          var d = r.data;
+          if (!d || !d.ok) { if (first) { state(T.forbidden); stop(); } return; }
+          meta = d.conv; head();
+          var fresh = d.messages || [];
+          if (fresh.length) {
+            // a send's reload and the 4 s poll can overlap: take each id once
+            fresh = fresh.filter(function (m) { return m.id > lastId; });
+            fresh.forEach(function (m) { lastId = m.id; msgs.push(m); });
+            window.rrAuth.chat.read(conv);
+          }
+          if (first) { state(''); $('chForm').hidden = false; render(); bottom(); }
+          else if (fresh.length) render();
+        });
+      }
+      function tick() { if (!document.hidden) load(false); }
+      function start() { stop(); timer = setInterval(tick, 4000); }
+      function stop() { if (timer) clearInterval(timer); timer = null; }
+      document.addEventListener('visibilitychange', function () { if (!document.hidden && conv) { load(false); start(); } else stop(); });
+
+      // ---------- send ----------
+      function push(p) {
+        window.rrAuth.chat.send({ conv: conv, client_id: p.client_id, text: p.text, lang: LANG, photos: p.photos })
+          .then(function (r) {
+            if (r.ok) {
+              if (r.lang && /^[a-z]{2}$/.test(r.lang)) { myLang = r.lang; try { localStorage.setItem('rr_chat_lang', r.lang); } catch (e) {} }
+              // the bubble stays «sending» until the server copy is in the list — no flicker
+              return load(false).then(function () { pending = pending.filter(function (x) { return x !== p; }); render(); });
+            }
+            p.state = 'failed';
+            p.why = r.error === 'rate' ? T.rate : r.error === 'network' ? T.net : '';
+            if (r.error === 'photos_locked') { p.photos = []; }
+            render();
+          });
+      }
+      function send() {
+        var text = $('chField').value.trim();
+        if (!text && !picked.length) return;
+        var p = { client_id: uuid(), text: text, photos: picked.slice(), state: 'sending' };
+        pending.push(p);
+        $('chField').value = ''; picked = []; drawPicked(); grow();
+        render(); bottom();
+        push(p);
+      }
+
+      // ---------- photos: shrink to ≤1600px JPEG on the phone ----------
+      function shrink(file) {
+        return new Promise(function (ok, bad) {
+          var img = new Image(), url = URL.createObjectURL(file);
+          img.onload = function () {
+            var s = Math.min(1, 1600 / Math.max(img.width, img.height));
+            var c = document.createElement('canvas'); c.width = Math.round(img.width * s); c.height = Math.round(img.height * s);
+            c.getContext('2d').drawImage(img, 0, 0, c.width, c.height);
+            URL.revokeObjectURL(url);
+            var q = 0.82, out = c.toDataURL('image/jpeg', q);
+            while (out.length > 1900000 && q > 0.4) { q -= 0.12; out = c.toDataURL('image/jpeg', q); }
+            ok(out);
+          };
+          img.onerror = function () { URL.revokeObjectURL(url); bad(); };
+          img.src = url;
+        });
+      }
+      function drawPicked() {
+        var box = $('chPend'); box.textContent = '';
+        box.hidden = !picked.length;
+        picked.forEach(function (src, i) {
+          var f = el('span', 'ch-pend__ph'); var img = el('img'); img.src = src; img.alt = ''; f.appendChild(img);
+          var x = el('button', 'ch-pend__x'); x.type = 'button'; x.setAttribute('aria-label', T.remove); x.innerHTML = XICON;
+          x.addEventListener('click', function () { picked.splice(i, 1); drawPicked(); grow(); });
+          f.appendChild(x); box.appendChild(f);
+        });
+      }
+      $('chFile').addEventListener('change', function (e) {
+        var files = [].slice.call(e.target.files || []).slice(0, 4 - picked.length);
+        e.target.value = '';
+        Promise.all(files.map(function (f) { return shrink(f).catch(function () { return null; }); })).then(function (list) {
+          list.forEach(function (d) { if (d) picked.push(d); });
+          drawPicked(); grow();
+          if (list.some(function (d) { return !d; })) { var n = el('p', 'ch-pend__err', T.tooBig); $('chPend').hidden = false; $('chPend').appendChild(n); }
+        });
+      });
+      $('chLight').addEventListener('click', function () { $('chLight').hidden = true; });
+
+      var field = $('chField');
+      function grow() { field.style.height = 'auto'; field.style.height = Math.min(field.scrollHeight, 120) + 'px'; $('chSend').disabled = !field.value.trim() && !picked.length; }
+      field.addEventListener('input', grow);
+      field.addEventListener('keydown', function (e) { if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); send(); } });
+      $('chForm').addEventListener('submit', function (e) { e.preventDefault(); send(); });
+
+      // ---------- open ----------
+      function go() {
+        window.rrAuth.session().then(function (s) {
+          var c = qs.get('c'), b = qs.get('b'), a = qs.get('a');
+          if (MODE === 'site' && !c && !b && !a) { state(T.pick); return; }
+          if (!s && MODE === 'site') {
+            state(T.signIn);
+            if (window.rrLogin) window.rrLogin.open().then(function (r) { if (r.ok) location.reload(); });
+            return;
+          }
+          if (!s) { location.replace(BASE + '/app/login?next=' + encodeURIComponent(location.pathname + location.search)); return; }
+          var opening = c && /^[0-9a-f-]{36}$/i.test(c) ? Promise.resolve({ ok: true, data: { ok: true, id: c } })
+            : b && /^\d+$/.test(b) ? window.rrAuth.chat.forBooking(b)
+            : a && /^[0-9a-f-]{36}$/i.test(a) ? window.rrAuth.chat.inquiry(a)
+            : Promise.resolve({ ok: true, data: { ok: false, error: 'forbidden' } });
+          opening.then(function (r) {
+            if (!r.ok) { state(r.missing ? T.missing : T.net); return; }
+            if (!r.data || !r.data.ok) { state(r.data && r.data.error === 'no_responders' ? T.noresp : T.forbidden); return; }
+            conv = r.data.id;
+            var q = qs.get('q');
+            // the address keeps only the conversation id (never names / tokens)
+            try { history.replaceState(null, '', location.pathname + '?c=' + conv); } catch (e) {}
+            if (q) { field.value = q.slice(0, 4000); grow(); }
+            load(true).then(start);
+          });
+        });
+      }
+      window.rrAuth ? go() : window.addEventListener('rr-auth-ready', go, { once: true });
+    })();
+  </script>

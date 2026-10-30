@@ -1,0 +1,18 @@
+---
+// regarega.co/saved — «избранное»: the same «my batumi» list as the app (MyCore, mode 'site'),
+// fed by window.rrSaves (public/app-saves.js), synced to the account when signed in.
+import Site from '../../layouts/Site.astro';
+import SiteRu from '../../layouts/SiteRu.astro';
+import MyCore from '../app/MyCore.astro';
+import '../../styles/site-pages.css';
+
+export interface Props { lang: 'en' | 'ru' }
+const { lang } = Astro.props;
+const Layout = lang === 'ru' ? SiteRu : Site;
+const T = lang === 'ru'
+  ? { title: 'избранное — rega rega batumi', desc: 'квартиры, места и новости, которые вы сохранили.' }
+  : { title: 'saved — rega rega batumi', desc: 'flats, places and news you saved.' };
+---
+<Layout title={T.title} description={T.desc} noindex>
+  <div class="sp ss"><MyCore lang={lang} mode="site" /></div>
+</Layout>

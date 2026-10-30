@@ -7,7 +7,7 @@ import '../styles/date-sheet.css';
 import '../styles/tabbar.css';
 import TabBar from '../components/TabBar.astro';
 import SiteAccount from '../components/site/SiteAccount.astro';
-export interface Props { title?: string; description?: string; ogTitle?: string; ogDescription?: string; accent?: string; accentDeep?: string; image?: string; ogType?: string; }
+export interface Props { title?: string; description?: string; ogTitle?: string; ogDescription?: string; accent?: string; accentDeep?: string; image?: string; ogType?: string; noindex?: boolean; }
 const {
   title = 'rega rega — apartments & the batumi guide',
   description = 'checked flats and a city guide. batumi edition. local operations by bre.',
@@ -16,6 +16,7 @@ const {
   image = '/og/default.png',
   ogType = 'website',
 } = Astro.props;
+const noindex = !!Astro.props.noindex;
 // Social preview text: the OG card image is the hero — keep link-preview text minimal.
 // ogTitle defaults to the page title; pass ogDescription='' to drop og/twitter description entirely.
 const ogTitle = Astro.props.ogTitle ?? title;
@@ -35,6 +36,7 @@ const ogImage = new URL(image, Astro.site).href;
   <title>{title}</title>
   <meta name="description" content={description} />
   <link rel="canonical" href={canonical} />
+  {noindex && <meta name="robots" content="noindex" />}
   <meta property="og:type" content={ogType} />
   <meta property="og:site_name" content="rega rega" />
   <meta property="og:locale" content="en_US" />

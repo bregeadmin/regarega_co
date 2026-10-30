@@ -1,0 +1,115 @@
+---
+// regarega.co/account — the guest's profile on the website: name + phone (rrAuth.saveProfile, the
+// host sees the name), email read-only (it is the sign-in), sign out, delete account (two taps,
+// the Edge Function guest-account — same as the app's ProfileScreen).
+import Site from '../../layouts/Site.astro';
+import SiteRu from '../../layouts/SiteRu.astro';
+import '../../styles/site-pages.css';
+
+export interface Props { lang: 'en' | 'ru' }
+const { lang } = Astro.props;
+const isRu = lang === 'ru';
+const Layout = isRu ? SiteRu : Site;
+const BASE = isRu ? '/ru/georgia/batumi' : '/georgia/batumi';
+const T = isRu
+  ? { title: 'профиль — rega rega batumi', desc: 'ваш профиль гостя.', h: 'профиль', loading: 'загружаю…',
+      name: 'имя', phone: 'телефон (необязательно)', email: 'почта', emailNote: 'по ней вы входите — поменять нельзя.',
+      nameNote: 'имя увидит хозяин жилья.', save: 'сохранить', saving: 'сохраняем…', saved: 'сохранено',
+      eName: 'напишите имя.', eNet: 'не получилось — проверьте связь и попробуйте ещё раз.',
+      out: 'выйти', del: 'удалить аккаунт', delSure: 'точно удалить? нажмите ещё раз', deleting: 'удаляем…',
+      delNote: 'аккаунт удалится насовсем — восстановить его будет нельзя.',
+      signIn: 'войдите, чтобы увидеть профиль.', signInBtn: 'войти', retry: 'повторить' }
+  : { title: 'account — rega rega batumi', desc: 'your guest profile.', h: 'account', loading: 'loading…',
+      name: 'name', phone: 'phone (optional)', email: 'email', emailNote: 'you sign in with it — it cannot be changed.',
+      nameNote: 'your host will see your name.', save: 'save', saving: 'saving…', saved: 'saved',
+      eName: 'please enter your name.', eNet: "that didn't work — check your connection and try again.",
+      out: 'sign out', del: 'delete account', delSure: 'sure? tap again to delete', deleting: 'deleting…',
+      delNote: 'your account is removed for good — it cannot be restored.',
+      signIn: 'sign in to see your account.', signInBtn: 'sign in', retry: 'try again' };
+---
+<Layout title={T.title} description={T.desc} noindex>
+  <main class="sp ap-page">
+    <h1 class="sp-h">{T.h}<span>.</span></h1>
+    <p class="sp-state" id="apState">{T.loading}</p>
+    <button class="sp-btn" id="apSignIn" type="button" hidden>{T.signInBtn}</button>
+    <button class="sp-btn sp-btn--ghost" id="apRetry" type="button" hidden>{T.retry}</button>
+
+    <form class="ap-card" id="apForm" novalidate hidden>
+      <label class="ap-l" for="apName">{T.name}</label>
+      <input class="ap-f" id="apName" type="text" autocomplete="name" />
+      <p class="ap-note">{T.nameNote}</p>
+      <label class="ap-l" for="apPhone">{T.phone}</label>
+      <input class="ap-f" id="apPhone" type="tel" inputmode="tel" autocomplete="tel" />
+      <label class="ap-l" for="apEmail">{T.email}</label>
+      <input class="ap-f" id="apEmail" type="email" readonly />
+      <p class="ap-note">{T.emailNote}</p>
+      <p class="ap-err" id="apErr" role="alert" hidden></p>
+      <div class="ap-row">
+        <button class="sp-btn" id="apSave" type="submit">{T.save}</button>
+        <span class="ap-ok" id="apOk" hidden>{T.saved}</span>
+      </div>
+    </form>
+
+    <div class="ap-card ap-card--quiet" id="apMore" hidden>
+      <button class="sp-btn sp-btn--ghost" id="apOut" type="button">{T.out}</button>
+      <div class="ap-del">
+        <button class="sp-link sp-link--danger" id="apDel" type="button">{T.del}</button>
+        <p class="ap-note">{T.delNote}</p>
+      </div>
+    </div>
+  </main>
+  <script is:inline define:vars={{ T, BASE }}>
+    (function () {
+      var $ = function (id) { return document.getElementById(id); };
+      var KEYS = ['rr_trip', 'rr_trip_token', 'rr_claimed', 'rr_cc', 'rr_uid', 'rr_chat_lang', 'rr_chat_unread'];
+      function state(t) { $('apState').textContent = t || ''; $('apState').hidden = !t; }
+      function clearLocal() {
+        try { KEYS.forEach(function (k) { localStorage.removeItem(k); }); } catch (e) {}
+        if (window.rrSaves) window.rrSaves.forget();
+      }
+      function load() {
+        var rr = window.rrAuth;
+        $('apRetry').hidden = true; state(T.loading);
+        rr.session().then(function (s) {
+          if (!s) { state(T.signIn); $('apSignIn').hidden = false; return; }
+          rr.profile().then(function (p) {
+            if (p && p.error) { state(T.eNet); $('apRetry').hidden = false; return; }
+            state('');
+            $('apName').value = (p && p.name) || '';
+            $('apPhone').value = (p && p.phone) || '';
+            $('apEmail').value = (p && p.email) || (s.user && s.user.email) || '';
+            $('apForm').hidden = false; $('apMore').hidden = false;
+          });
+        });
+      }
+      $('apRetry').addEventListener('click', load);
+      $('apSignIn').addEventListener('click', function () { if (window.rrLogin) window.rrLogin.open().then(function (r) { if (r.ok) location.reload(); }); });
+      $('apForm').addEventListener('input', function () { $('apOk').hidden = true; $('apErr').hidden = true; });
+      $('apForm').addEventListener('submit', function (e) {
+        e.preventDefault();
+        var n = $('apName').value.trim();
+        if (!n) { $('apErr').textContent = T.eName; $('apErr').hidden = false; return; }
+        var b = $('apSave'); b.disabled = true; b.textContent = T.saving;
+        window.rrAuth.saveProfile(n, $('apPhone').value.trim() || null).then(function (r) {
+          b.disabled = false; b.textContent = T.save;
+          if (!r.ok) { $('apErr').textContent = r.error === 'bad_name' ? T.eName : T.eNet; $('apErr').hidden = false; return; }
+          $('apOk').hidden = false;
+        });
+      });
+      $('apOut').addEventListener('click', function () {
+        window.rrAuth.signOut().then(function () { clearLocal(); location.href = BASE; });
+      });
+      var armed = false, armT = null;
+      $('apDel').addEventListener('click', function () {
+        var b = $('apDel');
+        if (!armed) { armed = true; b.textContent = T.delSure; clearTimeout(armT); armT = setTimeout(function () { armed = false; b.textContent = T.del; }, 5000); return; }
+        clearTimeout(armT); b.disabled = true; b.textContent = T.deleting;
+        window.rrAuth.deleteAccount().then(function (r) {
+          if (!r.ok) { armed = false; b.disabled = false; b.textContent = T.del; $('apErr').textContent = T.eNet; $('apErr').hidden = false; return; }
+          clearLocal(); location.href = BASE;
+        });
+      });
+      window.rrAuth ? load() : addEventListener('rr-auth-ready', load, { once: true });
+    })();
+  </script>
+</Layout>

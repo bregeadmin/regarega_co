@@ -1,0 +1,30 @@
+---
+// regarega.co/messages — the guest's conversations on the website, like Airbnb in a browser:
+// desktop = list on the left, the open conversation (?c=<id>) on the right; phone = the list, or
+// the conversation alone with a back arrow. Both halves are the app's own components
+// (ChatListCore / ChatCore, mode 'site'), so the website and the app share one code path.
+// The page scrolls as a whole (the chat script scrolls the window); the composer sticks to the
+// bottom of the screen and the conversation header under the site topbar.
+import Site from '../../layouts/Site.astro';
+import SiteRu from '../../layouts/SiteRu.astro';
+import ChatListCore from '../app/ChatListCore.astro';
+import ChatCore from '../app/ChatCore.astro';
+import '../../styles/site-pages.css';
+
+export interface Props { lang: 'en' | 'ru' }
+const { lang } = Astro.props;
+const Layout = lang === 'ru' ? SiteRu : Site;
+const T = lang === 'ru'
+  ? { title: 'сообщения — rega rega batumi', desc: 'переписка с хозяевами квартир.' }
+  : { title: 'messages — rega rega batumi', desc: 'your conversations with hosts.' };
+---
+<Layout title={T.title} description={T.desc} noindex>
+  <script is:inline>
+    // before paint: phone shows either the list or the open conversation
+    try { if (new URLSearchParams(location.search).get('c')) document.documentElement.classList.add('sm-open'); } catch (e) {}
+  </script>
+  <main class="sp sm">
+    <aside class="sm-list"><ChatListCore lang={lang} mode="site" /></aside>
+    <section class="sm-pane"><ChatCore lang={lang} mode="site" /></section>
+  </main>
+</Layout>
