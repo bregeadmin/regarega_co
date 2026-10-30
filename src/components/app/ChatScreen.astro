@@ -220,7 +220,9 @@ const svg = (d: string) => `<svg viewBox="0 0 24 24" fill="none" stroke="current
           meta = d.conv; head();
           var fresh = d.messages || [];
           if (fresh.length) {
-            fresh.forEach(function (m) { if (m.id > lastId) lastId = m.id; msgs.push(m); });
+            // a send's reload and the 4 s poll can overlap: take each id once
+            fresh = fresh.filter(function (m) { return m.id > lastId; });
+            fresh.forEach(function (m) { lastId = m.id; msgs.push(m); });
             window.rrAuth.chat.read(conv);
           }
           if (first) { state(''); $('chForm').hidden = false; render(); bottom(); }
