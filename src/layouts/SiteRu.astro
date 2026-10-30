@@ -198,26 +198,52 @@ const ogImage = new URL(image, Astro.site).href;
   })();
 </script>
 <script is:inline>
-  /* Favorites — saved per device (localStorage), no account. Hearts persist across pages/reloads. */
+  /* Favourites — the hearts on flat cards. Since guest accounts they live in «my batumi»
+     (window.rrSaves, public/app-saves.js: local first, synced to the account when signed in), kind
+     'stay' — the same list as the app and /saved. Mirrored into localStorage rr_favs + the
+     'rr:favschange' event so the booking-token layer (rega-personal.js) and the stays-page counter
+     keep working. Old hearts (rr_favs from before) are merged into rrSaves once (rr_favs_mig) —
+     same rule as favsToSaves() in src/lib/guestCore.js (tested there). */
   (function(){
-    var KEY='rr_favs';
-    function load(){ try{ return new Set(JSON.parse(localStorage.getItem(KEY)||'[]')); }catch(e){ return new Set(); } }
-    function save(s){ try{ localStorage.setItem(KEY, JSON.stringify(Array.from(s))); }catch(e){} }
+    var KEY='rr_favs', SLUG=/^[a-z0-9-]{1,120}$/;
+    function lsLoad(){ try{ return new Set(JSON.parse(localStorage.getItem(KEY)||'[]')); }catch(e){ return new Set(); } }
+    function lsSave(s){ try{ localStorage.setItem(KEY, JSON.stringify(Array.from(s))); }catch(e){} }
+    function changed(s){ document.dispatchEvent(new CustomEvent('rr:favschange',{detail:Array.from(s)})); }
+    function has(slug){ return window.rrSaves ? window.rrSaves.has('stay', slug) : lsLoad().has(slug); }
     function slugOf(b){ var c=b.closest('[data-slug]'); if(c&&c.getAttribute('data-slug'))return c.getAttribute('data-slug'); var a=b.closest('a[href*="/stays/"]'); if(a){ var m=a.getAttribute('href').match(/\/stays\/([^\/?#]+)/); if(m)return m[1]; } return null; }
-    var favs=load();
-    document.querySelectorAll('.fav').forEach(function(b){
-      var slug=slugOf(b); if(!slug) return; b.setAttribute('aria-pressed', favs.has(slug)?'true':'false');
-      if(favs.has(slug)){ b.textContent='♥'; b.classList.add('on'); b.setAttribute('aria-pressed','true'); }
+    function paint(b, on){ b.textContent = on ? '♥' : '♡'; b.classList.toggle('on', on); b.setAttribute('aria-pressed', on ? 'true' : 'false'); }
+    var btns = Array.prototype.slice.call(document.querySelectorAll('.fav'));
+    function paintAll(){ btns.forEach(function(b){ var s=slugOf(b); if(s) paint(b, has(s)); }); }
+    btns.forEach(function(b){
+      var slug=slugOf(b); if(!slug) return;
       b.addEventListener('click', function(e){
         e.preventDefault(); e.stopPropagation();
-        var s=load();
-        if(s.has(slug)){ s.delete(slug); b.textContent='♡'; b.classList.remove('on'); b.setAttribute('aria-pressed','false'); }
-        else { s.add(slug); b.textContent='♥'; b.classList.add('on'); b.setAttribute('aria-pressed','true'); }
-        save(s);
+        var on = !has(slug);
+        if (window.rrSaves) window.rrSaves.set('stay', slug, on, 'batumi');
+        var s=lsLoad(); if(on) s.add(slug); else s.delete(slug); lsSave(s);
+        paint(b, on);
         b.classList.remove('pop'); void b.offsetWidth; b.classList.add('pop');
-        document.dispatchEvent(new CustomEvent('rr:favschange',{detail:Array.from(s)}));
+        changed(s);
       });
     });
+    paintAll();
+    function ready(){
+      var R=window.rrSaves; if(!R) return;
+      var done=false; try{ done=localStorage.getItem('rr_favs_mig')==='1'; }catch(e){}
+      if(!done){
+        var have={}; R.list().forEach(function(x){ if(x.k==='stay') have[x.s]=1; });
+        lsLoad().forEach(function(s){ if(typeof s==='string' && SLUG.test(s) && !have[s]){ have[s]=1; R.set('stay', s, true, 'batumi'); } });
+        try{ localStorage.setItem('rr_favs_mig','1'); }catch(e){}
+      }
+      paintAll();
+      // the account is the truth once synced: keep the mirror equal to it
+      window.addEventListener('rr-saves', function(){
+        var s=new Set(R.list().filter(function(x){ return x.k==='stay'; }).map(function(x){ return x.s; }));
+        lsSave(s); paintAll(); changed(s);
+      });
+    }
+    // app-saves.js is deferred: it has run by DOMContentLoaded
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', ready, { once:true }); else ready();
   })();
 </script>
 <script is:inline>
